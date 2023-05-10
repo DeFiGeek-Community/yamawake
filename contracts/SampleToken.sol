@@ -1,10 +1,6 @@
-pragma solidity ^0.8.3;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8.18;
 
-/**
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
@@ -17,8 +13,14 @@ contract SampleToken is ERC20 {
         _mint(msg.sender, initialSupply);
     }
 
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
-        require(_msgSender() != spender, "sender and spender shouldn't be the same.");
+    function approve(
+        address spender,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        require(
+            _msgSender() != spender,
+            "sender and spender shouldn't be the same."
+        );
         require(amount > 0, "Amount is zero.");
 
         _approve(_msgSender(), spender, amount);

@@ -1,10 +1,6 @@
-pragma solidity ^0.8.3;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.8.18;
 
-/**
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./ITemplateContract.sol";
 
@@ -21,7 +17,8 @@ contract OwnableToken is ERC20, ITemplateContract {
     */
     bool initialized = false;
 
-    address public constant factory = address(0x2c08D232cf190DcB7D641254ea5376a9DE17A882);
+    address public constant factory =
+        address(0x2c08D232cf190DcB7D641254ea5376a9DE17A882);
 
     /*
         You can't use constructor
