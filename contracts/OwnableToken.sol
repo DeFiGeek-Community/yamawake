@@ -17,8 +17,7 @@ contract OwnableToken is ERC20, ITemplateContract {
     */
     bool initialized = false;
 
-    address public constant factory =
-        address(0x2c08D232cf190DcB7D641254ea5376a9DE17A882);
+    address public constant factory = address(0x0165878A594ca255338adfa4d48449f69242Eb8F);
 
     /*
         You can't use constructor

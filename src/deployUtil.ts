@@ -12,7 +12,7 @@ import { genABI } from './genABI';
 import { ethers } from "hardhat";
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 const hre:HardhatRuntimeEnvironment = require("hardhat")
-const addressExp = /address public constant factory =[ \r\n|\n|\r]* *address\(0x([0-9a-fA-F]{40})\);/;
+const addressExp = /address public constant factory =[\r\n|\n|\r]* *address\(0x([0-9a-fA-F]{40})\);/;
 const saleTemplateName = ".saleTemplateName"
 const EMBEDDED_MODE_FILE = '.embeddedMode';
 

@@ -1,59 +1,54 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.18;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ITemplateContract.sol";
 
-contract Factory is ReentrancyGuard {
-    mapping(string => address) public templates;
-    address public governance;
+contract Factory is ReentrancyGuard, Ownable {
+    mapping(bytes32 => address) public templates;
     uint nonce = 0;
-    event Deployed(
+
+    event SaleDeployed(
         address indexed sender,
-        string indexed templateName,
+        bytes32 indexed templateName,
         address indexed deployedAddr,
         bytes abiArgs
     );
-    event TokenCloneDeployed(
+    event TokenDeployed(
         address indexed sender,
-        string indexed templateName,
+        bytes32 indexed templateName,
         address indexed deployedAddr,
         bytes abiArgs
     );
     event TemplateAdded(
-        string indexed templateName,
-        address indexed templateAddr,
-        address indexed governer
+        bytes32 indexed templateName,
+        address indexed templateAddr
     );
-    event GovernanceChanged(
-        address indexed oldGoverner,
-        address indexed newGoverner
-    );
-    event Received(address indexed sender, uint fee, uint treasury);
-    event Withdrawn(
-        address indexed sender,
-        address governance,
-        uint amount,
-        uint treasuryAfter
+    event Received(address indexed sender, uint amount);
+    event WithdrawnEther(address indexed receiver, uint amount);
+    event WithdrawnToken(
+        address indexed receiver,
+        address indexed token,
+        uint amount
     );
 
     /*
         External Interfaces
     */
-    function deploy(
-        string memory templateName,
+    function deploySaleClone(
+        bytes32 templateName,
         address tokenAddr,
         uint sellingAmount,
-        bytes memory abiArgs
+        bytes calldata abiArgs
     ) public nonReentrant returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
-        require(bytes(templateName).length > 0, "Empty string.");
-        require(tokenAddr != address(0), "Go with non null address.");
-
         address templateAddr = templates[templateName];
-
         require(templateAddr != address(0), "No such template in the list.");
+
+        require(tokenAddr != address(0), "Go with non null address.");
 
         require(
             sellingAmount > 0,
@@ -68,7 +63,7 @@ contract Factory is ReentrancyGuard {
         require(_allowance >= sellingAmount, "allowance is not enough.");
 
         /* 2. Make a clone. */
-        deployedAddr = _createClone(templateAddr, abiArgs);
+        deployedAddr = _createClone(templateAddr);
 
         /* 3. Fund it. */
         require(
@@ -86,22 +81,19 @@ contract Factory is ReentrancyGuard {
             "Failed to initialize the cloned contract."
         );
 
-        emit Deployed(msg.sender, templateName, deployedAddr, abiArgs);
+        emit SaleDeployed(msg.sender, templateName, deployedAddr, abiArgs);
     }
 
     function deployTokenClone(
-        string memory templateName,
-        bytes memory abiArgs
+        bytes32 templateName,
+        bytes calldata abiArgs
     ) public returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
-        require(bytes(templateName).length > 0, "Empty string.");
-
         address templateAddr = templates[templateName];
-
         require(templateAddr != address(0), "No such template in the list.");
 
         /* 2. Make a clone. */
-        deployedAddr = _createClone(templateAddr, abiArgs);
+        deployedAddr = _createClone(templateAddr);
 
         /* 3. Initialize it. */
         require(
@@ -109,89 +101,81 @@ contract Factory is ReentrancyGuard {
             "Failed to initialize the cloned contract."
         );
 
-        emit TokenCloneDeployed(
-            msg.sender,
-            templateName,
-            deployedAddr,
-            abiArgs
-        );
+        emit TokenDeployed(msg.sender, templateName, deployedAddr, abiArgs);
     }
 
     function addTemplate(
-        string memory templateName,
-        address templateAddr /* Dear governer; deploy it beforehand. */
-    ) public onlyGovernance {
+        bytes32 templateName,
+        /* Dear governer; deploy it beforehand. */
+        address templateAddr
+    ) public onlyOwner {
         require(
             templates[templateName] == address(0),
             "This template name is already taken."
         );
         templates[templateName] = templateAddr;
-        emit TemplateAdded(templateName, templateAddr, governance);
-    }
-
-    modifier onlyGovernance() {
-        require(msg.sender == governance, "You're not the governer.");
-        _;
-    }
-
-    constructor(address initialOwner) {
-        governance = initialOwner;
+        emit TemplateAdded(templateName, templateAddr);
     }
 
     receive() external payable {
-        emit Received(msg.sender, msg.value, address(this).balance);
+        emit Received(msg.sender, msg.value);
     }
 
-    function withdraw(
-        address to,
-        uint amount
-    ) public onlyGovernance nonReentrant {
+    function withdrawEther(address to) external onlyOwner nonReentrant {
         require(to != address(0), "Don't discard treaury!");
-        require(address(this).balance >= amount, "Amount is too big");
-
+        uint amount = address(this).balance;
         (bool success, ) = payable(to).call{value: amount}("");
         require(success, "transfer failed");
 
-        emit Withdrawn(msg.sender, governance, amount, address(this).balance);
+        emit WithdrawnEther(to, amount);
     }
 
-    function setGovernance(address newGoverner) public onlyGovernance {
-        require(newGoverner != address(0), "governer cannot be null");
-        emit GovernanceChanged(governance, newGoverner);
-        governance = newGoverner;
+    function withdrawToken(
+        address to,
+        address[] calldata token
+    ) external onlyOwner nonReentrant {
+        require(to != address(0), "Don't discard treaury!");
+        uint256 length = token.length;
+        for (uint256 i = 0; i < length; ) {
+            uint amount = IERC20(token[i]).balanceOf(address(this));
+            IERC20(token[i]).transfer(to, amount);
+            emit WithdrawnToken(to, token[i], amount);
+            unchecked {
+                i++;
+            }
+        }
     }
 
     /*
         Internal Helpers
     */
     function _createClone(
-        address target,
-        bytes memory abiArgs
+        address implementation
     ) internal returns (address result) {
-        bytes20 targetBytes = bytes20(target);
         nonce += 1;
-        bytes32 salt = keccak256(
-            abi.encodePacked(target, abiArgs, msg.sender, nonce)
-        );
+        bytes32 salt = keccak256(abi.encodePacked(implementation, nonce));
+        // OpenZeppelin Contracts (last updated v4.8.0) (proxy/Clones.sol)
         assembly {
-            let clone := mload(0x40)
             mstore(
-                clone,
-                0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000
+                0x00,
+                or(
+                    shr(0xe8, shl(0x60, implementation)),
+                    0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000
+                )
             )
-            mstore(add(clone, 0x14), targetBytes)
             mstore(
-                add(clone, 0x28),
-                0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
+                0x20,
+                or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3)
             )
-            result := create2(0, clone, 0x37, salt)
+            result := create2(0, 0x09, 0x37, salt)
         }
+        require(result != address(0), "ERC1167: create2 failed");
     }
 
     function isClone(
         address target,
         address query
-    ) internal view returns (bool result) {
+    ) external view returns (bool result) {
         bytes20 targetBytes = bytes20(target);
         assembly {
             let clone := mload(0x40)

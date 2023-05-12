@@ -1,7 +1,5 @@
-import { BigNumber, Wallet, Contract } from 'ethers';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {DeployFunction} from 'hardhat-deploy/types';
-import {parseEther} from 'ethers/lib/utils';
 import {
   deploy,
   getFoundation,
@@ -10,6 +8,7 @@ import {
   backToInitMode
 } from '../src/deployUtil';
 import { addTemplate } from '../src/addTemplate';
+
 
 const codename = "OwnableToken";
 

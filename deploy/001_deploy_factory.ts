@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const factory = await deploy('Factory', {
     from: foundation,
-    args: [foundation.address],
+    args: [],
     log: true,
     getContractFactory
   });

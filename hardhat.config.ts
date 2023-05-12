@@ -40,7 +40,7 @@ const config: HardhatUserConfig = {
     apiKey: ETHERSCAN_API_KEY,
   },
   paths: {
-    deployments: './hardhat-deployments',
+    deployments: 'hardhat-deployments',
   }
 };
 

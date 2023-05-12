@@ -1,6 +1,6 @@
 require('dotenv').config();
 import chalk from 'chalk';
-import { BigNumber, Wallet, Contract } from 'ethers';
+import { Contract, utils } from 'ethers';
 import { genABI } from '../src/genABI';
 import {
     getFoundation,
@@ -30,7 +30,7 @@ export async function addTemplate(templateName: string, deployedFactoryAddress: 
     /*
         3. Finding unique name
     */
-    function genName(filename: string, i: number){ return `${filename}.${i}.sol` }
+    function genName(filename: string, i: number){ return utils.formatBytes32String(`${filename}.${i}.sol`) }
     let nonce = 0;
     let name;
     let lookupResult;

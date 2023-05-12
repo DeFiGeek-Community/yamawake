@@ -10,7 +10,6 @@ async function main() {
     const factoryAddress = readFileSync(basePath + 'Factory').toString();
     await run(`verify:verify`, {
         address: factoryAddress,
-        constructorArguments: [foundation.address],
     });
 
     // BulkSaleV1
@@ -26,11 +25,11 @@ async function main() {
     });
 
     // SampleToken
-    const sampleAddress = readFileSync(basePath + 'SampleToken').toString();
-    await run(`verify:verify`, {
-        address: sampleAddress,
-        constructorArguments: [parseEther('115792089237316195423570985008687907853269984665640564039457')]
-    });
+    // const sampleAddress = readFileSync(basePath + 'SampleToken').toString();
+    // await run(`verify:verify`, {
+    //     address: sampleAddress,
+    //     constructorArguments: [parseEther('115792089237316195423570985008687907853269984665640564039457')]
+    // });
 }
 
 main().catch((error) => {
