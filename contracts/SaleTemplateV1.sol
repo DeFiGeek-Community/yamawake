@@ -3,14 +3,14 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./ISaleTemplateV1.sol";
+import "./interfaces/ISaleTemplateV1.sol";
 
 /**
  * @author 0xMotoko
- * @title BulksaleV1
+ * @title SaleTemplateV1
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
+contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     /*
         ==========================================
         === Template Idiom Declarations Begins ===
@@ -18,7 +18,7 @@ contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     bool initialized;
 
-    address public constant factory = address(0xabFD57efFa83616Dccce72cF1dCd8c326F68f12b);
+    address public constant factory = address(0x5FbDB2315678afecb367f032d93F642f64180aa3);
     uint32 public constant lockDuration = 1 days;
     uint32 public expirationDuration = 30 days;
     uint8 public constant feeRatePerMil = 1;
@@ -43,43 +43,26 @@ contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
     uint public minimalProvideAmount;
     address public owner;
     IERC20 public erc20onsale;
+
     /* States end */
 
-    struct Args {
-        address token;
-        address owner;
-        uint startingAt;
-        uint eventDuration;
-        uint minimalProvideAmount;
-    }
-
     function initialize(
+        address token_,
+        address owner_,
         uint distributeAmount_,
-        bytes calldata abiBytes
-    ) public override returns (bool) {
+        uint startingAt_,
+        uint eventDuration_,
+        uint minimalProvideAmount_
+    ) external override returns (bool) {
         require(!initialized, "This contract has already been initialized");
         require(msg.sender == factory, "You are not the Factory.");
 
-        Args memory args = abi.decode(abiBytes, (Args));
-
-        require(
-            block.timestamp <= args.startingAt,
-            "startingAt must be in the future"
-        );
-        require(args.eventDuration >= 1 days, "event duration is too short");
-        require(
-            args.minimalProvideAmount > 0,
-            "minimal provide amount is invalid"
-        );
-        require(args.owner != address(0), "owner must be there");
-
-        erc20onsale = IERC20(args.token);
-        startingAt = args.startingAt;
-        closingAt = args.startingAt + args.eventDuration;
+        erc20onsale = IERC20(token_);
+        startingAt = startingAt_;
+        closingAt = startingAt_ + eventDuration_;
         distributeAmount = distributeAmount_;
-        minimalProvideAmount = args.minimalProvideAmount;
-        owner = args.owner;
-        emit Initialized(distributeAmount_, abiBytes);
+        minimalProvideAmount = minimalProvideAmount_;
+        owner = owner_;
         initialized = true;
         return true;
     }
@@ -100,11 +83,7 @@ contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
     uint public totalProvided = 0;
     mapping(address => uint) public provided;
 
-    event Claimed(
-        address indexed account,
-        uint userShare,
-        uint erc20allocation
-    );
+    event Claimed(address indexed account, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
     event WithdrawnOnFailed(address indexed sender, uint balance);
     event WithdrawnAfterLockDuration(address indexed sender, uint balance);
@@ -163,8 +142,7 @@ contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
             (isNotExpiredYet && allocationNearlyZero)
         ) {
             /* Refund process */
-            (bool success, ) = payable(contributor).call{value: userShare}("");
-            require(success, "transfer failed");
+            payable(contributor).transfer(userShare);
             emit Claimed(contributor, userShare, 0);
         } else {
             /* Expired. No refund. */
@@ -193,7 +171,7 @@ contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
             al = (us * tda) / tp;
         } else {
             /* sender's share is very tiny and so calculate tda/tp first */
-            al = (tda / tp) * us;
+            al = us * (tda / tp);
         }
     }
 

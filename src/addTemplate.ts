@@ -31,7 +31,7 @@ export async function addTemplate(templateName: string, deployedFactoryAddress: 
         3. Finding unique name
     */
 
-    const name = utils.formatBytes32String(`BulksaleV1`);
+    const name = utils.formatBytes32String(`SaleTemplateV1`);
 
     /*
         4. Register the template to the Factory.

@@ -28,7 +28,7 @@ type Options = {
 
 export function goToEmbededMode(network: string){
     writeFileSync(`deployments/${network}/${EMBEDDED_MODE_FILE}`, "");
-    console.log(`\n${EMBEDDED_MODE_FILE} is created. Factory Address is from ${getLocalFactoryAddress()} to ${extractEmbeddedFactoryAddress("BulksaleV1")}. Now this command is embedded mode.\n`);
+    console.log(`\n${EMBEDDED_MODE_FILE} is created. Factory Address is from ${getLocalFactoryAddress()} to ${extractEmbeddedFactoryAddress("SaleTemplateV1")}. Now this command is embedded mode.\n`);
 }
 
 export function isEmbeddedMode(network: string){

@@ -12,7 +12,7 @@ async function main() {
     });
 
     // BulkSaleV1
-    const saleAddress = readFileSync(basePath + 'BulksaleV1').toString();
+    const saleAddress = readFileSync(basePath + 'SaleTemplateV1').toString();
     await run(`verify:verify`, {
         address: saleAddress,
     });

@@ -23,7 +23,7 @@ describe("BulkSaleDapp", function () {
     async function deployFactoryAndTemplateFixture() {
         const {factory, owner, addr1, addr2 } = await loadFixture(deployFactoryFixture);
     
-        const Sale = await ethers.getContractFactory("BulksaleV1");
+        const Sale = await ethers.getContractFactory("SaleTemplateV1");
         const sale = await Sale.deploy();
         await sale.deployed();
     
@@ -64,18 +64,8 @@ describe("BulkSaleDapp", function () {
             const distributeAmount = ethers.utils.parseEther("1")
             await token.approve(factory.address, distributeAmount);
             const now = await time.latest();
-            const saleOpts = {
-                token: token.address,
-                owner: owner.address,
-                start: now + DAY,
-                eventDuration: DAY,
-                distributeAmount: distributeAmount,
-                minEtherTarget: ethers.utils.parseEther("0.1"),
-            };
 
-            const argsForSaleClone = getSaleAbiArgs(saleTemplateName, saleOpts);
-
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, distributeAmount, argsForSaleClone)).to.not.be.reverted;
+            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, distributeAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
         });
     });
 });

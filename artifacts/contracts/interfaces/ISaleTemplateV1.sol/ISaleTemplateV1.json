@@ -1,38 +1,39 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "ISaleTemplateV1",
-  "sourceName": "contracts/ISaleTemplateV1.sol",
+  "sourceName": "contracts/interfaces/ISaleTemplateV1.sol",
   "abi": [
     {
-      "anonymous": false,
       "inputs": [
         {
-          "indexed": false,
+          "internalType": "address",
+          "name": "token_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "owner_",
+          "type": "address"
+        },
+        {
           "internalType": "uint256",
-          "name": "distributeAmount",
+          "name": "distributeAmount_",
           "type": "uint256"
         },
         {
-          "indexed": true,
-          "internalType": "bytes",
-          "name": "abiBytes",
-          "type": "bytes"
-        }
-      ],
-      "name": "Initialized",
-      "type": "event"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "uint256",
-          "name": "distributeAmount",
+          "name": "startingAt_",
           "type": "uint256"
         },
         {
-          "internalType": "bytes",
-          "name": "abiBytes",
-          "type": "bytes"
+          "internalType": "uint256",
+          "name": "eventDuration_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minimalProvideAmount_",
+          "type": "uint256"
         }
       ],
       "name": "initialize",

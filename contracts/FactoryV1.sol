@@ -4,17 +4,20 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./ISaleTemplateV1.sol";
+import "./interfaces/ISaleTemplateV1.sol";
 
 contract FactoryV1 is ReentrancyGuard, Ownable {
     mapping(bytes32 => address) public templates;
     uint nonce = 0;
 
     event Deployed(
-        address indexed sender,
-        bytes32 indexed templateName,
-        address indexed deployedAddr,
-        bytes abiArgs
+        bytes32 templateName,
+        address tokenAddr,
+        address owner,
+        uint distributeAmount,
+        uint startingAt,
+        uint eventDuration,
+        uint minimalProvideAmount
     );
     event TemplateAdded(
         bytes32 indexed templateName,
@@ -34,14 +37,24 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
     function deploySaleClone(
         bytes32 templateName,
         address tokenAddr,
+        address owner,
         uint distributeAmount,
-        bytes calldata abiArgs
+        uint startingAt,
+        uint eventDuration,
+        uint minimalProvideAmount
     ) public nonReentrant returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
         address templateAddr = templates[templateName];
         require(templateAddr != address(0), "No such template in the list.");
 
         require(tokenAddr != address(0), "Go with non null address.");
+        require(
+            block.timestamp <= startingAt,
+            "startingAt must be in the future"
+        );
+        require(eventDuration >= 1 days, "event duration is too short");
+        require(minimalProvideAmount > 0, "minimal provide amount is invalid");
+        require(owner != address(0), "owner must be there");
 
         require(
             distributeAmount > 0,
@@ -63,11 +76,26 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
 
         /* 4. Initialize it. */
         require(
-            ISaleTemplateV1(deployedAddr).initialize(distributeAmount, abiArgs),
+            ISaleTemplateV1(deployedAddr).initialize(
+                tokenAddr,
+                owner,
+                distributeAmount,
+                startingAt,
+                eventDuration,
+                minimalProvideAmount
+            ),
             "Failed to initialize the cloned contract."
         );
 
-        emit Deployed(msg.sender, templateName, deployedAddr, abiArgs);
+        emit Deployed(
+            templateName,
+            tokenAddr,
+            owner,
+            distributeAmount,
+            startingAt,
+            eventDuration,
+            minimalProvideAmount
+        );
     }
 
     function addTemplate(
@@ -99,21 +127,21 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         emit WithdrawnEther(to, amount);
     }
 
-    function withdrawToken(
-        address to,
-        address[] calldata token
-    ) external onlyOwner nonReentrant {
-        require(to != address(0), "Don't discard treaury!");
-        uint length = token.length;
-        for (uint i; i < length; ) {
-            uint amount = IERC20(token[i]).balanceOf(address(this));
-            IERC20(token[i]).transfer(to, amount);
-            emit WithdrawnToken(to, token[i], amount);
-            unchecked {
-                i++;
-            }
-        }
-    }
+    // function withdrawToken(
+    //     address to,
+    //     address[] calldata token
+    // ) external onlyOwner nonReentrant {
+    //     require(to != address(0), "Don't discard treaury!");
+    //     uint length = token.length;
+    //     for (uint i; i < length; ) {
+    //         uint amount = IERC20(token[i]).balanceOf(address(this));
+    //         IERC20(token[i]).transfer(to, amount);
+    //         emit WithdrawnToken(to, token[i], amount);
+    //         unchecked {
+    //             i++;
+    //         }
+    //     }
+    // }
 
     /*
         Internal Helpers

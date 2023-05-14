@@ -8,7 +8,7 @@ import {
 } from '../src/deployUtil';
 import { addTemplate } from '../src/addTemplate';
 
-const codename = "BulksaleV1";
+const codename = "SaleTemplateV1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
   console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
-  const BulksaleV1 = await deploy(codename, {
+  const SaleTemplateV1 = await deploy(codename, {
     from: foundation,
     args: [],
     log: true,
@@ -31,7 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await addTemplate(
       codename,
       factoryAddress,
-      BulksaleV1.address
+      SaleTemplateV1.address
     );
   } catch (e: any) {
     console.trace(e.message);

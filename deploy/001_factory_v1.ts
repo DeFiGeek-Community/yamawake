@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     getContractFactory
   });
 
-  hardcodeFactoryAddress("BulksaleV1", factory.address);
+  hardcodeFactoryAddress("SaleTemplateV1", factory.address);
   
   goToEmbededMode(hre.network.name);
 
