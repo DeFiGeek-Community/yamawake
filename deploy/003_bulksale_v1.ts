@@ -4,8 +4,6 @@ import {
   deploy,
   getFoundation,
   extractEmbeddedFactoryAddress,
-  recoverFactoryAddress,
-  setSaleTemplateKey,
   backToInitMode
 } from '../src/deployUtil';
 import { addTemplate } from '../src/addTemplate';
@@ -30,18 +28,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   try {
-    const saleTemplateKey = await addTemplate(
+    await addTemplate(
       codename,
       factoryAddress,
       BulksaleV1.address
     );
-    setSaleTemplateKey(hre.network.name, saleTemplateKey);
   } catch (e: any) {
     console.trace(e.message);
-    recoverFactoryAddress(codename);
-    recoverFactoryAddress("OwnableToken");
-    backToInitMode(hre.network.name);
   }
+  backToInitMode(hre.network.name);
 };
 export default func;
 func.tags = [codename];

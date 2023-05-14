@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./ITemplateContract.sol";
+import "./ISaleTemplateV1.sol";
 
 /**
  * @author 0xMotoko
  * @title BulksaleV1
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
+contract BulksaleV1 is ISaleTemplateV1, ReentrancyGuard {
     /*
         ==========================================
         === Template Idiom Declarations Begins ===
         ==========================================
     */
-    bool initialized = false;
+    bool initialized;
 
-    address public constant factory = address(0x0165878A594ca255338adfa4d48449f69242Eb8F);
+    address public constant factory = address(0xabFD57efFa83616Dccce72cF1dCd8c326F68f12b);
+    uint32 public constant lockDuration = 1 days;
+    uint32 public expirationDuration = 30 days;
+    uint8 public constant feeRatePerMil = 1;
 
     /*
         You can't use constructor
@@ -36,30 +39,27 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
     /* States in the deployment initialization */
     uint public startingAt;
     uint public closingAt;
-    uint public totalDistributeAmount;
+    uint public distributeAmount;
     uint public minimalProvideAmount;
-    uint public lockDuration;
-    uint public expirationDuration;
     address public owner;
-    uint public feeRatePerMil;
     IERC20 public erc20onsale;
     /* States end */
 
     struct Args {
         address token;
+        address owner;
         uint startingAt;
         uint eventDuration;
-        uint lockDuration;
-        uint expirationDuration;
-        uint totalDistributeAmount;
         uint minimalProvideAmount;
-        address owner;
-        uint feeRatePerMil;
     }
 
     function initialize(
-        bytes memory abiBytes
-    ) public override onlyOnce onlyFactory returns (bool) {
+        uint distributeAmount_,
+        bytes calldata abiBytes
+    ) public override returns (bool) {
+        require(!initialized, "This contract has already been initialized");
+        require(msg.sender == factory, "You are not the Factory.");
+
         Args memory args = abi.decode(abiBytes, (Args));
 
         require(
@@ -68,46 +68,22 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
         );
         require(args.eventDuration >= 1 days, "event duration is too short");
         require(
-            args.totalDistributeAmount > 0,
-            "distribution amount is invalid"
-        );
-        require(
             args.minimalProvideAmount > 0,
             "minimal provide amount is invalid"
         );
-        require(args.lockDuration >= 0, "lock duration is invalid");
-        require(
-            args.expirationDuration >= 30 days,
-            "expiration duration must be more than 30 days"
-        );
         require(args.owner != address(0), "owner must be there");
-        require(
-            1 <= args.feeRatePerMil && args.feeRatePerMil < 100,
-            "fee rate is out of range"
-        );
 
         erc20onsale = IERC20(args.token);
         startingAt = args.startingAt;
         closingAt = args.startingAt + args.eventDuration;
-        totalDistributeAmount = args.totalDistributeAmount;
+        distributeAmount = distributeAmount_;
         minimalProvideAmount = args.minimalProvideAmount;
-        lockDuration = args.lockDuration;
-        expirationDuration = args.expirationDuration;
         owner = args.owner;
-        feeRatePerMil = args.feeRatePerMil;
-        emit Initialized(abiBytes);
+        emit Initialized(distributeAmount_, abiBytes);
         initialized = true;
         return true;
     }
 
-    modifier onlyOnce() {
-        require(!initialized, "This contract has already been initialized");
-        _;
-    }
-    modifier onlyFactory() {
-        require(msg.sender == factory, "You are not the Factory.");
-        _;
-    }
     modifier onlyOwner() {
         require(msg.sender == owner, "You are not the owner.");
         _;
@@ -160,7 +136,7 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
         uint erc20allocation = _calculateAllocation(
             userShare,
             totalProvided,
-            totalDistributeAmount
+            distributeAmount
         );
         bool isNotExpiredYet = block.timestamp <
             startingAt + expirationDuration;
@@ -201,17 +177,19 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
         uint tp,
         uint tda
     ) internal pure returns (uint al) {
-        /* us<tp is always true and so us/tp is always zero */
-        /* tda can be 1 to (2^256-1)/10^18 */
-        /* (us x tda) can overflow */
-        /* tda/tp can be zero */
-
-        if (tda < tp) {
-            /* 
-        For a sale such that accumulates many ETH, and selling token is a few (e.g., Art NFTs),
-        if the claimer depoited only a few ETH, then allocation is 0 and will be refunded.
-        That would be acceptable behavior.
+        /* 
+            us<tp is always true and so us/tp is always zero
+            tda can be 1 to (2^256-1)/10^18
+            (us x tda) can overflow
+            tda/tp can be zero
         */
+
+        /* 
+            For a sale such that accumulates many ETH, and selling token is a few (e.g., Art NFTs),
+            if the claimer depoited only a few ETH, then allocation is 0 and will be refunded.
+            That would be acceptable behavior.
+        */
+        if (tda < tp) {
             al = (us * tda) / tp;
         } else {
             /* sender's share is very tiny and so calculate tda/tp first */
@@ -219,18 +197,13 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
         }
     }
 
-    function ceil(uint a, uint m) internal pure returns (uint) {
-        return ((a + m - 1) / m) * m;
-    }
-
+    /*
+        Finished, and enough Ether provided.
+        
+        Owner: Withdraws Ether
+        Contributors: Can claim and get their own ERC-20
+    */
     function withdrawProvidedETH() external onlyOwner nonReentrant {
-        /*
-          Finished, and enough Ether provided.
-            
-            Owner: Withdraws Ether
-            Contributors: Can claim and get their own ERC-20
-
-        */
         require(
             closingAt < block.timestamp,
             "The offering must be finished first."
@@ -240,25 +213,18 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
             "The required amount has not been provided!"
         );
 
-        (bool success1, ) = payable(owner).call{
-            value: (address(this).balance * (1000 - feeRatePerMil)) / 1000
-        }("");
-        require(success1, "transfer failed");
-        (bool success2, ) = payable(factory).call{
-            value: (address(this).balance * feeRatePerMil) / 1000,
-            gas: 25000
-        }("");
-        require(success2, "transfer failed");
+        uint fee = (address(this).balance * feeRatePerMil) / 1000;
+        payable(factory).transfer(fee);
+        payable(owner).transfer(address(this).balance);
     }
 
+    /*
+        Finished, but the privided token is not enough. (Failed sale)
+        
+        Owner: Withdraws ERC-20
+        Contributors: Claim and get back Ether
+    */
     function withdrawERC20Onsale() external onlyOwner nonReentrant {
-        /*
-          Finished, but the privided token is not enough. (Failed sale)
-            
-            Owner: Withdraws ERC-20
-            Contributors: Claim and get back Ether
-
-        */
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
             totalProvided < minimalProvideAmount,
@@ -269,14 +235,13 @@ contract BulksaleV1 is ITemplateContract, ReentrancyGuard {
         emit WithdrawnOnFailed(msg.sender, _balance);
     }
 
+    /*
+        Finished, passed lock duration, and still there're unsold ERC-20.
+        
+        Owner: Withdraws ERC-20
+        Contributors: Already claimed and getting their own ERC-20
+    */
     function withdrawUnclaimedERC20OnSale() external onlyOwner nonReentrant {
-        /*
-          Finished, passed lock duration, and still there're unsold ERC-20.
-            
-            Owner: Withdraws ERC-20
-            Contributors: Already claimed and getting their own ERC-20
-
-        */
         require(
             closingAt + lockDuration < block.timestamp,
             "Withdrawal unavailable yet."

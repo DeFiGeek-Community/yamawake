@@ -5,11 +5,20 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
+import "hardhat-gas-reporter";
 
 const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, FOUNDATION_PRIVATE_KEY } = process.env;
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.18",
+  solidity: {
+    version: "0.8.18",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 10000,
+      },
+    },
+  },
   networks: {
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_API_TOKEN}`,
@@ -41,6 +50,9 @@ const config: HardhatUserConfig = {
   },
   paths: {
     deployments: 'hardhat-deployments',
+  },
+  gasReporter: {
+    enabled: true
   }
 };
 

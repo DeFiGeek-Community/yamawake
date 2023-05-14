@@ -32,40 +32,33 @@ export function getTokenAbiArgs(templateName:string, {
 
 export function getSaleAbiArgs(templateName:string, {
     token,
+    owner,
     start,
     eventDuration,
-    lockDuration,
-    expirationDuration,
-    sellingAmount,
+    distributeAmount,
     minEtherTarget,
-    owner,
-    feeRatePerMil
 }:{
     token: string,
+    owner: string,
     start: number/* unixtime in sec (not milisec) */,
     eventDuration: number /* in sec */,
-    lockDuration: number /* in sec */,
-    expirationDuration: number /* in sec */,
-    sellingAmount: BigNumber,
+    distributeAmount: BigNumber,
     minEtherTarget: BigNumber,
-    owner: string,
-    feeRatePerMil: number
 }){
     let types;
     if(!templateName || templateName.length==0) throw new Error(`scenarioHelper::getBulksaleAbiArgs() -> templateName is empty.`);
     if(templateName.indexOf(saleTemplateName) == 0){
-        types = ["address", "uint", "uint", "uint", "uint", "uint", "uint", 'address', 'uint'];
+        types = ["address", "address", "uint", "uint", "uint", "uint"];
     } else if(templateName == 'ERC20CRV.vy') {// for revert test
         types = ["address", "uint", "uint", "uint", "uint", "uint", "uint", 'address', 'uint'];
     } else {
         console.trace(`${templateName} is not planned yet. Add your typedef for abi here.`);
         throw 1;
     }
-    if( feeRatePerMil < 1 || 100 <= feeRatePerMil ) throw new Error("feeRatePerMil is out of range.");
 
     return encode(
         types,
-        [token, start, eventDuration, lockDuration, expirationDuration, sellingAmount, minEtherTarget, owner, feeRatePerMil]
+        [token, owner, start, eventDuration, distributeAmount, minEtherTarget]
     );
 }
 

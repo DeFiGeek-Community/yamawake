@@ -1,11 +1,17 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "ITemplateContract",
-  "sourceName": "contracts/ITemplateContract.sol",
+  "contractName": "ISaleTemplateV1",
+  "sourceName": "contracts/ISaleTemplateV1.sol",
   "abi": [
     {
       "anonymous": false,
       "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "distributeAmount",
+          "type": "uint256"
+        },
         {
           "indexed": true,
           "internalType": "bytes",
@@ -18,6 +24,11 @@
     },
     {
       "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "distributeAmount",
+          "type": "uint256"
+        },
         {
           "internalType": "bytes",
           "name": "abiBytes",

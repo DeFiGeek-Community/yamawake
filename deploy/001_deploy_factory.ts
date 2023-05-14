@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
 
-  const factory = await deploy('Factory', {
+  const factory = await deploy('FactoryV1', {
     from: foundation,
     args: [],
     log: true,
@@ -22,7 +22,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   hardcodeFactoryAddress("BulksaleV1", factory.address);
-  hardcodeFactoryAddress("OwnableToken", factory.address);
   
   goToEmbededMode(hre.network.name);
 

@@ -8,34 +8,28 @@ describe("BulkSaleDapp", function () {
     const tokenTemplateName = ethers.utils.formatBytes32String("token");
     const initialSupply = ethers.utils.parseEther("1000");
 
-    const feeRatePerMil = 1;
     const DAY = 24 * 60 * 60;
 
     async function deployFactoryFixture() {
-        const [owner, addr1] = await ethers.getSigners();
+        const [owner, addr1, addr2] = await ethers.getSigners();
     
-        const Factory = await ethers.getContractFactory("Factory");
+        const Factory = await ethers.getContractFactory("FactoryV1");
         const factory = await Factory.deploy();
         await factory.deployed();
-        console.log(factory.address);
-        return { factory, owner, addr1 };
+
+        return { factory, owner, addr1, addr2 };
     }
 
     async function deployFactoryAndTemplateFixture() {
-        const {factory, owner, addr1} = await loadFixture(deployFactoryFixture);
+        const {factory, owner, addr1, addr2 } = await loadFixture(deployFactoryFixture);
     
         const Sale = await ethers.getContractFactory("BulksaleV1");
         const sale = await Sale.deploy();
         await sale.deployed();
     
-        const Token = await ethers.getContractFactory("OwnableToken");
-        const token = await Token.deploy();
-        await token.deployed();
-
         await factory.addTemplate(saleTemplateName, sale.address);
-        await factory.addTemplate(tokenTemplateName, token.address);
 
-        return { factory, sale, token, owner, addr1 };
+        return { factory, sale, owner, addr1, addr2 };
     }
 
     describe("Deploy Factory", function () {
@@ -67,24 +61,21 @@ describe("BulkSaleDapp", function () {
             const token = await Token.deploy(initialSupply);
             await token.deployed();
 
-            const sellingAmount = ethers.utils.parseEther("1")
-            await token.approve(factory.address, sellingAmount);
+            const distributeAmount = ethers.utils.parseEther("1")
+            await token.approve(factory.address, distributeAmount);
             const now = await time.latest();
             const saleOpts = {
                 token: token.address,
+                owner: owner.address,
                 start: now + DAY,
                 eventDuration: DAY,
-                lockDuration: DAY,
-                expirationDuration: 30 * DAY,
-                sellingAmount: sellingAmount,
+                distributeAmount: distributeAmount,
                 minEtherTarget: ethers.utils.parseEther("0.1"),
-                owner: owner.address,
-                feeRatePerMil: feeRatePerMil,
             };
 
             const argsForSaleClone = getSaleAbiArgs(saleTemplateName, saleOpts);
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, sellingAmount, argsForSaleClone)).to.not.be.reverted;
+            await expect(factory.deploySaleClone(saleTemplateName, token.address, distributeAmount, argsForSaleClone)).to.not.be.reverted;
         });
     });
 });

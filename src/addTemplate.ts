@@ -12,7 +12,7 @@ export async function addTemplate(templateName: string, deployedFactoryAddress: 
         1. Instanciate the deployed factory and template.
     */
     const foundation = await getFoundation();
-    const Factory = (new Contract(deployedFactoryAddress, genABI('Factory'), foundation));
+    const Factory = (new Contract(deployedFactoryAddress, genABI('FactoryV1'), foundation));
     const Template = (new Contract(deployedTemplateAddress, genABI(templateName), foundation));
 
     /*
@@ -30,20 +30,8 @@ export async function addTemplate(templateName: string, deployedFactoryAddress: 
     /*
         3. Finding unique name
     */
-    function genName(filename: string, i: number){ return utils.formatBytes32String(`${filename}.${i}.sol`) }
-    let nonce = 0;
-    let name;
-    let lookupResult;
-    while(lookupResult != "0x0000000000000000000000000000000000000000" || !lookupResult) {
-        name = genName(templateName, nonce);
-        lookupResult = await Factory.templates(name);
-        nonce++;
-        console.log(`${nonce.toString().padStart(3, '0')}th: ${name}`);
-    }
 
-    if (name === undefined) {
-        throw new Error(`name invalid`);
-    }
+    const name = utils.formatBytes32String(`BulksaleV1`);
 
     /*
         4. Register the template to the Factory.
