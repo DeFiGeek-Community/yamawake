@@ -8,8 +8,8 @@
     "deploy:localhost": "npx hardhat deploy --network localhost && npx hardhat deploy --network localhost",
     "deploy:sepolia": "npx hardhat deploy --network sepolia && npx hardhat deploy --network sepolia",
     "deploy:mainnnet": "npx hardhat deploy --network mainnnet && npx hardhat deploy --network mainnnet",
-    "verify:sepolia": "npx hardhat run ./src/verift.ts --network sepolia",
-    "verify:mainnnet": "npx hardhat run ./src/verift.ts --network mainnnet"
+    "verify:sepolia": "npx hardhat run ./src/verify.ts --network sepolia",
+    "verify:mainnnet": "npx hardhat run ./src/verify.ts --network mainnnet"
   },
   "repository": {
     "type": "git",

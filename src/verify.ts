@@ -1,5 +1,4 @@
 import { network, run } from "hardhat";
-import { parseEther } from 'ethers/lib/utils';
 import { readFileSync } from 'fs';
 import { getFoundation } from "./deployUtil";
 async function main() {
@@ -7,21 +6,15 @@ async function main() {
     const foundation = await getFoundation();
 
     // Factory
-    const factoryAddress = readFileSync(basePath + 'Factory').toString();
+    const factoryAddress = readFileSync(basePath + 'FactoryV1').toString();
     await run(`verify:verify`, {
         address: factoryAddress,
     });
 
     // BulkSaleV1
-    const saleAddress = readFileSync(basePath + 'BulkSaleV1').toString();
+    const saleAddress = readFileSync(basePath + 'BulksaleV1').toString();
     await run(`verify:verify`, {
         address: saleAddress,
-    });
-
-    // OwnableToken
-    const ownableAddress = readFileSync(basePath + 'OwnableToken').toString();
-    await run(`verify:verify`, {
-        address: ownableAddress,
     });
 
     // SampleToken
