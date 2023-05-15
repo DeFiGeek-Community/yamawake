@@ -12,6 +12,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
 
     event Deployed(
         bytes32 templateName,
+        address deployedAddr,
         address tokenAddr,
         address owner,
         uint distributeAmount,
@@ -23,13 +24,17 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         bytes32 indexed templateName,
         address indexed templateAddr
     );
-    event TemplateDeleted(bytes32 indexed templateName);
-    event WithdrawnEther(address indexed receiver, uint amount);
-    event WithdrawnToken(
-        address indexed receiver,
-        address indexed token,
-        uint amount
+    event TemplateDeleted(
+        bytes32 indexed templateName,
+        address indexed templateAddr
     );
+    event WithdrawnEther(address indexed receiver, uint amount);
+
+    // event WithdrawnToken(
+    //     address indexed receiver,
+    //     address indexed token,
+    //     uint amount
+    // );
 
     /*
         External Interfaces
@@ -53,6 +58,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             "startingAt must be in the future"
         );
         require(eventDuration >= 1 days, "event duration is too short");
+        require(eventDuration <= 30 days, "event duration is too long");
         require(minimalProvideAmount > 0, "minimal provide amount is invalid");
         require(owner != address(0), "owner must be there");
 
@@ -89,6 +95,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
 
         emit Deployed(
             templateName,
+            deployedAddr,
             tokenAddr,
             owner,
             distributeAmount,
@@ -112,8 +119,9 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
     }
 
     function removeTemplate(bytes32 templateName) external onlyOwner {
+        address templateAddr = templates[templateName];
         templates[templateName] = address(0);
-        emit TemplateDeleted(templateName);
+        emit TemplateDeleted(templateName, templateAddr);
     }
 
     receive() external payable {}
@@ -121,8 +129,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
     function withdrawEther(address to) external onlyOwner nonReentrant {
         require(to != address(0), "Don't discard treaury!");
         uint amount = address(this).balance;
-        (bool success, ) = payable(to).call{value: amount}("");
-        require(success, "transfer failed");
+        payable(to).transfer(amount);
 
         emit WithdrawnEther(to, amount);
     }
