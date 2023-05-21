@@ -18,9 +18,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     bool initialized;
 
-    address public constant factory = address(0x5FbDB2315678afecb367f032d93F642f64180aa3);
+    address public constant factory = address(0x36f87b66147B8084aF5810aE57679712686B4ADE);
     uint32 public constant lockDuration = 1 days;
-    uint32 public expirationDuration = 30 days;
+    uint32 public constant expirationDuration = 30 days;
     uint8 public constant feeRatePerMil = 1;
 
     /*
@@ -118,7 +118,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             distributeAmount
         );
         bool isNotExpiredYet = block.timestamp <
-            startingAt + expirationDuration;
+            closingAt + expirationDuration;
         bool isTargetReached = totalProvided >= minimalProvideAmount;
         bool allocationNearlyZero = erc20allocation == 0;
         if (isNotExpiredYet && isTargetReached && !allocationNearlyZero) {
@@ -185,6 +185,10 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         require(
             closingAt < block.timestamp,
             "The offering must be finished first."
+        );
+        require(
+            closingAt + lockDuration < block.timestamp,
+            "Withdrawal unavailable yet."
         );
         require(
             totalProvided >= minimalProvideAmount,
