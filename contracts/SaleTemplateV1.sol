@@ -18,10 +18,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     bool initialized;
 
-    address public constant factory = address(0x36f87b66147B8084aF5810aE57679712686B4ADE);
-    uint32 public constant lockDuration = 1 days;
-    uint32 public constant expirationDuration = 30 days;
-    uint8 public constant feeRatePerMil = 1;
+    address public constant factory =
+        address(0x36f87b66147B8084aF5810aE57679712686B4ADE);
 
     /*
         You can't use constructor
@@ -85,8 +83,6 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
 
     event Claimed(address indexed account, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
-    event WithdrawnOnFailed(address indexed sender, uint balance);
-    event WithdrawnAfterLockDuration(address indexed sender, uint balance);
 
     receive() external payable {
         require(
@@ -117,11 +113,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             totalProvided,
             distributeAmount
         );
-        bool isNotExpiredYet = block.timestamp <
-            closingAt + expirationDuration;
-        bool isTargetReached = totalProvided >= minimalProvideAmount;
-        bool allocationNearlyZero = erc20allocation == 0;
-        if (isNotExpiredYet && isTargetReached && !allocationNearlyZero) {
+        if (totalProvided >= minimalProvideAmount && erc20allocation != 0) {
             if (
                 /* claiming for oneself */
                 (msg.sender == contributor && contributor == recipient) ||
@@ -133,20 +125,12 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
                 erc20onsale.transfer(recipient, erc20allocation);
                 emit Claimed(recipient, userShare, erc20allocation);
             } else {
-                revert(
-                    "sender is claiming someone other's fund for someone other."
-                );
+                revert("contributor or recipient invalid");
             }
-        } else if (
-            (isNotExpiredYet && !isTargetReached) ||
-            (isNotExpiredYet && allocationNearlyZero)
-        ) {
+        } else {
             /* Refund process */
             payable(contributor).transfer(userShare);
             emit Claimed(contributor, userShare, 0);
-        } else {
-            /* Expired. No refund. */
-            revert("Claimable term has been expired.");
         }
     }
 
@@ -183,11 +167,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     function withdrawProvidedETH() external onlyOwner nonReentrant {
         require(
-            closingAt < block.timestamp,
-            "The offering must be finished first."
-        );
-        require(
-            closingAt + lockDuration < block.timestamp,
+            closingAt + 3 days < block.timestamp,
             "Withdrawal unavailable yet."
         );
         require(
@@ -195,7 +175,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             "The required amount has not been provided!"
         );
 
-        uint fee = (address(this).balance * feeRatePerMil) / 1000;
+        uint fee = (address(this).balance) / 100;
         payable(factory).transfer(fee);
         payable(owner).transfer(address(this).balance);
     }
@@ -209,27 +189,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     function withdrawERC20Onsale() external onlyOwner nonReentrant {
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
-            totalProvided < minimalProvideAmount,
+            totalProvided < minimalProvideAmount || totalProvided == 0,
             "The required amount has been provided!"
         );
-        uint _balance = erc20onsale.balanceOf(address(this));
-        erc20onsale.transfer(owner, _balance);
-        emit WithdrawnOnFailed(msg.sender, _balance);
-    }
-
-    /*
-        Finished, passed lock duration, and still there're unsold ERC-20.
-        
-        Owner: Withdraws ERC-20
-        Contributors: Already claimed and getting their own ERC-20
-    */
-    function withdrawUnclaimedERC20OnSale() external onlyOwner nonReentrant {
-        require(
-            closingAt + lockDuration < block.timestamp,
-            "Withdrawal unavailable yet."
-        );
-        uint _balance = erc20onsale.balanceOf(address(this));
-        erc20onsale.transfer(owner, _balance);
-        emit WithdrawnAfterLockDuration(msg.sender, _balance);
+        erc20onsale.transfer(owner, distributeAmount);
     }
 }

@@ -59,7 +59,6 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         );
         require(eventDuration >= 1 days, "event duration is too short");
         require(eventDuration <= 30 days, "event duration is too long");
-        require(minimalProvideAmount > 0, "minimal provide amount is invalid");
         require(owner != address(0), "owner must be there");
 
         require(
