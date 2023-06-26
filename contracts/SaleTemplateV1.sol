@@ -18,8 +18,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     bool initialized;
 
-    address public constant factory =
-        address(0x36f87b66147B8084aF5810aE57679712686B4ADE);
+    address public constant factory = address(0x4fd561E2A7CD4c1Bf830e45b34542DAB459E7d70);
 
     /*
         You can't use constructor
@@ -37,8 +36,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     /* States in the deployment initialization */
     uint public startingAt;
     uint public closingAt;
-    uint public distributeAmount;
-    uint public minimalProvideAmount;
+    uint public allocatedAmount;
+    uint public minRaisedAmount;
     address public owner;
     IERC20 public erc20onsale;
 
@@ -47,10 +46,10 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     function initialize(
         address token_,
         address owner_,
-        uint distributeAmount_,
+        uint allocatedAmount_,
         uint startingAt_,
         uint eventDuration_,
-        uint minimalProvideAmount_
+        uint minRaisedAmount_
     ) external override returns (bool) {
         require(!initialized, "This contract has already been initialized");
         require(msg.sender == factory, "You are not the Factory.");
@@ -58,8 +57,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         erc20onsale = IERC20(token_);
         startingAt = startingAt_;
         closingAt = startingAt_ + eventDuration_;
-        distributeAmount = distributeAmount_;
-        minimalProvideAmount = minimalProvideAmount_;
+        allocatedAmount = allocatedAmount_;
+        minRaisedAmount = minRaisedAmount_;
         owner = owner_;
         initialized = true;
         return true;
@@ -111,9 +110,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         uint erc20allocation = _calculateAllocation(
             userShare,
             totalProvided,
-            distributeAmount
+            allocatedAmount
         );
-        if (totalProvided >= minimalProvideAmount && erc20allocation != 0) {
+        if (totalProvided >= minRaisedAmount && erc20allocation != 0) {
             if (
                 /* claiming for oneself */
                 (msg.sender == contributor && contributor == recipient) ||
@@ -171,7 +170,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             "Withdrawal unavailable yet."
         );
         require(
-            totalProvided >= minimalProvideAmount,
+            totalProvided >= minRaisedAmount,
             "The required amount has not been provided!"
         );
 
@@ -189,9 +188,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     function withdrawERC20Onsale() external onlyOwner nonReentrant {
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
-            totalProvided < minimalProvideAmount || totalProvided == 0,
+            totalProvided < minRaisedAmount || totalProvided == 0,
             "The required amount has been provided!"
         );
-        erc20onsale.transfer(owner, distributeAmount);
+        erc20onsale.transfer(owner, allocatedAmount);
     }
 }

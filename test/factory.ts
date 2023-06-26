@@ -61,11 +61,11 @@ describe("BulkSaleDapp", function () {
             const token = await Token.deploy(initialSupply);
             await token.deployed();
 
-            const distributeAmount = ethers.utils.parseEther("1")
-            await token.approve(factory.address, distributeAmount);
+            const allocatedAmount = ethers.utils.parseEther("1")
+            await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, distributeAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
+            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
         });
     });
 });

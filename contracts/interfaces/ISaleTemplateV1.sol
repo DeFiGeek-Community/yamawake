@@ -5,9 +5,9 @@ interface ISaleTemplateV1 {
     function initialize(
         address token_,
         address owner_,
-        uint distributeAmount_,
+        uint allocatedAmount_,
         uint startingAt_,
         uint eventDuration_,
-        uint minimalProvideAmount_
+        uint minRaisedAmount_
     ) external returns (bool);
 }

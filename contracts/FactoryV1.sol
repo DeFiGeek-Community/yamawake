@@ -15,10 +15,10 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         address deployedAddr,
         address tokenAddr,
         address owner,
-        uint distributeAmount,
+        uint allocatedAmount,
         uint startingAt,
         uint eventDuration,
-        uint minimalProvideAmount
+        uint minRaisedAmount
     );
     event TemplateAdded(
         bytes32 indexed templateName,
@@ -43,10 +43,10 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         bytes32 templateName,
         address tokenAddr,
         address owner,
-        uint distributeAmount,
+        uint allocatedAmount,
         uint startingAt,
         uint eventDuration,
-        uint minimalProvideAmount
+        uint minRaisedAmount
     ) public nonReentrant returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
         address templateAddr = templates[templateName];
@@ -62,7 +62,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         require(owner != address(0), "owner must be there");
 
         require(
-            distributeAmount > 0,
+            allocatedAmount > 0,
             "Having an event without tokens are not permitted."
         );
 
@@ -74,7 +74,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             IERC20(tokenAddr).transferFrom(
                 msg.sender,
                 deployedAddr,
-                distributeAmount
+                allocatedAmount
             ),
             "TransferFrom failed."
         );
@@ -84,10 +84,10 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             ISaleTemplateV1(deployedAddr).initialize(
                 tokenAddr,
                 owner,
-                distributeAmount,
+                allocatedAmount,
                 startingAt,
                 eventDuration,
-                minimalProvideAmount
+                minRaisedAmount
             ),
             "Failed to initialize the cloned contract."
         );
@@ -97,10 +97,10 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             deployedAddr,
             tokenAddr,
             owner,
-            distributeAmount,
+            allocatedAmount,
             startingAt,
             eventDuration,
-            minimalProvideAmount
+            minRaisedAmount
         );
     }
 

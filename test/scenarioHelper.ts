@@ -35,14 +35,14 @@ export function getSaleAbiArgs(templateName:string, {
     owner,
     start,
     eventDuration,
-    distributeAmount,
+    allocatedAmount,
     minEtherTarget,
 }:{
     token: string,
     owner: string,
     start: number/* unixtime in sec (not milisec) */,
     eventDuration: number /* in sec */,
-    distributeAmount: BigNumber,
+    allocatedAmount: BigNumber,
     minEtherTarget: BigNumber,
 }){
     let types;
@@ -58,7 +58,7 @@ export function getSaleAbiArgs(templateName:string, {
 
     return encode(
         types,
-        [token, owner, start, eventDuration, distributeAmount, minEtherTarget]
+        [token, owner, start, eventDuration, allocatedAmount, minEtherTarget]
     );
 }
 

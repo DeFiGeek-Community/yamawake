@@ -17,7 +17,7 @@
         },
         {
           "internalType": "uint256",
-          "name": "distributeAmount_",
+          "name": "allocatedAmount_",
           "type": "uint256"
         },
         {
@@ -32,7 +32,7 @@
         },
         {
           "internalType": "uint256",
-          "name": "minimalProvideAmount_",
+          "name": "minRaisedAmount_",
           "type": "uint256"
         }
       ],
