@@ -18,7 +18,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     bool initialized;
 
-    address public constant factory = address(0x4fd561E2A7CD4c1Bf830e45b34542DAB459E7d70);
+    address public constant factory = address(0x9df4FEa0e015eB8110f984fca8ac43F1d713451C);
 
     /*
         You can't use constructor
@@ -77,8 +77,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     /*
         Let's go core logics :)
     */
-    uint public totalProvided = 0;
-    mapping(address => uint) public provided;
+    uint public totalRaised = 0;
+    mapping(address => uint) public raised;
 
     event Claimed(address indexed account, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
@@ -89,8 +89,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             "The offering has not started yet"
         );
         require(block.timestamp <= closingAt, "The offering has already ended");
-        totalProvided += msg.value;
-        provided[msg.sender] += msg.value;
+        totalRaised += msg.value;
+        raised[msg.sender] += msg.value;
         emit Received(msg.sender, msg.value);
     }
 
@@ -102,17 +102,17 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             block.timestamp > closingAt,
             "Early to claim. Sale is not finished."
         );
-        require(provided[contributor] > 0, "You don't have any contribution.");
+        require(raised[contributor] > 0, "You don't have any contribution.");
 
-        uint userShare = provided[contributor];
-        provided[contributor] = 0;
+        uint userShare = raised[contributor];
+        raised[contributor] = 0;
 
         uint erc20allocation = _calculateAllocation(
             userShare,
-            totalProvided,
+            totalRaised,
             allocatedAmount
         );
-        if (totalProvided >= minRaisedAmount && erc20allocation != 0) {
+        if (totalRaised >= minRaisedAmount && erc20allocation != 0) {
             if (
                 /* claiming for oneself */
                 (msg.sender == contributor && contributor == recipient) ||
@@ -159,19 +159,19 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     }
 
     /*
-        Finished, and enough Ether provided.
+        Finished, and enough Ether raised.
         
         Owner: Withdraws Ether
         Contributors: Can claim and get their own ERC-20
     */
-    function withdrawProvidedETH() external onlyOwner nonReentrant {
+    function withdrawRaisedETH() external onlyOwner nonReentrant {
         require(
             closingAt + 3 days < block.timestamp,
             "Withdrawal unavailable yet."
         );
         require(
-            totalProvided >= minRaisedAmount,
-            "The required amount has not been provided!"
+            totalRaised >= minRaisedAmount,
+            "The required amount has not been raised!"
         );
 
         uint fee = (address(this).balance) / 100;
@@ -188,8 +188,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     function withdrawERC20Onsale() external onlyOwner nonReentrant {
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
-            totalProvided < minRaisedAmount || totalProvided == 0,
-            "The required amount has been provided!"
+            totalRaised < minRaisedAmount || totalRaised == 0,
+            "The required amount has been raised!"
         );
         erc20onsale.transfer(owner, allocatedAmount);
     }
