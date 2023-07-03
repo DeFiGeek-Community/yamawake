@@ -88,7 +88,7 @@ describe("BulkSaleDapp", function () {
         it("reverts with allocatedAmount which exceeds the limit", async function () {
             const {factory, owner} = await loadFixture(deployFactoryAndTemplateFixture);
             const Token = await ethers.getContractFactory("SampleToken");
-            const initialSupply = ethers.BigNumber.from(10).pow(50);
+            const initialSupply = ethers.BigNumber.from(10).pow(50).add(1);
             const token = await Token.deploy(initialSupply);
             await token.deployed();
 
@@ -102,7 +102,7 @@ describe("BulkSaleDapp", function () {
         it("does not revert with allocatedAmount which is below the limit", async function () {
             const {factory, owner} = await loadFixture(deployFactoryAndTemplateFixture);
             const Token = await ethers.getContractFactory("SampleToken");
-            const initialSupply = ethers.BigNumber.from(10).pow(50).sub(1);
+            const initialSupply = ethers.BigNumber.from(10).pow(50);
             const token = await Token.deploy(initialSupply);
             await token.deployed();
 
@@ -117,7 +117,7 @@ describe("BulkSaleDapp", function () {
             const {factory, owner} = await loadFixture(deployFactoryAndTemplateFixture);
             const Token = await ethers.getContractFactory("SampleToken");
             const initialSupply = ethers.utils.parseEther("100");
-            const minRaisedAmount = ethers.BigNumber.from(10).pow(27);
+            const minRaisedAmount = ethers.BigNumber.from(10).pow(27).add(1);
             const token = await Token.deploy(initialSupply);
             await token.deployed();
 
@@ -132,7 +132,7 @@ describe("BulkSaleDapp", function () {
             const {factory, owner} = await loadFixture(deployFactoryAndTemplateFixture);
             const Token = await ethers.getContractFactory("SampleToken");
             const initialSupply = ethers.utils.parseEther("100");
-            const minRaisedAmount = ethers.BigNumber.from(10).pow(27).sub(1);
+            const minRaisedAmount = ethers.BigNumber.from(10).pow(27);
             const token = await Token.deploy(initialSupply);
             await token.deployed();
 

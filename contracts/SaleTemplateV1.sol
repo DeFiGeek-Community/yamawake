@@ -147,7 +147,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     ) internal pure returns (uint al) {
         /* 
             us<tr is always true and so us/tr is always zero
-            aa can be 1 to 10^50-1
+            aa can be 1 to 10^50
             (us x aa) can overflow
             aa/tr can be zero
             tr is always less than 10^27 (1_000_000_000 ETH)
