@@ -73,7 +73,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
 
         require(
             minRaisedAmount < 1e27,
-            "totalRaised is unexpectedly high"
+            "minRaisedAmount must be less than 1e27"
         );
 
         /* 2. Make a clone. */
