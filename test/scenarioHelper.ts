@@ -75,3 +75,8 @@ export async function sendEther(to:any, amountStr:string, signer: any){
         value: ethers.utils.parseEther(amountStr)
     })).wait();
 }
+
+export async function timeTravel(seconds: number) {
+  await ethers.provider.send("evm_increaseTime", [seconds]);
+  await ethers.provider.send("evm_mine", []);
+}

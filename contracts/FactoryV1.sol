@@ -66,6 +66,16 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             "Having an event without tokens are not permitted."
         );
 
+        require(
+            allocatedAmount < 1e50,
+            "allocatedAmount must be less than 1e50."
+        );
+
+        require(
+            minRaisedAmount < 1e27,
+            "totalRaised is unexpectedly high"
+        );
+
         /* 2. Make a clone. */
         deployedAddr = _createClone(templateAddr);
 
