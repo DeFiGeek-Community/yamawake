@@ -215,8 +215,8 @@ describe("BulkSaleDapp", function () {
                 const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"));
 
                 await timeTravel(DAY);
-                await sendEther(sale.address, "1", addr1)
-                await sendEther(sale.address, "1", addr2)
+                await sendEther(sale.address, "0.5", addr1)
+                await sendEther(sale.address, "0.5", addr2)
                 await timeTravel(DAY);
                 await sale.claim(addr1.address, addr1.address);
                 await sale.claim(addr2.address, addr2.address);
