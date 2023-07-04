@@ -41,6 +41,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     address public owner;
     IERC20 public erc20onsale;
 
+    /* Multiplier derived from the practical max number of digits for eth (18 + 8) + 1 to avoid rounding error. */
+    uint private constant SCALE_FACTOR = 1e27;
+
     /* States end */
 
     function initialize(
@@ -89,7 +92,11 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             "The offering has not started yet"
         );
         require(block.timestamp <= closingAt, "The offering has already ended");
-        totalRaised += msg.value;
+
+        uint256 newTotalRaised = totalRaised + msg.value;
+        require(newTotalRaised < SCALE_FACTOR, "totalRaised is unexpectedly high");
+
+        totalRaised = newTotalRaised;
         raised[msg.sender] += msg.value;
         emit Received(msg.sender, msg.value);
     }
@@ -135,27 +142,17 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
 
     function _calculateAllocation(
         uint us,
-        uint tp,
-        uint tda
+        uint tr,
+        uint aa
     ) internal pure returns (uint al) {
         /* 
-            us<tp is always true and so us/tp is always zero
-            tda can be 1 to (2^256-1)/10^18
-            (us x tda) can overflow
-            tda/tp can be zero
+            us<tr is always true and so us/tr is always zero
+            aa can be 1 to 10^50
+            (us x aa) can overflow
+            aa/tr can be zero
+            tr is always less than 10^27 (1_000_000_000 ETH)
         */
-
-        /* 
-            For a sale such that accumulates many ETH, and selling token is a few (e.g., Art NFTs),
-            if the claimer depoited only a few ETH, then allocation is 0 and will be refunded.
-            That would be acceptable behavior.
-        */
-        if (tda < tp) {
-            al = (us * tda) / tp;
-        } else {
-            /* sender's share is very tiny and so calculate tda/tp first */
-            al = us * (tda / tp);
-        }
+        al = ((us * SCALE_FACTOR) / tr) * aa / SCALE_FACTOR;
     }
 
     /*

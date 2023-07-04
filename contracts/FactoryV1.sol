@@ -9,6 +9,8 @@ import "./interfaces/ISaleTemplateV1.sol";
 contract FactoryV1 is ReentrancyGuard, Ownable {
     mapping(bytes32 => address) public templates;
     uint nonce = 0;
+    uint private constant TOKEN_UPPER_BOUND = 1e50;
+    uint private constant ETH_UPPER_BOUND = 1e27;
 
     event Deployed(
         bytes32 templateName,
@@ -64,6 +66,16 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         require(
             allocatedAmount > 0,
             "Having an event without tokens are not permitted."
+        );
+
+        require(
+            allocatedAmount <= TOKEN_UPPER_BOUND,
+            "allocatedAmount must be less than or equal to 1e50."
+        );
+
+        require(
+            minRaisedAmount <= ETH_UPPER_BOUND,
+            "minRaisedAmount must be less than or equal to 1e27."
         );
 
         /* 2. Make a clone. */
