@@ -6,11 +6,20 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
       - uses: actions/checkout@v3
+
       - name: Set Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
       - name: Install dependencies
         run: npm install
+
+      - name: create dummy .env file
+        run: |
+            cat > .env <<EOF
+            FOUNDATION_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000000
+            EOF
+
       - name: Test
         run: npm run test
