@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 import { loadFixture, time }  from"@nomicfoundation/hardhat-network-helpers";
+import { backToInitMode, goToEmbededMode, hardcodeFactoryAddress, isEmbeddedMode } from "../src/deployUtil";
 import { getTokenAbiArgs, getSaleAbiArgs, sendEther, timeTravel } from "./scenarioHelper";
 
 describe("BulkSaleDapp", function () {
@@ -48,6 +49,22 @@ describe("BulkSaleDapp", function () {
         const Sale = await ethers.getContractFactory("SaleTemplateV1");
         return await Sale.attach(templateAddr);
     }
+
+    before(async function() {
+        if( !isEmbeddedMode('localhost') ) {
+            const { factory } = await loadFixture(deployFactoryFixture);
+            hardcodeFactoryAddress("SaleTemplateV1", factory.address);
+            this.skip();
+        }
+    })
+
+    after(async function() {
+        if( !isEmbeddedMode('localhost') ) {
+            goToEmbededMode('localhost');
+        } else {
+            backToInitMode('localhost');
+        }
+    })
 
     describe("Deploy Factory", function () {
         it("Factory", async function () {

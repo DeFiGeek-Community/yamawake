@@ -11,7 +11,8 @@
     "deploy:mainnnet": "npx hardhat deploy --network mainnnet && npx hardhat deploy --network mainnnet",
     "verify:sepolia": "npx hardhat run ./src/verify.ts --network sepolia",
     "verify:goerli": "npx hardhat run ./src/verify.ts --network goerli",
-    "verify:mainnnet": "npx hardhat run ./src/verify.ts --network mainnnet"
+    "verify:mainnnet": "npx hardhat run ./src/verify.ts --network mainnnet",
+    "test": "npx hardhat test && npx hardhat test"
   },
   "repository": {
     "type": "git",
