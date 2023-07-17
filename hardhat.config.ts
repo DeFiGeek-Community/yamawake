@@ -43,6 +43,11 @@ const config: HardhatUserConfig = {
       // forking: {
       //   url: `https://mainnet.infura.io/v3/${INFURA_API_TOKEN}`,
       // },
+      accounts: {
+        count: 101,
+        initialIndex: 0,
+        accountsBalance: "1000000000000000000000"
+      }
     },
   },
   etherscan: {
