@@ -267,6 +267,21 @@ describe("BulkSaleDapp", function () {
                 await expect(await sale.raised(owner.address)).to.be.eq(ethers.utils.parseEther("1"));
                 await expect(await sale.bidderAddresses(0)).to.be.eq(owner.address);
             });
+
+            // 金額0の入札
+            it("入札する_fail", async function () {
+                const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+                const { token } = await loadFixture(deployTokenFixture);
+                const allocatedAmount = ethers.utils.parseEther("1")
+                await token.approve(factory.address, allocatedAmount);
+                const now = await time.latest();
+
+                const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"));
+
+                await timeTravel(DAY);
+
+                await expect(sendEther(sale.address, "0", owner)).to.be.revertedWith("The amount must be greater than 0");
+            });
         });
         describe("withdrawRaisedETH", function () {
             // 成功したセールの売上回収

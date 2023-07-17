@@ -92,7 +92,14 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             startingAt <= block.timestamp,
             "The offering has not started yet"
         );
-        require(block.timestamp <= closingAt, "The offering has already ended");
+        require(
+            block.timestamp <= closingAt,
+            "The offering has already ended"
+        );
+        require(
+            msg.value > 0,
+            "The amount must be greater than 0"
+        );
 
         uint256 newTotalRaised = totalRaised + msg.value;
         require(newTotalRaised < SCALE_FACTOR, "totalRaised is unexpectedly high");
@@ -176,8 +183,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         );
 
         if(closingAt + 3 days >= block.timestamp) {
-            bool hasRefundCandidates = false;
-            for(uint i = 0; i < bidderAddresses.length;) {
+            bool hasRefundCandidates;
+            uint length = bidderAddresses.length;
+            for(uint i = 0; i < length;) {
                 uint userShare = raised[bidderAddresses[i]];
                 uint erc20allocation = _calculateAllocation(
                     userShare,
