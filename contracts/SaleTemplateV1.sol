@@ -82,6 +82,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     uint public totalRaised = 0;
     mapping(address => uint) public raised;
+    address[] public bidderAddresses;
 
     event Claimed(address indexed account, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
@@ -91,11 +92,21 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             startingAt <= block.timestamp,
             "The offering has not started yet"
         );
-        require(block.timestamp <= closingAt, "The offering has already ended");
+        require(
+            block.timestamp <= closingAt,
+            "The offering has already ended"
+        );
+        require(
+            msg.value > 0,
+            "The amount must be greater than 0"
+        );
 
         uint256 newTotalRaised = totalRaised + msg.value;
         require(newTotalRaised < SCALE_FACTOR, "totalRaised is unexpectedly high");
 
+        if(raised[msg.sender] == 0) {
+            bidderAddresses.push(msg.sender);
+        }
         totalRaised = newTotalRaised;
         raised[msg.sender] += msg.value;
         emit Received(msg.sender, msg.value);
@@ -163,13 +174,38 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     function withdrawRaisedETH() external onlyOwner nonReentrant {
         require(
-            closingAt + 3 days < block.timestamp,
+            closingAt < block.timestamp,
             "Withdrawal unavailable yet."
         );
         require(
             totalRaised >= minRaisedAmount,
             "The required amount has not been raised!"
         );
+
+        if(closingAt + 3 days >= block.timestamp) {
+            bool hasRefundCandidates;
+            uint length = bidderAddresses.length;
+            for(uint i = 0; i < length;) {
+                uint userShare = raised[bidderAddresses[i]];
+                uint erc20allocation = _calculateAllocation(
+                    userShare,
+                    totalRaised,
+                    allocatedAmount
+                );
+                if(userShare > 0 && erc20allocation == 0) {
+                    hasRefundCandidates = true;
+                    break;
+                }
+                unchecked {
+                    i++;
+                }
+            }
+
+            require(
+                !hasRefundCandidates, 
+                "Refund candidates exist. Withdrawal unavailable yet."
+            );
+        }
 
         uint fee = (address(this).balance) / 100;
         payable(factory).transfer(fee);
