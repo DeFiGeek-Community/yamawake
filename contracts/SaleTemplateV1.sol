@@ -43,6 +43,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
 
     /* Multiplier derived from the practical max number of digits for eth (18 + 8) + 1 to avoid rounding error. */
     uint private constant SCALE_FACTOR = 1e27;
+    /* Minimum bidding amount is set to minimize the possibility of refunds. */
+    uint private constant MIN_BID_AMOUNT = 1e15;
 
     /* States end */
 
@@ -82,7 +84,6 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     uint public totalRaised = 0;
     mapping(address => uint) public raised;
-    address[] public bidderAddresses;
 
     event Claimed(address indexed account, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
@@ -97,16 +98,13 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             "The offering has already ended"
         );
         require(
-            msg.value > 0,
-            "The amount must be greater than 0"
+            msg.value >= MIN_BID_AMOUNT,
+            "The amount must be greater than or equal to 0.001ETH"
         );
 
         uint256 newTotalRaised = totalRaised + msg.value;
         require(newTotalRaised < SCALE_FACTOR, "totalRaised is unexpectedly high");
 
-        if(raised[msg.sender] == 0) {
-            bidderAddresses.push(msg.sender);
-        }
         totalRaised = newTotalRaised;
         raised[msg.sender] += msg.value;
         emit Received(msg.sender, msg.value);
@@ -183,27 +181,15 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         );
 
         if(closingAt + 3 days >= block.timestamp) {
-            bool hasRefundCandidates;
-            uint length = bidderAddresses.length;
-            for(uint i = 0; i < length;) {
-                uint userShare = raised[bidderAddresses[i]];
-                uint erc20allocation = _calculateAllocation(
-                    userShare,
-                    totalRaised,
-                    allocatedAmount
-                );
-                if(userShare > 0 && erc20allocation == 0) {
-                    hasRefundCandidates = true;
-                    break;
-                }
-                unchecked {
-                    i++;
-                }
-            }
+            uint minAllocation = _calculateAllocation(
+                MIN_BID_AMOUNT,
+                totalRaised,
+                allocatedAmount
+            );
 
             require(
-                !hasRefundCandidates, 
-                "Refund candidates exist. Withdrawal unavailable yet."
+                minAllocation > 0, 
+                "Refund candidates may exist. Withdrawal unavailable yet."
             );
         }
 
