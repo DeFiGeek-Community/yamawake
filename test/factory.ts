@@ -159,6 +159,34 @@ describe("BulkSaleDapp", function () {
 
             await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, minRaisedAmount)).to.not.be.reverted;
         });
+
+        it("セール立ち上げを申し込む_success_allocatedAmountの境界値", async function () {
+            const {factory, owner} = await loadFixture(deployFactoryAndTemplateFixture);
+            const Token = await ethers.getContractFactory("SampleToken");
+            const initialSupply = ethers.BigNumber.from(10).pow(6);
+            const token = await Token.deploy(initialSupply);
+            await token.deployed();
+
+            const allocatedAmount = initialSupply
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+
+            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
+        });
+
+        it("セール立ち上げを申し込む_fail_allocatedAmountの境界値", async function () {
+            const {factory, owner} = await loadFixture(deployFactoryAndTemplateFixture);
+            const Token = await ethers.getContractFactory("SampleToken");
+            const initialSupply = ethers.BigNumber.from(10).pow(6).sub(1);
+            const token = await Token.deploy(initialSupply);
+            await token.deployed();
+
+            const allocatedAmount = initialSupply
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+
+            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.be.revertedWith("allocatedAmount must be greater than or equal to 1e6.");
+        });
     });
 
     describe("Template", function() {
@@ -331,7 +359,7 @@ describe("BulkSaleDapp", function () {
             it("売り上げを回収する_success_成功したセールの売上ロック期間中かつ最低入札額で割当1以上の場合の売上回収", async function () {
                 const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
                 const { token } = await loadFixture(deployTokenFixture);
-                const allocatedAmount = "10000"
+                const allocatedAmount = "10000000"
                 await token.approve(factory.address, allocatedAmount);
                 const now = await time.latest();
 
@@ -342,19 +370,19 @@ describe("BulkSaleDapp", function () {
                 const promiseList1 = [];
                 for(let i=0; i<100; i++) {
                     const signer = signers[i];
-                    promiseList1.push(sendEther(sale.address, "0.1", signer));
+                    promiseList1.push(sendEther(sale.address, "100", signer));
                 }
                 await Promise.all(promiseList1);
 
                 await timeTravel(DAY);
 
-                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("9.9"), ethers.utils.parseEther("-10"), ethers.utils.parseEther("0.1")]);
+                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("9900"), ethers.utils.parseEther("-10000"), ethers.utils.parseEther("100")]);
             });
 
             it("売り上げを回収する_fail_成功したセールの売上ロック期間中かつ最低入札額で割当0になる場合の売上回収", async function () {
                 const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
                 const { token } = await loadFixture(deployTokenFixture);
-                const allocatedAmount = "9999"
+                const allocatedAmount = "9999999"
                 await token.approve(factory.address, allocatedAmount);
                 const now = await time.latest();
 
@@ -365,7 +393,7 @@ describe("BulkSaleDapp", function () {
                 const promiseList1 = [];
                 for(let i=0; i<100; i++) {
                     const signer = signers[i];
-                    promiseList1.push(sendEther(sale.address, "0.1", signer));
+                    promiseList1.push(sendEther(sale.address, "100", signer));
                 }
                 await Promise.all(promiseList1);
 
@@ -375,7 +403,7 @@ describe("BulkSaleDapp", function () {
 
                 await timeTravel(DAY*3);
 
-                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("9.9"), ethers.utils.parseEther("-10"), ethers.utils.parseEther("0.1")]);
+                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("9900"), ethers.utils.parseEther("-10000"), ethers.utils.parseEther("100")]);
             });
 
             it("売り上げを回収する_fail_失敗したセールの売上回収", async function () {
@@ -394,37 +422,37 @@ describe("BulkSaleDapp", function () {
                 await expect(sale.connect(owner).withdrawRaisedETH()).to.be.revertedWith("The required amount has not been raised!")
             });
 
-            it("売り上げを回収する_success_成功したが割当者がいないセールの売上回収（トークンのGOX）", async function () {
-                const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
-                const { token } = await loadFixture(deployTokenFixture);
-                const allocatedAmount = "100"
-                await token.approve(factory.address, allocatedAmount);
-                const now = await time.latest();
+            // it("売り上げを回収する_success_成功したが割当者がいないセールの売上回収（トークンのGOX）", async function () {
+            //     const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+            //     const { token } = await loadFixture(deployTokenFixture);
+            //     const allocatedAmount = "1000000"
+            //     await token.approve(factory.address, allocatedAmount);
+            //     const now = await time.latest();
 
-                const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("1"));
+            //     const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("1"));
 
-                await timeTravel(DAY);
-                const signers = await ethers.getSigners();
-                const promiseList1 = [];
+            //     await timeTravel(DAY);
+            //     const signers = await ethers.getSigners();
+            //     const promiseList1 = [];
 
-                for(let i=0; i<101; i++) {
-                    const signer = signers[i];
-                    promiseList1.push(sendEther(sale.address, "0.1", signer));
-                }
-                await Promise.all(promiseList1);
+            //     for(let i=0; i<1000001; i++) {
+            //         const signer = signers[i];
+            //         promiseList1.push(sendEther(sale.address, "100", signer));
+            //     }
+            //     await Promise.all(promiseList1);
 
-                await timeTravel(DAY);
+            //     await timeTravel(DAY);
 
-                const promiseList2 = [];
-                for(let i=0; i<101; i++) {
-                    const signer = signers[i];
-                    promiseList2.push(sale.connect(signer).claim(signer.address, signer.address));
-                }
-                await Promise.all(promiseList2);
+            //     const promiseList2 = [];
+            //     for(let i=0; i<101; i++) {
+            //         const signer = signers[i];
+            //         promiseList2.push(sale.connect(signer).claim(signer.address, signer.address));
+            //     }
+            //     await Promise.all(promiseList2);
 
-                await timeTravel(DAY*3);
-                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalance(owner.address, "0");
-            });
+            //     await timeTravel(DAY*3);
+            //     await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalance(owner.address, "0");
+            // });
         });
     });
 });

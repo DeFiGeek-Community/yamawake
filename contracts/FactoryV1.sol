@@ -10,6 +10,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
     mapping(bytes32 => address) public templates;
     uint nonce = 0;
     uint private constant TOKEN_UPPER_BOUND = 1e50;
+    uint private constant TOKEN_BOTTOM_BOUND = 1e6;
     uint private constant ETH_UPPER_BOUND = 1e27;
 
     event Deployed(
@@ -65,8 +66,8 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         require(owner != address(0), "owner must be there");
 
         require(
-            allocatedAmount > 0,
-            "Having an event without tokens are not permitted."
+            allocatedAmount >= TOKEN_BOTTOM_BOUND,
+            "allocatedAmount must be greater than or equal to 1e6."
         );
 
         require(
