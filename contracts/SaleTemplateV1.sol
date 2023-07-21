@@ -3,14 +3,14 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./interfaces/ISaleTemplateV1.sol";
+import "./interfaces/ISaleTemplate.sol";
 
 /**
  * @author 0xMotoko
  * @title SaleTemplateV1
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
+contract SaleTemplateV1 is ISaleTemplate, ReentrancyGuard {
     /*
         ==========================================
         === Template Idiom Declarations Begins ===
@@ -19,6 +19,9 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     bool initialized;
 
     address public constant factory = address(0x9df4FEa0e015eB8110f984fca8ac43F1d713451C);
+    uint private constant TOKEN_UPPER_BOUND = 1e50;
+    uint private constant TOKEN_BOTTOM_BOUND = 1e6;
+    uint private constant ETH_UPPER_BOUND = 1e27;
 
     /*
         You can't use constructor
@@ -59,6 +62,30 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         require(!initialized, "This contract has already been initialized");
         require(msg.sender == factory, "You are not the Factory.");
 
+        require(tokenAddr != address(0), "Go with non null address.");
+        require(
+            block.timestamp <= startingAt,
+            "startingAt must be in the future"
+        );
+        require(eventDuration >= 1 days, "event duration is too short");
+        require(eventDuration <= 30 days, "event duration is too long");
+        require(owner != address(0), "owner must be there");
+
+        require(
+            allocatedAmount >= TOKEN_BOTTOM_BOUND,
+            "allocatedAmount must be greater than or equal to 1e6."
+        );
+
+        require(
+            allocatedAmount <= TOKEN_UPPER_BOUND,
+            "allocatedAmount must be less than or equal to 1e50."
+        );
+
+        require(
+            minRaisedAmount <= ETH_UPPER_BOUND,
+            "minRaisedAmount must be less than or equal to 1e27."
+        );
+
         erc20onsale = IERC20(token_);
         startingAt = startingAt_;
         closingAt = startingAt_ + eventDuration_;
@@ -66,7 +93,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         minRaisedAmount = minRaisedAmount_;
         owner = owner_;
         initialized = true;
-        return true;
+        return (token_, allocatedAmount);
     }
 
     modifier onlyOwner() {
