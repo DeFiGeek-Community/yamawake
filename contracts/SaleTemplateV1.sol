@@ -85,7 +85,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     uint public totalRaised = 0;
     mapping(address => uint) public raised;
 
-    event Claimed(address indexed account, uint userShare, uint allocation);
+    event Claimed(address indexed contributor, address indexed recipient, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
 
     receive() external payable {
@@ -138,14 +138,14 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
                 (msg.sender == contributor && contributor != recipient)
             ) {
                 erc20onsale.transfer(recipient, erc20allocation);
-                emit Claimed(recipient, userShare, erc20allocation);
+                emit Claimed(contributor, recipient, userShare, erc20allocation);
             } else {
                 revert("contributor or recipient invalid");
             }
         } else {
             /* Refund process */
             payable(contributor).transfer(userShare);
-            emit Claimed(contributor, userShare, 0);
+            emit Claimed(contributor, recipient, userShare, 0);
         }
     }
 
