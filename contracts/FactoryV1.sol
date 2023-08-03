@@ -9,20 +9,16 @@ import "./interfaces/ISaleTemplateV1.sol";
 contract FactoryV1 is ReentrancyGuard, Ownable {
     mapping(bytes32 => address) public templates;
     uint nonce = 0;
-    uint private constant TOKEN_UPPER_BOUND = 1e50;
-    uint private constant TOKEN_BOTTOM_BOUND = 1e6;
-    uint private constant ETH_UPPER_BOUND = 1e27;
 
     event Deployed(
         bytes32 templateName,
         address deployedAddr,
         address tokenAddr,
-        address baseToken,
         address owner,
-        uint allocatedAmount,
+        uint distributeAmount,
         uint startingAt,
         uint eventDuration,
-        uint minRaisedAmount
+        uint minimalProvideAmount
     );
     event TemplateAdded(
         bytes32 indexed templateName,
@@ -47,10 +43,10 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         bytes32 templateName,
         address tokenAddr,
         address owner,
-        uint allocatedAmount,
+        uint distributeAmount,
         uint startingAt,
         uint eventDuration,
-        uint minRaisedAmount
+        uint minimalProvideAmount
     ) public nonReentrant returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
         address templateAddr = templates[templateName];
@@ -66,18 +62,8 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
         require(owner != address(0), "owner must be there");
 
         require(
-            allocatedAmount >= TOKEN_BOTTOM_BOUND,
-            "allocatedAmount must be greater than or equal to 1e6."
-        );
-
-        require(
-            allocatedAmount <= TOKEN_UPPER_BOUND,
-            "allocatedAmount must be less than or equal to 1e50."
-        );
-
-        require(
-            minRaisedAmount <= ETH_UPPER_BOUND,
-            "minRaisedAmount must be less than or equal to 1e27."
+            distributeAmount > 0,
+            "Having an event without tokens are not permitted."
         );
 
         /* 2. Make a clone. */
@@ -88,7 +74,7 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             IERC20(tokenAddr).transferFrom(
                 msg.sender,
                 deployedAddr,
-                allocatedAmount
+                distributeAmount
             ),
             "TransferFrom failed."
         );
@@ -98,10 +84,10 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             ISaleTemplateV1(deployedAddr).initialize(
                 tokenAddr,
                 owner,
-                allocatedAmount,
+                distributeAmount,
                 startingAt,
                 eventDuration,
-                minRaisedAmount
+                minimalProvideAmount
             ),
             "Failed to initialize the cloned contract."
         );
@@ -110,12 +96,11 @@ contract FactoryV1 is ReentrancyGuard, Ownable {
             templateName,
             deployedAddr,
             tokenAddr,
-            address(0),
             owner,
-            allocatedAmount,
+            distributeAmount,
             startingAt,
             eventDuration,
-            minRaisedAmount
+            minimalProvideAmount
         );
     }
 

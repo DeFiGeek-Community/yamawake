@@ -3,14 +3,14 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./interfaces/ISaleTemplateV1.sol";
+import "./interfaces/ISaleTemplate.sol";
 
 /**
  * @author 0xMotoko
  * @title SaleTemplateV1
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
+contract SaleTemplateV1 is ISaleTemplate, ReentrancyGuard {
     /*
         ==========================================
         === Template Idiom Declarations Begins ===
@@ -18,7 +18,10 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
     bool initialized;
 
-    address public constant factory = address(0x9df4FEa0e015eB8110f984fca8ac43F1d713451C);
+    address public immutable feePool;
+    uint256 private constant TOKEN_UPPER_BOUND = 1e50;
+    uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
+    uint256 private constant ETH_UPPER_BOUND = 1e27;
 
     /*
         You can't use constructor
@@ -34,30 +37,57 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     */
 
     /* States in the deployment initialization */
-    uint public startingAt;
-    uint public closingAt;
-    uint public allocatedAmount;
-    uint public minRaisedAmount;
+    uint256 public startingAt;
+    uint256 public closingAt;
+    uint256 public allocatedAmount;
+    uint256 public minRaisedAmount;
     address public owner;
     IERC20 public erc20onsale;
 
     /* Multiplier derived from the practical max number of digits for eth (18 + 8) + 1 to avoid rounding error. */
-    uint private constant SCALE_FACTOR = 1e27;
+    uint256 private constant SCALE_FACTOR = 1e27;
     /* Minimum bidding amount is set to minimize the possibility of refunds. */
-    uint private constant MIN_BID_AMOUNT = 1e15;
+    uint256 private constant MIN_BID_AMOUNT = 1e15;
 
     /* States end */
+
+    constructor(address feePool_) {
+        feePool = feePool_;
+    }
 
     function initialize(
         address token_,
         address owner_,
-        uint allocatedAmount_,
-        uint startingAt_,
-        uint eventDuration_,
-        uint minRaisedAmount_
-    ) external override returns (bool) {
+        uint256 allocatedAmount_,
+        uint256 startingAt_,
+        uint256 eventDuration_,
+        uint256 minRaisedAmount_
+    ) external returns (address, uint256) {
         require(!initialized, "This contract has already been initialized");
-        require(msg.sender == factory, "You are not the Factory.");
+
+        require(token_ != address(0), "Go with non null address.");
+        require(
+            block.timestamp <= startingAt_,
+            "startingAt must be in the future"
+        );
+        require(eventDuration_ >= 1 days, "event duration is too short");
+        require(eventDuration_ <= 30 days, "event duration is too long");
+        require(owner_ != address(0), "owner must be there");
+
+        require(
+            allocatedAmount_ >= TOKEN_BOTTOM_BOUND,
+            "allocatedAmount must be greater than or equal to 1e6."
+        );
+
+        require(
+            allocatedAmount_ <= TOKEN_UPPER_BOUND,
+            "allocatedAmount must be less than or equal to 1e50."
+        );
+
+        require(
+            minRaisedAmount_ <= ETH_UPPER_BOUND,
+            "minRaisedAmount must be less than or equal to 1e27."
+        );
 
         erc20onsale = IERC20(token_);
         startingAt = startingAt_;
@@ -66,7 +96,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         minRaisedAmount = minRaisedAmount_;
         owner = owner_;
         initialized = true;
-        return true;
+        return (token_, allocatedAmount_);
     }
 
     modifier onlyOwner() {
@@ -82,8 +112,8 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     /*
         Let's go core logics :)
     */
-    uint public totalRaised = 0;
-    mapping(address => uint) public raised;
+    uint256 public totalRaised;
+    mapping(address => uint256) public raised;
 
     event Claimed(address indexed contributor, address indexed recipient, uint userShare, uint allocation);
     event Received(address indexed account, uint amount);
@@ -93,17 +123,17 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             startingAt <= block.timestamp,
             "The offering has not started yet"
         );
-        require(
-            block.timestamp <= closingAt,
-            "The offering has already ended"
-        );
+        require(block.timestamp <= closingAt, "The offering has already ended");
         require(
             msg.value >= MIN_BID_AMOUNT,
             "The amount must be greater than or equal to 0.001ETH"
         );
 
         uint256 newTotalRaised = totalRaised + msg.value;
-        require(newTotalRaised < SCALE_FACTOR, "totalRaised is unexpectedly high");
+        require(
+            newTotalRaised < SCALE_FACTOR,
+            "totalRaised is unexpectedly high"
+        );
 
         totalRaised = newTotalRaised;
         raised[msg.sender] += msg.value;
@@ -120,10 +150,10 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         );
         require(raised[contributor] > 0, "You don't have any contribution.");
 
-        uint userShare = raised[contributor];
+        uint256 userShare = raised[contributor];
         raised[contributor] = 0;
 
-        uint erc20allocation = _calculateAllocation(
+        uint256 erc20allocation = _calculateAllocation(
             userShare,
             totalRaised,
             allocatedAmount
@@ -150,10 +180,10 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
     }
 
     function _calculateAllocation(
-        uint us,
-        uint tr,
-        uint aa
-    ) internal pure returns (uint al) {
+        uint256 us,
+        uint256 tr,
+        uint256 aa
+    ) internal pure returns (uint256 al) {
         /* 
             us<tr is always true and so us/tr is always zero
             aa can be 1 to 10^50
@@ -161,7 +191,7 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
             aa/tr can be zero
             tr is always less than 10^27 (1_000_000_000 ETH)
         */
-        al = ((us * SCALE_FACTOR) / tr) * aa / SCALE_FACTOR;
+        al = (((us * SCALE_FACTOR) / tr) * aa) / SCALE_FACTOR;
     }
 
     /*
@@ -171,30 +201,27 @@ contract SaleTemplateV1 is ISaleTemplateV1, ReentrancyGuard {
         Contributors: Can claim and get their own ERC-20
     */
     function withdrawRaisedETH() external onlyOwner nonReentrant {
-        require(
-            closingAt < block.timestamp,
-            "Withdrawal unavailable yet."
-        );
+        require(closingAt < block.timestamp, "Withdrawal unavailable yet.");
         require(
             totalRaised >= minRaisedAmount,
             "The required amount has not been raised!"
         );
 
-        if(closingAt + 3 days >= block.timestamp) {
-            uint minAllocation = _calculateAllocation(
+        if (closingAt + 3 days >= block.timestamp) {
+            uint256 minAllocation = _calculateAllocation(
                 MIN_BID_AMOUNT,
                 totalRaised,
                 allocatedAmount
             );
 
             require(
-                minAllocation > 0, 
+                minAllocation > 0,
                 "Refund candidates may exist. Withdrawal unavailable yet."
             );
         }
 
-        uint fee = (address(this).balance) / 100;
-        payable(factory).transfer(fee);
+        uint256 fee = (address(this).balance) / 100;
+        payable(feePool).transfer(fee);
         payable(owner).transfer(address(this).balance);
     }
 
