@@ -16,9 +16,9 @@
 
 [詳細](./Factory/index.md)
 
-### Sale
+### Template
 
-[詳細](./Sale/index.md)
+[詳細](./Template/index.md)
 
 ### FeePool
 
