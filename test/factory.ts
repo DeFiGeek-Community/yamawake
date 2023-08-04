@@ -285,7 +285,7 @@ describe("BulkSaleDapp", function () {
         });
     });
 
-    describe("SaleTemplateV1", function () {
+    describe("TemplateV1", function () {
         describe("receive", function () {
             it("入札する_success_正常な入札", async function () {
                 const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
@@ -462,6 +462,26 @@ describe("BulkSaleDapp", function () {
             //     await timeTravel(DAY*3);
             //     await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalance(owner.address, "0");
             // });
+        });
+        describe("initializeTransfer", function() {
+            it("call_externaly_fail_not_factory", async function() {
+                const { factory, template, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+                const { token } = await loadFixture(deployTokenFixture);
+                const allocatedAmount = ethers.utils.parseEther("1")
+                await token.approve(factory.address, allocatedAmount);
+                const now = await time.latest();
+
+
+                // initializeTransfer for instance
+                const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"));
+                await token.approve(sale.address, allocatedAmount);
+                await expect(sale.connect(owner).initializeTransfer(token.address, allocatedAmount, sale.address)).to.be.revertedWith("You are not the factory.");
+
+                // initializeTransfer for template
+                await token.approve(template.address, allocatedAmount);
+                await expect(template.connect(owner).initializeTransfer(token.address, allocatedAmount, sale.address)).to.be.revertedWith("You are not the factory.");
+
+            });
         });
     });
 });
