@@ -1,21 +1,18 @@
-import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {DeployFunction} from 'hardhat-deploy/types';
-import {
-  deploy,
-  getFoundation,
-} from '../src/deployUtil';
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { DeployFunction } from "hardhat-deploy/types";
+import { deploy, getFoundation } from "../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
 
-  await deploy('Factory', {
+  await deploy("Factory", {
     from: foundation,
     args: [],
     log: true,
-    getContractFactory
+    getContractFactory,
   });
 };
 export default func;
-func.tags = ['Factory'];
+func.tags = ["Factory"];

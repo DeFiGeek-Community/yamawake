@@ -37,6 +37,5 @@ contract FeePool is Ownable {
         }
     }
 
-    receive() external payable {
-    }
+    receive() external payable {}
 }
