@@ -36,8 +36,13 @@ contract BaseTemplate {
     }
 
     /// @dev Allow only delegatecall from factory
-    modifier onlyFactory() {
+    modifier onlyDelegateFactory() {
         require(address(this) == factory, "You are not the factory.");
+        _;
+    }
+    /// @dev Allow only call from factory
+    modifier onlyFactory() {
+        require(msg.sender == factory, "You are not the factory.");
         _;
     }
 }

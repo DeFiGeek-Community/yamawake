@@ -49,7 +49,7 @@ contract Factory is Ownable {
         );
         if (!success) {
             assembly {
-            revert(add(result,32),mload(result))
+                revert(add(result, 32), mload(result))
             }
         }
 
@@ -58,7 +58,7 @@ contract Factory is Ownable {
             bytes.concat(
                 templateInfo.transferSignature,
                 result,
-                bytes32(uint256(uint160(deployedAddr)))
+                abi.encode(deployedAddr)
             )
         );
         require(success, "Failed to Fund the token.");

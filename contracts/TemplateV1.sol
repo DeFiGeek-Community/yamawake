@@ -46,8 +46,9 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         address token_,
         uint256 allocatedAmount_,
         uint256 minRaisedAmount_
-    ) external returns (address, uint256) {
+    ) external onlyFactory returns (address, uint256) {
         require(!initialized, "This contract has already been initialized");
+        initialized = true;
 
         require(owner_ != address(0), "owner must be there");
         require(token_ != address(0), "Go with non null address.");
@@ -70,7 +71,6 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
             "minRaisedAmount must be less than or equal to 1e27."
         );
 
-        initialized = true;
         owner = owner_;
         startingAt = startingAt_;
         closingAt = startingAt_ + eventDuration_;
@@ -78,7 +78,15 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         allocatedAmount = allocatedAmount_;
         minRaisedAmount = minRaisedAmount_;
 
-        emit Deployed(address(this),owner_,startingAt_,closingAt,token_,abi.encode(address(0)),abi.encodePacked(allocatedAmount_,minRaisedAmount_));
+        emit Deployed(
+            address(this),
+            owner_,
+            startingAt_,
+            closingAt,
+            token_,
+            abi.encode(address(0)),
+            abi.encode(allocatedAmount_, minRaisedAmount_)
+        );
         return (token_, allocatedAmount_);
     }
 
@@ -206,7 +214,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         address token_,
         uint256 amount_,
         address to_
-    ) external onlyFactory {
+    ) external onlyDelegateFactory {
         IERC20(token_).transferFrom(msg.sender, to_, amount_);
     }
 }
