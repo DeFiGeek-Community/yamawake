@@ -5,14 +5,14 @@
   "main": "index.js",
   "scripts": {
     "node": "npx hardhat node --no-deploy",
-    "deploy:localhost": "npx hardhat deploy --network localhost && npx hardhat deploy --network localhost",
-    "deploy:sepolia": "npx hardhat deploy --network sepolia && npx hardhat deploy --network sepolia",
-    "deploy:goerli": "npx hardhat deploy --network goerli && npx hardhat deploy --network goerli",
-    "deploy:mainnnet": "npx hardhat deploy --network mainnnet && npx hardhat deploy --network mainnnet",
+    "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy:sepolia": "npx hardhat deploy --network sepolia",
+    "deploy:goerli": "npx hardhat deploy --network goerli",
+    "deploy:mainnnet": "npx hardhat deploy --network mainnnet",
     "verify:sepolia": "npx hardhat run ./src/verify.ts --network sepolia",
     "verify:goerli": "npx hardhat run ./src/verify.ts --network goerli",
     "verify:mainnnet": "npx hardhat run ./src/verify.ts --network mainnnet",
-    "test": "npx hardhat test && npx hardhat test"
+    "test": "npx hardhat test"
   },
   "repository": {
     "type": "git",

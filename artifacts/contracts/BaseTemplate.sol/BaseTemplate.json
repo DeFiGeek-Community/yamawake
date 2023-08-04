@@ -1,0 +1,141 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "BaseTemplate",
+  "sourceName": "contracts/BaseTemplate.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "factory_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "feePool_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "deployedAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "startingAt",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "closingAt",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "auctionToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "raisedTokens",
+          "type": "bytes"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "args",
+          "type": "bytes"
+        }
+      ],
+      "name": "Deployed",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "closingAt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "factory",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "feePool",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startingAt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60c060405234801561001057600080fd5b5060405161021738038061021783398101604081905261002f91610062565b6001600160a01b0391821660a05216608052610095565b80516001600160a01b038116811461005d57600080fd5b919050565b6000806040838503121561007557600080fd5b61007e83610046565b915061008c60208401610046565b90509250929050565b60805160a05161015f6100b8600039600060fe0152600060c0015261015f6000f3fe608060405234801561001057600080fd5b50600436106100675760003560e01c8063b86c0e1f11610050578063b86c0e1f146100e2578063c45a0155146100f9578063dccd43151461012057600080fd5b80638da5cb5b1461006c578063ae2e933b146100bb575b600080fd5b60005461009190610100900473ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6100917f000000000000000000000000000000000000000000000000000000000000000081565b6100eb60025481565b6040519081526020016100b2565b6100917f000000000000000000000000000000000000000000000000000000000000000081565b6100eb6001548156fea26469706673582212200b117152bbf4a87b32ff1f9b759cebe7c8783c5589d6b6444368837339397d6f64736f6c63430008120033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100675760003560e01c8063b86c0e1f11610050578063b86c0e1f146100e2578063c45a0155146100f9578063dccd43151461012057600080fd5b80638da5cb5b1461006c578063ae2e933b146100bb575b600080fd5b60005461009190610100900473ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6100917f000000000000000000000000000000000000000000000000000000000000000081565b6100eb60025481565b6040519081526020016100b2565b6100917f000000000000000000000000000000000000000000000000000000000000000081565b6100eb6001548156fea26469706673582212200b117152bbf4a87b32ff1f9b759cebe7c8783c5589d6b6444368837339397d6f64736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -1,36 +1,38 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 import { loadFixture, time }  from"@nomicfoundation/hardhat-network-helpers";
-import { backToInitMode, goToEmbededMode, hardcodeFactoryAddress, isEmbeddedMode } from "../src/deployUtil";
 import { getTokenAbiArgs, getSaleAbiArgs, sendEther, timeTravel } from "./scenarioHelper";
 
 describe("BulkSaleDapp", function () {
-    const saleTemplateName = ethers.utils.formatBytes32String("sale");
-    const tokenTemplateName = ethers.utils.formatBytes32String("token");
+    const templateName = ethers.utils.formatBytes32String("TemplateV1");
     const initialSupply = ethers.utils.parseEther("1000");
 
     const DAY = 24 * 60 * 60;
 
-    async function deployFactoryFixture() {
+    async function deployFactoryAndFeePoolFixture() {
         const [owner, addr1, addr2] = await ethers.getSigners();
     
-        const Factory = await ethers.getContractFactory("FactoryV1");
+        const Factory = await ethers.getContractFactory("Factory");
         const factory = await Factory.deploy();
         await factory.deployed();
+        const FeePool = await ethers.getContractFactory("FeePool");
+        const feePool = await FeePool.deploy();
+        await feePool.deployed();
 
-        return { factory, owner, addr1, addr2 };
+        return { factory, feePool, owner, addr1, addr2 };
     }
 
     async function deployFactoryAndTemplateFixture() {
-        const {factory, owner, addr1, addr2 } = await loadFixture(deployFactoryFixture);
+        const {factory, feePool, owner, addr1, addr2 } = await loadFixture(deployFactoryAndFeePoolFixture);
     
-        const Sale = await ethers.getContractFactory("SaleTemplateV1");
-        const sale = await Sale.deploy();
-        await sale.deployed();
-    
-        await factory.addTemplate(saleTemplateName, sale.address);
+        const Template = await ethers.getContractFactory("TemplateV1");
+        const template = await Template.deploy(factory.address, feePool.address);
+        await template.deployed();
 
-        return { factory, sale, owner, addr1, addr2 };
+    
+        await factory.addTemplate(templateName, template.address, Template.interface.getSighash("initialize"),Template.interface.getSighash("initializeTransfer"));
+
+        return { factory, feePool, template, owner, addr1, addr2 };
     }
 
     async function deployTokenFixture() {
@@ -42,49 +44,35 @@ describe("BulkSaleDapp", function () {
       }
 
     async function deploySaleTemplate(factory: any, tokenAddr: string, ownerAddr: string, allocatedAmount: any, startingAt: number, eventDuration: number, minRaisedAmount: any) {
-        const tx = await factory.deploySaleClone(saleTemplateName, tokenAddr, ownerAddr, allocatedAmount, startingAt, eventDuration, minRaisedAmount);
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[ownerAddr,startingAt,eventDuration,tokenAddr,allocatedAmount,minRaisedAmount]);
+        const tx = await factory.deployAuction(templateName, args);
         const receipt = await tx.wait()
         const event = receipt.events.find((event: any) => event.event === 'Deployed');
         const [, templateAddr] = event.args;
-        const Sale = await ethers.getContractFactory("SaleTemplateV1");
+        const Sale = await ethers.getContractFactory("TemplateV1");
         return await Sale.attach(templateAddr);
     }
 
-    before(async function() {
-        if( !isEmbeddedMode('localhost') ) {
-            const { factory } = await loadFixture(deployFactoryFixture);
-            hardcodeFactoryAddress("SaleTemplateV1", factory.address);
-            this.skip();
-        }
-    })
-
-    after(async function() {
-        if( !isEmbeddedMode('localhost') ) {
-            goToEmbededMode('localhost');
-        } else {
-            backToInitMode('localhost');
-        }
-    })
-
     describe("Deploy Factory", function () {
         it("Factory", async function () {
-            await loadFixture(deployFactoryFixture);
+            await loadFixture(deployFactoryAndFeePoolFixture);
           });
 
         it("Factory and Templates", async function () {
             await loadFixture(deployFactoryAndTemplateFixture);
         });
         it("Fail by same template name", async function () {
-            const {factory, sale} = await loadFixture(deployFactoryAndTemplateFixture);
-            await expect(factory.addTemplate(saleTemplateName, sale.address)).to.be.reverted;
+            const {factory, template} = await loadFixture(deployFactoryAndTemplateFixture);
+            await expect(factory.addTemplate(templateName, template.address,template.interface.getSighash("initialize"),template.interface.getSighash("initializeTransfer"))).to.be.reverted;
         });
         it("Fail by not owner", async function () {
-            const {factory, sale, addr1} = await loadFixture(deployFactoryAndTemplateFixture);
-            const saleTemplateName2 = ethers.utils.hexZeroPad(
+            const {factory, template, addr1} = await loadFixture(deployFactoryAndTemplateFixture);
+            const templateName2 = ethers.utils.hexZeroPad(
                 ethers.utils.hexlify(ethers.utils.toUtf8Bytes("sale2")),
                 32
             );
-            await expect(factory.connect(addr1).addTemplate(saleTemplateName2, sale.address)).to.be.reverted;
+            await expect(factory.connect(addr1).addTemplate(templateName2, template.address,template.interface.getSighash("initialize"),template.interface.getSighash("initializeTransfer"))).to.be.reverted;
         });
     });
 
@@ -99,7 +87,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,ethers.utils.parseEther("0.1")]);
+
+            await expect(factory.deployAuction(templateName, args)).to.not.be.reverted;
         });
 
         it("reverts with allocatedAmount which exceeds the limit", async function () {
@@ -113,7 +104,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.be.reverted;
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,ethers.utils.parseEther("0.1")]);
+    
+            await expect(factory.deployAuction(templateName, args)).to.be.reverted;
         });
 
         it("does not revert with allocatedAmount which is below the limit", async function () {
@@ -127,7 +121,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,ethers.utils.parseEther("0.1")]);
+    
+            await expect(factory.deployAuction(templateName, args)).to.not.be.reverted;
         });
 
         it("reverts with minRaisedAmount which exceeds the limit", async function () {
@@ -142,7 +139,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, minRaisedAmount)).to.be.reverted;
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,minRaisedAmount]);
+    
+            await expect(factory.deployAuction(templateName, args)).to.be.reverted;
         });
 
         it("does not revert with minRaisedAmount which is below the limit", async function () {
@@ -157,7 +157,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, minRaisedAmount)).to.not.be.reverted;
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,minRaisedAmount]);
+    
+            await expect(factory.deployAuction(templateName, args)).to.not.be.reverted;
         });
 
         it("セール立ち上げを申し込む_success_allocatedAmountの境界値", async function () {
@@ -171,7 +174,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.not.be.reverted;
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,ethers.utils.parseEther("0.1")]);
+    
+            await expect(factory.deployAuction(templateName, args)).to.not.be.reverted;
         });
 
         it("セール立ち上げを申し込む_fail_allocatedAmountの境界値", async function () {
@@ -185,7 +191,10 @@ describe("BulkSaleDapp", function () {
             await token.approve(factory.address, allocatedAmount);
             const now = await time.latest();
 
-            await expect(factory.deploySaleClone(saleTemplateName, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("0.1"))).to.be.revertedWith("allocatedAmount must be greater than or equal to 1e6.");
+            const abiCoder = ethers.utils.defaultAbiCoder;
+            const args = abiCoder.encode(["address","uint256","uint256","address","uint256","uint256"],[owner.address,now + DAY,DAY,token.address,allocatedAmount,ethers.utils.parseEther("0.1")]);
+    
+            await expect(factory.deployAuction(templateName, args)).to.be.revertedWith("allocatedAmount must be greater than or equal to 1e6.");
         });
     });
 
@@ -310,7 +319,7 @@ describe("BulkSaleDapp", function () {
         });
         describe("withdrawRaisedETH", function () {
             it("売り上げを回収する_success_成功したセールの売上回収", async function () {
-                const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+                const { factory, feePool, owner } = await loadFixture(deployFactoryAndTemplateFixture);
                 const { token } = await loadFixture(deployTokenFixture);
                 const allocatedAmount = ethers.utils.parseEther("1")
                 await token.approve(factory.address, allocatedAmount);
@@ -322,7 +331,7 @@ describe("BulkSaleDapp", function () {
                 await sendEther(sale.address, "1", owner)
 
                 await timeTravel(DAY*4);
-                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("0.99"), ethers.utils.parseEther("-1"), ethers.utils.parseEther("0.01")]);
+                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, feePool.address], [ethers.utils.parseEther("0.99"), ethers.utils.parseEther("-1"), ethers.utils.parseEther("0.01")]);
             });
 
             it("売り上げを回収する_fail_セール期間中の売上回収", async function () {
@@ -357,7 +366,7 @@ describe("BulkSaleDapp", function () {
             });
 
             it("売り上げを回収する_success_成功したセールの売上ロック期間中かつ最低入札額で割当1以上の場合の売上回収", async function () {
-                const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+                const { factory, feePool, owner } = await loadFixture(deployFactoryAndTemplateFixture);
                 const { token } = await loadFixture(deployTokenFixture);
                 const allocatedAmount = "10000000"
                 await token.approve(factory.address, allocatedAmount);
@@ -376,11 +385,11 @@ describe("BulkSaleDapp", function () {
 
                 await timeTravel(DAY);
 
-                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("9900"), ethers.utils.parseEther("-10000"), ethers.utils.parseEther("100")]);
+                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, feePool.address], [ethers.utils.parseEther("9900"), ethers.utils.parseEther("-10000"), ethers.utils.parseEther("100")]);
             });
 
             it("売り上げを回収する_fail_成功したセールの売上ロック期間中かつ最低入札額で割当0になる場合の売上回収", async function () {
-                const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+                const { factory, feePool, owner } = await loadFixture(deployFactoryAndTemplateFixture);
                 const { token } = await loadFixture(deployTokenFixture);
                 const allocatedAmount = "9999999"
                 await token.approve(factory.address, allocatedAmount);
@@ -403,7 +412,7 @@ describe("BulkSaleDapp", function () {
 
                 await timeTravel(DAY*3);
 
-                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, factory.address], [ethers.utils.parseEther("9900"), ethers.utils.parseEther("-10000"), ethers.utils.parseEther("100")]);
+                await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalances([owner.address, sale.address, feePool.address], [ethers.utils.parseEther("9900"), ethers.utils.parseEther("-10000"), ethers.utils.parseEther("100")]);
             });
 
             it("売り上げを回収する_fail_失敗したセールの売上回収", async function () {

@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
 
-  await deploy('Factory', {
+  await deploy('FeePool', {
     from: foundation,
     args: [],
     log: true,
@@ -18,4 +18,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 export default func;
-func.tags = ['Factory'];
+func.tags = ['FeePool'];

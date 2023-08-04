@@ -3,40 +3,40 @@ import {DeployFunction} from 'hardhat-deploy/types';
 import {
   deploy,
   getFoundation,
-  extractEmbeddedFactoryAddress,
-  backToInitMode
+  getContractAddress,
 } from '../src/deployUtil';
 import { addTemplate } from '../src/addTemplate';
 
-const codename = "SaleTemplateV1";
+const codename = "TemplateV1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
-  const factoryAddress = extractEmbeddedFactoryAddress(codename);
-  if (factoryAddress === null) {
-    throw new Error("factory address is null");
+  const factoryAddress = getContractAddress(hre.network.name,"Factory");
+  const feePoolAddress = getContractAddress(hre.network.name,"FeePool");
+  if (factoryAddress === null || feePoolAddress === null) {
+    throw new Error("factory or feepool address is null");
   }
   console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
-  const SaleTemplateV1 = await deploy(codename, {
+  const TemplateV1 = await deploy(codename, {
     from: foundation,
-    args: [],
+    args: [factoryAddress,feePoolAddress],
     log: true,
     getContractFactory
   });
 
   try {
     await addTemplate(
+      hre.network.name,
       codename,
       factoryAddress,
-      SaleTemplateV1.address
+      TemplateV1.address
     );
   } catch (e: any) {
     console.trace(e.message);
   }
-  backToInitMode(hre.network.name);
 };
 export default func;
 func.tags = [codename];
