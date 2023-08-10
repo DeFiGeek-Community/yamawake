@@ -5,7 +5,7 @@ import { deploy, getFoundation } from "../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   //disable temporary
-  return;
+  // return;
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();

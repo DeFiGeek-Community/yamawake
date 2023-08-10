@@ -26,14 +26,6 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
     uint256 public totalRaised;
     mapping(address => uint256) public raised;
 
-    event Claimed(
-        address indexed contributor,
-        address indexed recipient,
-        uint userShare,
-        uint allocation
-    );
-    event Received(address indexed account, uint amount);
-
     constructor(
         address factory_,
         address feePool_
@@ -84,7 +76,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
             startingAt_,
             closingAt,
             token_,
-            abi.encode(address(0)),
+            abi.encodePacked([address(0)]),
             abi.encode(allocatedAmount_, minRaisedAmount_)
         );
         return (token_, allocatedAmount_);
@@ -109,7 +101,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
 
         totalRaised = newTotalRaised;
         raised[msg.sender] += msg.value;
-        emit Received(msg.sender, msg.value);
+        emit Raised(msg.sender, address(0), msg.value);
     }
 
     function claim(

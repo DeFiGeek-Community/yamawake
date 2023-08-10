@@ -25,6 +25,15 @@ contract BaseTemplate {
         bytes args
     );
 
+    event Claimed(
+        address indexed participant,
+        address indexed recipient,
+        uint256 userShare,
+        uint256 allocation
+    );
+
+    event Raised(address indexed account, address token, uint256 amount);
+
     constructor(address factory_, address feePool_) {
         factory = factory_;
         feePool = feePool_;
