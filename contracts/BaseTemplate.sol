@@ -32,13 +32,14 @@ contract BaseTemplate {
         uint256 allocation
     );
 
-    event Raised(address indexed account, address token, uint256 amount);
+    event Raised(address indexed participant, address token, uint256 amount);
 
     constructor(address factory_, address feePool_) {
         factory = factory_;
         feePool = feePool_;
     }
 
+    /// @dev Allow only owner of auction instance
     modifier onlyOwner() {
         require(msg.sender == owner, "You are not the owner.");
         _;

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Factory is Ownable {
     /// @param implemention implemention address
     /// @param initializeSignature function signature of initialize auction
-    /// @param initializeSignature function signature of transfer token
+    /// @param transferSignature function signature of transfer token
     struct TemplateInfo {
         address implemention;
         bytes4 initializeSignature;
@@ -19,16 +19,13 @@ contract Factory is Ownable {
     event Deployed(bytes32 templateName, address deployedAddress);
     event TemplateAdded(
         bytes32 indexed templateName,
-        address indexed templateAddr
+        address indexed implementionAddr
     );
     event TemplateRemoved(
         bytes32 indexed templateName,
-        address indexed templateAddr
+        address indexed implementionAddr
     );
 
-    /*
-        External Interfaces
-    */
     function deployAuction(
         bytes32 templateName_,
         bytes calldata args_
@@ -54,20 +51,26 @@ contract Factory is Ownable {
         }
 
         /* 4. Fund it. */
-        (success, ) = deployedAddr.delegatecall(
-            bytes.concat(
-                templateInfo.transferSignature,
-                result,
-                abi.encode(deployedAddr)
-            )
-        );
-        require(success, "Failed to Fund the token.");
+        // Skip if transferSignature is empty
+        if (templateInfo.transferSignature != bytes4(0)) {
+            (success, result) = deployedAddr.delegatecall(
+                bytes.concat(
+                    templateInfo.transferSignature,
+                    result,
+                    abi.encode(deployedAddr)
+                )
+            );
+            if (!success) {
+                assembly {
+                    revert(add(result, 32), mload(result))
+                }
+            }
+        }
     }
 
     function addTemplate(
         bytes32 templateName_,
-        /* Dear governer; deploy it beforehand. */
-        address templateAddr_,
+        address implementionAddr_,
         bytes4 initializeSignature_,
         bytes4 transferSignature_
     ) external onlyOwner {
@@ -77,12 +80,12 @@ contract Factory is Ownable {
         );
 
         templates[templateName_] = TemplateInfo(
-            templateAddr_,
+            implementionAddr_,
             initializeSignature_,
             transferSignature_
         );
 
-        emit TemplateAdded(templateName_, templateAddr_);
+        emit TemplateAdded(templateName_, implementionAddr_);
     }
 
     function removeTemplate(bytes32 templateName_) external onlyOwner {
@@ -92,9 +95,7 @@ contract Factory is Ownable {
         emit TemplateRemoved(templateName_, templateInfo.implemention);
     }
 
-    /*
-        Internal Helpers
-    */
+    /// @dev Deploy implemention's minimal proxy by create2
     function _createClone(
         address implementation_
     ) internal returns (address result) {

@@ -76,7 +76,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
             startingAt_,
             closingAt,
             token_,
-            abi.encodePacked([address(0)]),
+            abi.encodePacked(address(0)),
             abi.encode(allocatedAmount_, minRaisedAmount_)
         );
         return (token_, allocatedAmount_);
@@ -105,46 +105,32 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
     }
 
     function claim(
-        address contributor,
+        address participant,
         address recipient
     ) external nonReentrant {
         require(
             block.timestamp > closingAt,
             "Early to claim. Sale is not finished."
         );
-        require(raised[contributor] > 0, "You don't have any contribution.");
-
-        uint256 userShare = raised[contributor];
-        raised[contributor] = 0;
+        uint256 raisedAmount = raised[participant];
+        require(raisedAmount > 0, "You don't have any contribution.");
+        raised[participant] = 0;
 
         uint256 erc20allocation = _calculateAllocation(
-            userShare,
+            raisedAmount,
             totalRaised,
             allocatedAmount
         );
         if (totalRaised >= minRaisedAmount && erc20allocation != 0) {
-            if (
-                /* claiming for oneself */
-                (msg.sender == contributor && contributor == recipient) ||
-                /* claiming for someone other */
-                (msg.sender != contributor && contributor == recipient) ||
-                /* giving her contribution to someone other by her own will */
-                (msg.sender == contributor && contributor != recipient)
-            ) {
-                erc20onsale.transfer(recipient, erc20allocation);
-                emit Claimed(
-                    contributor,
-                    recipient,
-                    userShare,
-                    erc20allocation
-                );
-            } else {
-                revert("contributor or recipient invalid");
+            if (msg.sender != participant && participant != recipient) {
+                revert("participant or recipient invalid");
             }
+            erc20onsale.transfer(recipient, erc20allocation);
+            emit Claimed(participant, recipient, raisedAmount, erc20allocation);
         } else {
             /* Refund process */
-            payable(contributor).transfer(userShare);
-            emit Claimed(contributor, recipient, userShare, 0);
+            payable(participant).transfer(raisedAmount);
+            emit Claimed(participant, recipient, raisedAmount, 0);
         }
     }
 
