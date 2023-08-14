@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract Feepool is Ownable {
+contract FeePool is Ownable {
     event WithdrawnEther(address indexed receiver, uint256 amount);
 
     event WithdrawnToken(
@@ -36,4 +36,6 @@ contract Feepool is Ownable {
             }
         }
     }
+
+    receive() external payable {}
 }

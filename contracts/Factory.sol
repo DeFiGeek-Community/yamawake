@@ -2,34 +2,31 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/ISaleTemplate.sol";
 
 contract Factory is Ownable {
     /// @param implemention implemention address
-    /// @param signature function signature of initialize
+    /// @param initializeSignature function signature of initialize auction
+    /// @param transferSignature function signature of transfer token
     struct TemplateInfo {
         address implemention;
-        bytes4 signature;
+        bytes4 initializeSignature;
+        bytes4 transferSignature;
     }
 
     mapping(bytes32 => TemplateInfo) public templates;
     uint256 nonce = 0;
 
-    event Deployed(bytes32 templateName, bytes args);
+    event Deployed(bytes32 templateName, address deployedAddress);
     event TemplateAdded(
         bytes32 indexed templateName,
-        address indexed templateAddr
+        address indexed implementionAddr
     );
-    event TemplateDeleted(
+    event TemplateRemoved(
         bytes32 indexed templateName,
-        address indexed templateAddr
+        address indexed implementionAddr
     );
 
-    /*
-        External Interfaces
-    */
-    function deploySaleClone(
+    function deployAuction(
         bytes32 templateName_,
         bytes calldata args_
     ) external returns (address deployedAddr) {
@@ -41,55 +38,64 @@ contract Factory is Ownable {
         /* 2. Make a clone. */
         deployedAddr = _createClone(templateAddr);
 
+        emit Deployed(templateName_, deployedAddr);
+
         /* 3. Initialize it. */
-        (bool success, bytes memory data) = deployedAddr.call(
-            bytes.concat(templateInfo.signature, args_)
+        (bool success, bytes memory result) = deployedAddr.call(
+            bytes.concat(templateInfo.initializeSignature, args_)
         );
-        require(success, "Failed to initialize the cloned contract.");
-        (address tokenAddr, uint256 allocatedAmount) = abi.decode(
-            data,
-            (address, uint256)
-        );
+        if (!success) {
+            assembly {
+                revert(add(result, 32), mload(result))
+            }
+        }
 
         /* 4. Fund it. */
-        require(
-            IERC20(tokenAddr).transferFrom(
-                msg.sender,
-                deployedAddr,
-                allocatedAmount
-            ),
-            "TransferFrom failed."
-        );
-
-        emit Deployed(templateName_, args_);
+        // Skip if transferSignature is empty
+        if (templateInfo.transferSignature != bytes4(0)) {
+            (success, result) = deployedAddr.delegatecall(
+                bytes.concat(
+                    templateInfo.transferSignature,
+                    result,
+                    abi.encode(deployedAddr)
+                )
+            );
+            if (!success) {
+                assembly {
+                    revert(add(result, 32), mload(result))
+                }
+            }
+        }
     }
 
     function addTemplate(
         bytes32 templateName_,
-        /* Dear governer; deploy it beforehand. */
-        address templateAddr_,
-        bytes4 signature_
+        address implementionAddr_,
+        bytes4 initializeSignature_,
+        bytes4 transferSignature_
     ) external onlyOwner {
         require(
             templates[templateName_].implemention == address(0),
             "This template name is already taken."
         );
 
-        templates[templateName_] = TemplateInfo(templateAddr_, signature_);
+        templates[templateName_] = TemplateInfo(
+            implementionAddr_,
+            initializeSignature_,
+            transferSignature_
+        );
 
-        emit TemplateAdded(templateName_, templateAddr_);
+        emit TemplateAdded(templateName_, implementionAddr_);
     }
 
     function removeTemplate(bytes32 templateName_) external onlyOwner {
         TemplateInfo memory templateInfo = templates[templateName_];
         delete templates[templateName_];
 
-        emit TemplateDeleted(templateName_, templateInfo.implemention);
+        emit TemplateRemoved(templateName_, templateInfo.implemention);
     }
 
-    /*
-        Internal Helpers
-    */
+    /// @dev Deploy implemention's minimal proxy by create2
     function _createClone(
         address implementation_
     ) internal returns (address result) {
