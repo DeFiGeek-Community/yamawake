@@ -1,4 +1,4 @@
-# オークション Dapp
+# Yamawake
 
 ## 概要
 
@@ -8,9 +8,9 @@
 
 ## 構成
 
-### Aggregator
+### Distributor
 
-[詳細](./Aggregator/index.md)
+[詳細](./Distributor/index.md)
 
 ### Factory
 
