@@ -18,6 +18,8 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
     uint256 private constant SCALE_FACTOR = 1e27;
     /* Minimum bidding amount is set to minimize the possibility of refunds. */
     uint256 private constant MIN_BID_AMOUNT = 1e15;
+    /// Fixed rate for calculate the reward score
+    uint256 private constant REWARD_SCORE_RATE = 200;
 
     IERC20 public erc20onsale;
     uint256 public allocatedAmount;
@@ -126,6 +128,10 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
                 revert("participant or recipient invalid");
             }
             erc20onsale.transfer(recipient, erc20allocation);
+
+            // TODO
+            IDistributor(DISTRIBUTOR_ADDRESS).addScore(participant, raisedAmount * REWARD_SCORE_RATE);
+        
             emit Claimed(participant, recipient, raisedAmount, erc20allocation);
         } else {
             /* Refund process */
@@ -168,9 +174,13 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
             );
         }
 
+        uint256 balance = address(this).balance;
         uint256 fee = (address(this).balance) / 100;
         payable(feePool).transfer(fee);
-        payable(owner).transfer(address(this).balance);
+        payable(owner).transfer(balance);
+        // TODO
+        IDistributor(DISTRIBUTOR_ADDRESS).addScore(msg.sender, balance * REWARD_SCORE_RATE);
+        
     }
 
     /*

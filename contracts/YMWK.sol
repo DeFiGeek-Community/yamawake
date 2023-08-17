@@ -3,9 +3,9 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// @title Curve DAO Token
+/// @title Yamawake DAO Token
 /// @notice ERC20 with piecewise-linear mining supply.
-contract CRV is ERC20 {
+contract YMWK is ERC20 {
     event UpdateMiningParameters(uint256 time, uint256 rate, uint256 supply);
     event SetMinter(address minter);
     event SetAdmin(address admin);
@@ -26,10 +26,10 @@ contract CRV is ERC20 {
     // left for inflation: 57%
 
     // Supply parameters
-    uint256 constant INITIAL_SUPPLY = 1_303_030_303;
-    uint256 constant INITIAL_RATE = (274_815_283 * 10 ** 18) / YEAR; // leading to 43% premine
+    uint256 constant INITIAL_SUPPLY = 450_000_000;
+    uint256 constant INITIAL_RATE = (55_000_000 * 10 ** 18) / YEAR; // leading to 45% premine
     uint256 constant RATE_REDUCTION_TIME = YEAR;
-    uint256 constant RATE_REDUCTION_COEFFICIENT = 1189207115002721024; // 2 ** (1/4) * 1e18
+    uint256 constant RATE_REDUCTION_COEFFICIENT = 10_000_000_000_000_000_000; // 10 * 1e18
     uint256 constant RATE_DENOMINATOR = 10 ** 18;
     uint256 constant INFLATION_DELAY = 1 days;
 
@@ -40,7 +40,7 @@ contract CRV is ERC20 {
 
     uint256 start_epoch_supply;
 
-    constructor() ERC20("Curve", "CRV") {
+    constructor() ERC20("Yamawake DAO Token", "YMWK") {
         uint256 init_supply = INITIAL_SUPPLY * 10 ** decimals();
         _mint(msg.sender, init_supply);
 
