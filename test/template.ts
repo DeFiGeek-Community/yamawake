@@ -750,6 +750,137 @@ describe("TemplateV1", function () {
         // });
     });
 
+    describe("withdrawERC20Onsale", function() {
+        // 失敗したセールのトークン回収
+        it("withdrawERC20Onsale_success_1", async function () {
+            const { factory, owner } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("100"),
+            );
+    
+            await timeTravel(DAY);
+            await sendEther(sale.address, "99", owner);
+    
+            await timeTravel(DAY * 4);
+            await expect(
+                sale.connect(owner).withdrawERC20Onsale(),
+            ).to.changeTokenBalances(
+                token,
+                [owner.address, sale.address],
+                [
+                ethers.utils.parseEther("1"),
+                ethers.utils.parseEther("-1"),
+                ],
+            );
+        });
+
+        // 失敗したセールのオーナー以外からのトークン回収
+        it("withdrawERC20Onsale_success_1", async function () {
+            const { factory, owner, addr1 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("100"),
+            );
+    
+            await timeTravel(DAY);
+            await sendEther(sale.address, "99", owner);
+    
+            await timeTravel(DAY * 4);
+            await expect(
+                sale.connect(addr1).withdrawERC20Onsale(),
+            ).to.be.reverted;
+        });
+
+        // 成功したセールのトークン回収
+        it("withdrawERC20Onsale_fail_3", async function () {
+            const { factory, owner } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+            const allocatedAmount = ethers.utils.parseEther("100");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                "0",
+            );
+    
+            await timeTravel(DAY);
+            await sendEther(sale.address, "100", owner);
+    
+            await timeTravel(DAY * 4);
+            await expect(
+                sale.connect(owner).withdrawERC20Onsale(),
+            ).to.be.revertedWith("The required amount has been raised!");
+        });
+
+        // 成功したが売上0のセールのトークン回収
+        it("withdrawERC20Onsale_success_1", async function () {
+            const { factory, owner } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                "0",
+            );
+    
+            await timeTravel(DAY);
+    
+            await timeTravel(DAY * 4);
+            await expect(
+                sale.connect(owner).withdrawERC20Onsale(),
+            ).to.changeTokenBalances(
+                token,
+                [owner.address, sale.address],
+                [
+                ethers.utils.parseEther("1"),
+                ethers.utils.parseEther("-1"),
+                ],
+            );
+        });
+    });
+
     describe("Receive", function () {
         it("reverts with 'The offering has not started yet'", async function () {
         const { factory, owner } = await loadFixture(
