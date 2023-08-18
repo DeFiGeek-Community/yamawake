@@ -50,7 +50,7 @@ describe("Yamawake Dapp", function () {
     it("addTemplate_success_1", async function () {
       await loadFixture(deployFactoryAndTemplateFixture);
     });
-    
+
     it("addTemplate_fail_1", async function () {
       const { factory, template, addr1 } = await loadFixture(
         deployFactoryAndTemplateFixture,
@@ -88,49 +88,35 @@ describe("Yamawake Dapp", function () {
 
   describe("removeTemplate", function () {
     it("removeTemplate_success_1", async function () {
-      const { factory } = await loadFixture(
-        deployFactoryAndTemplateFixture,
-      );
-      await factory
-          .removeTemplate(
-            templateName
-          )
+      const { factory } = await loadFixture(deployFactoryAndTemplateFixture);
+      await factory.removeTemplate(templateName);
       const templateInfo = await factory.templates(templateName);
-      await expect(
-        templateInfo[0],
-      ).to.equal(ethers.constants.AddressZero);
+      await expect(templateInfo[0]).to.equal(ethers.constants.AddressZero);
     });
-    
+
     it("removeTemplate_success_2", async function () {
       const { factory, template, addr1 } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
-      const notRegisteredTemplateName = "0x11116c6554656d706c6174655631000000000000000000000000000000000000";
-      await factory
-          .removeTemplate(
-            notRegisteredTemplateName
-          )
+      const notRegisteredTemplateName =
+        "0x11116c6554656d706c6174655631000000000000000000000000000000000000";
+      await factory.removeTemplate(notRegisteredTemplateName);
       const templateInfo = await factory.templates(templateName);
-      const notRegisteredtemplateInfo = await factory.templates(notRegisteredTemplateName);
-      await expect(
-        templateInfo[0],
-      ).to.equal(template.address);
-      await expect(
-        notRegisteredtemplateInfo[0],
-      ).to.equal(ethers.constants.AddressZero);
+      const notRegisteredtemplateInfo = await factory.templates(
+        notRegisteredTemplateName,
+      );
+      await expect(templateInfo[0]).to.equal(template.address);
+      await expect(notRegisteredtemplateInfo[0]).to.equal(
+        ethers.constants.AddressZero,
+      );
     });
 
     it("removeTemplate_fail_1", async function () {
       const { factory, template, addr1 } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
-      await expect(
-        factory
-          .connect(addr1)
-          .removeTemplate(
-            templateName
-          ),
-      ).to.be.reverted;
+      await expect(factory.connect(addr1).removeTemplate(templateName)).to.be
+        .reverted;
     });
   });
 
@@ -190,9 +176,11 @@ describe("Yamawake Dapp", function () {
         ],
       );
 
-      const notRegisteredTemplateName = "0x11116c6554656d706c6174655631000000000000000000000000000000000000";
-      await expect(factory.deployAuction(notRegisteredTemplateName, args)).to.be
-        .revertedWith("No such template in the list.");
+      const notRegisteredTemplateName =
+        "0x11116c6554656d706c6174655631000000000000000000000000000000000000";
+      await expect(
+        factory.deployAuction(notRegisteredTemplateName, args),
+      ).to.be.revertedWith("No such template in the list.");
     });
   });
 });
