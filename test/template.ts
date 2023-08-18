@@ -502,6 +502,254 @@ describe("TemplateV1", function () {
         });
     });
 
+    describe("withdrawRaisedETH", function () {
+        // 成功したセールの売上回収
+        it("withdrawRaisedETH_success_1", async function () {
+        const { factory, feePool, owner } = await loadFixture(
+            deployFactoryAndTemplateFixture,
+        );
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.utils.parseEther("100");
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+            factory,
+            token.address,
+            owner.address,
+            allocatedAmount,
+            now + DAY,
+            DAY,
+            "0",
+        );
+
+        await timeTravel(DAY);
+        await sendEther(sale.address, "100", owner);
+
+        await timeTravel(DAY * 4);
+        await expect(
+            sale.connect(owner).withdrawRaisedETH(),
+        ).to.changeEtherBalances(
+            [owner.address, sale.address, feePool.address],
+            [
+            ethers.utils.parseEther("99"),
+            ethers.utils.parseEther("-100"),
+            ethers.utils.parseEther("1"),
+            ],
+        );
+        });
+
+        // セール期間中の売上回収
+        it("withdrawRaisedETH_fail_1", async function () {
+        const { factory, owner } = await loadFixture(
+            deployFactoryAndTemplateFixture,
+        );
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.utils.parseEther("100");
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+            factory,
+            token.address,
+            owner.address,
+            allocatedAmount,
+            now + DAY,
+            DAY,
+            ethers.utils.parseEther("0.1"),
+        );
+
+        await timeTravel(DAY);
+        await sendEther(sale.address, "100", owner);
+
+        await expect(
+            sale.connect(owner).withdrawRaisedETH(),
+        ).to.be.revertedWith("Withdrawal unavailable yet.");
+        });
+
+        // 成功したセールのオーナーアドレス以外からの売上回収
+        it("withdrawRaisedETH_fail_2", async function () {
+        const { factory, owner, addr1 } = await loadFixture(
+            deployFactoryAndTemplateFixture,
+        );
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.utils.parseEther("100");
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+            factory,
+            token.address,
+            owner.address,
+            allocatedAmount,
+            now + DAY,
+            DAY,
+            ethers.utils.parseEther("0.1"),
+        );
+
+        await timeTravel(DAY);
+        await sendEther(sale.address, "100", owner);
+
+        await timeTravel(DAY * 4);
+        await expect(sale.connect(addr1).withdrawRaisedETH()).to.be.reverted;
+        });
+
+        // 成功したセールの売上ロック期間中かつ最低入札額で割当1以上の場合の売上回収
+        it("withdrawRaisedETH_success_2", async function () {
+        const { factory, feePool, owner } = await loadFixture(
+            deployFactoryAndTemplateFixture,
+        );
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = "10000000";
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+            factory,
+            token.address,
+            owner.address,
+            allocatedAmount,
+            now + DAY,
+            DAY,
+            ethers.utils.parseEther("1"),
+        );
+
+        await timeTravel(DAY);
+        const signers = await ethers.getSigners();
+        const promiseList1 = [];
+        for (let i = 0; i < 100; i++) {
+            const signer = signers[i];
+            promiseList1.push(sendEther(sale.address, "100", signer));
+        }
+        await Promise.all(promiseList1);
+
+        await timeTravel(DAY);
+
+        await expect(
+            sale.connect(owner).withdrawRaisedETH(),
+        ).to.changeEtherBalances(
+            [owner.address, sale.address, feePool.address],
+            [
+            ethers.utils.parseEther("9900"),
+            ethers.utils.parseEther("-10000"),
+            ethers.utils.parseEther("100"),
+            ],
+        );
+        });
+
+        // 成功したセールの売上ロック期間中かつ最低入札額で割当0になる場合の売上回収
+        it("withdrawRaisedETH_fail_3", async function () {
+        const { factory, feePool, owner } = await loadFixture(
+            deployFactoryAndTemplateFixture,
+        );
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = "9999999";
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+            factory,
+            token.address,
+            owner.address,
+            allocatedAmount,
+            now + DAY,
+            DAY,
+            ethers.utils.parseEther("1"),
+        );
+
+        await timeTravel(DAY);
+        const signers = await ethers.getSigners();
+        const promiseList1 = [];
+        for (let i = 0; i < 100; i++) {
+            const signer = signers[i];
+            promiseList1.push(sendEther(sale.address, "100", signer));
+        }
+        await Promise.all(promiseList1);
+
+        await timeTravel(DAY);
+
+        await expect(
+            sale.connect(owner).withdrawRaisedETH(),
+        ).to.be.revertedWith(
+            "Refund candidates may exist. Withdrawal unavailable yet.",
+        );
+
+        await timeTravel(DAY * 3);
+
+        await expect(
+            sale.connect(owner).withdrawRaisedETH(),
+        ).to.changeEtherBalances(
+            [owner.address, sale.address, feePool.address],
+            [
+            ethers.utils.parseEther("9900"),
+            ethers.utils.parseEther("-10000"),
+            ethers.utils.parseEther("100"),
+            ],
+        );
+        });
+
+        // 失敗したセールの売上回収
+        it("withdrawRaisedETH_fail_4", async function () {
+        const { factory, owner } = await loadFixture(
+            deployFactoryAndTemplateFixture,
+        );
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.utils.parseEther("1");
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+            factory,
+            token.address,
+            owner.address,
+            allocatedAmount,
+            now + DAY,
+            DAY,
+            ethers.utils.parseEther("100"),
+        );
+
+        await timeTravel(DAY);
+        await sendEther(sale.address, "99", owner);
+
+        await timeTravel(DAY * 4);
+        await expect(
+            sale.connect(owner).withdrawRaisedETH(),
+        ).to.be.revertedWith("The required amount has not been raised!");
+        });
+
+        // it("withdrawRaisedETH_subsuccess_1", async function () {
+        //     const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
+        //     const { token } = await loadFixture(deployTokenFixture);
+        //     const allocatedAmount = "1000000"
+        //     await token.approve(factory.address, allocatedAmount);
+        //     const now = await time.latest();
+
+        //     const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("1"));
+
+        //     await timeTravel(DAY);
+        //     const signers = await ethers.getSigners();
+        //     const promiseList1 = [];
+
+        //     for(let i=0; i<1000001; i++) {
+        //         const signer = signers[i];
+        //         promiseList1.push(sendEther(sale.address, "100", signer));
+        //     }
+        //     await Promise.all(promiseList1);
+
+        //     await timeTravel(DAY);
+
+        //     const promiseList2 = [];
+        //     for(let i=0; i<101; i++) {
+        //         const signer = signers[i];
+        //         promiseList2.push(sale.connect(signer).claim(signer.address, signer.address));
+        //     }
+        //     await Promise.all(promiseList2);
+
+        //     await timeTravel(DAY*3);
+        //     await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalance(owner.address, "0");
+        // });
+    });
+
     describe("Receive", function () {
         it("reverts with 'The offering has not started yet'", async function () {
         const { factory, owner } = await loadFixture(
@@ -696,247 +944,7 @@ describe("TemplateV1", function () {
         );
         });
     });
-    describe("withdrawRaisedETH", function () {
-        it("売り上げを回収する_success_成功したセールの売上回収", async function () {
-        const { factory, feePool, owner } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = ethers.utils.parseEther("1");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
 
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
-
-        await timeTravel(DAY);
-        await sendEther(sale.address, "1", owner);
-
-        await timeTravel(DAY * 4);
-        await expect(
-            sale.connect(owner).withdrawRaisedETH(),
-        ).to.changeEtherBalances(
-            [owner.address, sale.address, feePool.address],
-            [
-            ethers.utils.parseEther("0.99"),
-            ethers.utils.parseEther("-1"),
-            ethers.utils.parseEther("0.01"),
-            ],
-        );
-        });
-
-        it("売り上げを回収する_fail_セール期間中の売上回収", async function () {
-        const { factory, owner } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = ethers.utils.parseEther("1");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
-
-        await timeTravel(DAY);
-        await sendEther(sale.address, "1", owner);
-
-        await expect(
-            sale.connect(owner).withdrawRaisedETH(),
-        ).to.be.revertedWith("Withdrawal unavailable yet.");
-        });
-
-        it("売り上げを回収する_fail_成功したセールのオーナーアドレス以外からの売上回収", async function () {
-        const { factory, owner, addr1 } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = ethers.utils.parseEther("1");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
-
-        await timeTravel(DAY);
-        await sendEther(sale.address, "1", owner);
-
-        await timeTravel(DAY * 4);
-        await expect(sale.connect(addr1).withdrawRaisedETH()).to.be.reverted;
-        });
-
-        it("売り上げを回収する_success_成功したセールの売上ロック期間中かつ最低入札額で割当1以上の場合の売上回収", async function () {
-        const { factory, feePool, owner } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = "10000000";
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("1"),
-        );
-
-        await timeTravel(DAY);
-        const signers = await ethers.getSigners();
-        const promiseList1 = [];
-        for (let i = 0; i < 100; i++) {
-            const signer = signers[i];
-            promiseList1.push(sendEther(sale.address, "100", signer));
-        }
-        await Promise.all(promiseList1);
-
-        await timeTravel(DAY);
-
-        await expect(
-            sale.connect(owner).withdrawRaisedETH(),
-        ).to.changeEtherBalances(
-            [owner.address, sale.address, feePool.address],
-            [
-            ethers.utils.parseEther("9900"),
-            ethers.utils.parseEther("-10000"),
-            ethers.utils.parseEther("100"),
-            ],
-        );
-        });
-
-        it("売り上げを回収する_fail_成功したセールの売上ロック期間中かつ最低入札額で割当0になる場合の売上回収", async function () {
-        const { factory, feePool, owner } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = "9999999";
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("1"),
-        );
-
-        await timeTravel(DAY);
-        const signers = await ethers.getSigners();
-        const promiseList1 = [];
-        for (let i = 0; i < 100; i++) {
-            const signer = signers[i];
-            promiseList1.push(sendEther(sale.address, "100", signer));
-        }
-        await Promise.all(promiseList1);
-
-        await timeTravel(DAY);
-
-        await expect(
-            sale.connect(owner).withdrawRaisedETH(),
-        ).to.be.revertedWith(
-            "Refund candidates may exist. Withdrawal unavailable yet.",
-        );
-
-        await timeTravel(DAY * 3);
-
-        await expect(
-            sale.connect(owner).withdrawRaisedETH(),
-        ).to.changeEtherBalances(
-            [owner.address, sale.address, feePool.address],
-            [
-            ethers.utils.parseEther("9900"),
-            ethers.utils.parseEther("-10000"),
-            ethers.utils.parseEther("100"),
-            ],
-        );
-        });
-
-        it("売り上げを回収する_fail_失敗したセールの売上回収", async function () {
-        const { factory, owner, addr1 } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = ethers.utils.parseEther("1");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("100"),
-        );
-
-        await timeTravel(DAY);
-        await sendEther(sale.address, "99", owner);
-
-        await timeTravel(DAY * 4);
-        await expect(
-            sale.connect(owner).withdrawRaisedETH(),
-        ).to.be.revertedWith("The required amount has not been raised!");
-        });
-
-        // it("売り上げを回収する_success_成功したが割当者がいないセールの売上回収（トークンのGOX）", async function () {
-        //     const { factory, owner } = await loadFixture(deployFactoryAndTemplateFixture);
-        //     const { token } = await loadFixture(deployTokenFixture);
-        //     const allocatedAmount = "1000000"
-        //     await token.approve(factory.address, allocatedAmount);
-        //     const now = await time.latest();
-
-        //     const sale = await deploySaleTemplate(factory, token.address, owner.address, allocatedAmount, now + DAY, DAY, ethers.utils.parseEther("1"));
-
-        //     await timeTravel(DAY);
-        //     const signers = await ethers.getSigners();
-        //     const promiseList1 = [];
-
-        //     for(let i=0; i<1000001; i++) {
-        //         const signer = signers[i];
-        //         promiseList1.push(sendEther(sale.address, "100", signer));
-        //     }
-        //     await Promise.all(promiseList1);
-
-        //     await timeTravel(DAY);
-
-        //     const promiseList2 = [];
-        //     for(let i=0; i<101; i++) {
-        //         const signer = signers[i];
-        //         promiseList2.push(sale.connect(signer).claim(signer.address, signer.address));
-        //     }
-        //     await Promise.all(promiseList2);
-
-        //     await timeTravel(DAY*3);
-        //     await expect(sale.connect(owner).withdrawRaisedETH()).to.changeEtherBalance(owner.address, "0");
-        // });
-    });
     describe("initializeTransfer", function () {
         it("call_externaly_fail_not_factory", async function () {
         const { factory, template, owner } = await loadFixture(
