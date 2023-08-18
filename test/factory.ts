@@ -1,12 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import {
-  getTokenAbiArgs,
-  getSaleAbiArgs,
-  sendEther,
-  timeTravel,
-} from "./scenarioHelper";
 
 describe("Yamawake Dapp", function () {
   const templateName = ethers.utils.formatBytes32String("TemplateV1");
@@ -44,45 +38,6 @@ describe("Yamawake Dapp", function () {
     );
 
     return { factory, feePool, template, owner, addr1, addr2 };
-  }
-
-  async function deployTokenFixture() {
-    const Token = await ethers.getContractFactory("SampleToken");
-    const token = await Token.deploy(initialSupply);
-    await token.deployed();
-
-    return { token };
-  }
-
-  async function deploySaleTemplate(
-    factory: any,
-    tokenAddr: string,
-    ownerAddr: string,
-    allocatedAmount: any,
-    startingAt: number,
-    eventDuration: number,
-    minRaisedAmount: any,
-  ) {
-    const abiCoder = ethers.utils.defaultAbiCoder;
-    const args = abiCoder.encode(
-      ["address", "uint256", "uint256", "address", "uint256", "uint256"],
-      [
-        ownerAddr,
-        startingAt,
-        eventDuration,
-        tokenAddr,
-        allocatedAmount,
-        minRaisedAmount,
-      ],
-    );
-    const tx = await factory.deployAuction(templateName, args);
-    const receipt = await tx.wait();
-    const event = receipt.events.find(
-      (event: any) => event.event === "Deployed",
-    );
-    const [, templateAddr] = event.args;
-    const Sale = await ethers.getContractFactory("TemplateV1");
-    return await Sale.attach(templateAddr);
   }
 
   describe("deploy", function () {
