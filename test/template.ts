@@ -1047,83 +1047,378 @@ describe("TemplateV1", function () {
         });
     });
 
-    describe("Claim", function () {
-        it("sends token to the claimer when allocatedAmount < totalRaised", async function () {
-        const { factory, owner, addr1, addr2 } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
+    describe("claim", function () {
+        // 成功したセールで自分自身への割当トークン請求
+        it("claim_success_1", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
 
-        const allocatedAmount = ethers.utils.parseEther("0.9");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
 
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
+            await timeTravel(DAY);
+            
+            let totalClaimed = 0n;
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                await sale.connect(signer).claim(signer.address, signer.address);
+                const balance = await token.balanceOf(signer.address);
+                const expectedBalance = BigInt(Number(amount) * (10**18)) / BigInt(55)
 
-        await timeTravel(DAY);
-        await sendEther(sale.address, "1", addr1);
-        await sendEther(sale.address, "1", addr2);
-        await timeTravel(DAY);
-        await sale.claim(addr1.address, addr1.address);
-        await sale.claim(addr2.address, addr2.address);
-        const user1TokenBalance = await token.balanceOf(addr1.address);
-        const user2TokenBalance = await token.balanceOf(addr2.address);
-        const contractTokenBalance = await token.balanceOf(sale.address);
+                totalClaimed = totalClaimed + BigInt(balance);
 
-        await expect(user1TokenBalance.toString()).to.eq(
-            ethers.utils.parseEther("0.45"),
-        );
-        await expect(user2TokenBalance.toString()).to.eq(
-            ethers.utils.parseEther("0.45"),
-        );
-        await expect(contractTokenBalance.toString()).to.eq("0");
+                await expect(balance.toString()).to.be.eq(
+                    expectedBalance.toString()
+                );
+            }
+
+            const contractTokenBalance = await token.balanceOf(sale.address);
+            await expect(contractTokenBalance.toString()).to.eq("50");
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                await expect(sale.connect(signer).claim(signer.address, signer.address)).to.be.revertedWith(
+                    "You don't have any contribution."
+                );
+            }
         });
 
-        it("sends tokens to the claimer when allocatedAmount > totalRaised", async function () {
-        const { factory, owner, addr1, addr2 } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
+        // 成功したセールで自分以外への割当トークン請求
+        it("claim_success_2", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
 
-        const allocatedAmount = ethers.utils.parseEther("1.9");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
 
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
+            await timeTravel(DAY);
 
-        await timeTravel(DAY);
-        await sendEther(sale.address, "0.5", addr1);
-        await sendEther(sale.address, "0.5", addr2);
-        await timeTravel(DAY);
-        await sale.claim(addr1.address, addr1.address);
-        await sale.claim(addr2.address, addr2.address);
-        const user1TokenBalance = await token.balanceOf(addr1.address);
-        const user2TokenBalance = await token.balanceOf(addr2.address);
-        const contractTokenBalance = await token.balanceOf(sale.address);
 
-        await expect(user1TokenBalance.toString()).to.eq(
-            ethers.utils.parseEther("0.95"),
-        );
-        await expect(user2TokenBalance.toString()).to.eq(
-            ethers.utils.parseEther("0.95"),
-        );
-        await expect(contractTokenBalance.toString()).to.eq("0");
+            await sale.connect(signers[1]).claim(signers[1].address, signers[2].address);
+            const user1TokenBalance = await token.balanceOf(signers[1].address);
+            const user2TokenBalance = await token.balanceOf(signers[2].address);
+
+            await expect(user1TokenBalance.toString()).to.eq(
+                "0",
+            );
+            await expect(user2TokenBalance.toString()).to.eq(
+                "1818181818181818",
+            );
+            await expect(sale.connect(signers[1]).claim(signers[1].address, signers[2].address)).to.be.revertedWith(
+                "You don't have any contribution."
+            );
+        });
+
+        // 成功したセールで非参加者から参加者への割当トークン請求
+        it("claim_success_3", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
+
+            await timeTravel(DAY);
+
+
+            await sale.connect(signers[101]).claim(signers[1].address, signers[1].address);
+            const user1TokenBalance = await token.balanceOf(signers[101].address);
+            const user2TokenBalance = await token.balanceOf(signers[1].address);
+
+            await expect(user1TokenBalance.toString()).to.eq(
+                "0",
+            );
+            await expect(user2TokenBalance.toString()).to.eq(
+                "1818181818181818",
+            );
+            await expect(sale.connect(signers[101]).claim(signers[1].address, signers[1].address)).to.be.revertedWith(
+                "You don't have any contribution."
+            );
+        });
+
+        // 成功したセールで非参加者から非参加者への割当トークン請求
+        it("claim_fail_1", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
+
+            await timeTravel(DAY);
+
+            await expect(sale.connect(signers[0]).claim(signers[0].address, signers[0].address)).to.be.revertedWith(
+                "You don't have any contribution."
+            );
+        });
+
+        // 成功したセールで非参加者から非参加者への割当トークン請求
+        it("claim_fail_2", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
+
+            await timeTravel(DAY);
+
+            await expect(sale.connect(signers[0]).claim(signers[1].address, signers[0].address)).to.be.revertedWith(
+                "participant or recipient invalid"
+            );
+        });
+
+        // セール終了前の請求
+        it("claim_fail_3", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
+
+            await expect(sale.connect(signers[1]).claim(signers[1].address, signers[1].address)).to.be.revertedWith(
+                "Early to claim. Sale is not finished."
+            );
+        });
+
+        // 成功したセールで割当がない場合の返金
+        it("claim_success_4", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = 1000000;
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                promiseList1.push(sendEther(sale.address, "1000", signer));
+            }
+            await Promise.all(promiseList1);
+            await sendEther(sale.address, "0.001", owner);
+
+            await timeTravel(DAY);
+
+            await expect(sale.connect(owner).claim(owner.address, owner.address)).to.changeEtherBalance(
+                owner,
+                ethers.utils.parseEther("0.001").toString()
+            );
+            await expect(sale.connect(owner).claim(owner.address, owner.address)).to.be.revertedWith(
+                "You don't have any contribution."
+            );
+        });
+
+        // 失敗したセールでの返金
+        it("claim_success_5", async function () {
+            const { factory, owner, addr1, addr2 } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("1000000000"),
+            );
+    
+            await timeTravel(DAY);
+            
+            const signers = await ethers.getSigners();
+            const promiseList1 = [];
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                promiseList1.push(sendEther(sale.address, amount, signer));
+            }
+            await Promise.all(promiseList1);
+
+            await timeTravel(DAY);
+
+            for(let i=1; i<101; i++) {
+                const signer = signers[i];
+                const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+                await expect(sale.connect(signer).claim(signer.address, signer.address)).to.changeEtherBalance(
+                    signer,
+                    ethers.utils.parseEther(amount).toString()
+                );
+                await expect(sale.connect(signer).claim(signer.address, signer.address)).to.be.revertedWith(
+                    "You don't have any contribution."
+                );
+            }
         });
     });
 
