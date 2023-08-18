@@ -881,8 +881,72 @@ describe("TemplateV1", function () {
         });
     });
 
-    describe("Receive", function () {
-        it("reverts with 'The offering has not started yet'", async function () {
+    describe("receive", function () {
+        // 正常な入札
+        it("receive_success_1", async function () {
+            const { factory, owner } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, ethers.utils.parseEther("10"));
+            const sendingAmounts = ["0.001", "0.01", "0.1", "1"];
+    
+            for(const amount of sendingAmounts) {
+                const now = await time.latest();
+                const sale = await deploySaleTemplate(
+                    factory,
+                    token.address,
+                    owner.address,
+                    allocatedAmount,
+                    now + DAY,
+                    DAY,
+                    ethers.utils.parseEther("0.1"),
+                );
+        
+                await timeTravel(DAY);
+                await sendEther(sale.address, amount, owner);
+        
+                await expect(await sale.totalRaised()).to.be.eq(
+                    ethers.utils.parseEther(amount),
+                );
+                await expect(await sale.raised(owner.address)).to.be.eq(
+                    ethers.utils.parseEther(amount),
+                );
+            }
+        });
+    
+        // 最低入札金額以下の入札
+        it("receive_fail_1", async function () {
+            const { factory, owner } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+    
+            await timeTravel(DAY);
+    
+            await expect(
+                sendEther(sale.address, "0.0009", owner),
+            ).to.be.revertedWith(
+                "The amount must be greater than or equal to 0.001ETH",
+            );
+        });
+
+        // 開催前のセールへの入札
+        it("receive_fail_2", async function () {
         const { factory, owner } = await loadFixture(
             deployFactoryAndTemplateFixture,
         );
@@ -907,7 +971,35 @@ describe("TemplateV1", function () {
         );
         });
 
-        it("receives ether", async function () {
+        // 終了後のセールへの入札
+        it("receive_fail_3", async function () {
+            const { factory, owner } = await loadFixture(
+                deployFactoryAndTemplateFixture,
+            );
+            const { token } = await loadFixture(deployTokenFixture);
+    
+            const allocatedAmount = ethers.utils.parseEther("1");
+            await token.approve(factory.address, allocatedAmount);
+            const now = await time.latest();
+    
+            const sale = await deploySaleTemplate(
+                factory,
+                token.address,
+                owner.address,
+                allocatedAmount,
+                now + DAY,
+                DAY,
+                ethers.utils.parseEther("0.1"),
+            );
+
+            await timeTravel(DAY * 3);
+    
+            await expect(sendEther(sale.address, "1", owner)).to.be.revertedWith(
+                "The offering has already ended",
+            );
+            });
+
+        it("receive_success_2", async function () {
         const { factory, owner } = await loadFixture(
             deployFactoryAndTemplateFixture,
         );
@@ -927,12 +1019,31 @@ describe("TemplateV1", function () {
             ethers.utils.parseEther("0.1"),
         );
         await timeTravel(DAY);
-        await sendEther(sale.address, "1", owner);
-        const balance = await ethers.provider.getBalance(sale.address);
-        const raised = await sale.raised(owner.address);
 
-        await expect(balance.toString()).to.eq(ethers.utils.parseEther("1"));
-        await expect(raised.toString()).to.eq(ethers.utils.parseEther("1"));
+        const signers = await ethers.getSigners();
+        const promiseList1 = [];
+
+        for(let i=1; i<101; i++) {
+            const signer = signers[i];
+            const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+            promiseList1.push(sendEther(sale.address, amount, signer));
+        }
+        await Promise.all(promiseList1);
+
+        await timeTravel(DAY);
+
+        for(let i=1; i<101; i++) {
+            const signer = signers[i];
+            const amount = Number(Math.ceil(i/10) / 10).toFixed(1);
+            
+            await expect(await sale.raised(signer.address)).to.be.eq(
+                ethers.utils.parseEther(amount),
+            );
+        }
+        await expect(await sale.totalRaised()).to.be.eq(
+            ethers.utils.parseEther("55"),
+        );
+
         });
     });
 
@@ -1013,66 +1124,6 @@ describe("TemplateV1", function () {
             ethers.utils.parseEther("0.95"),
         );
         await expect(contractTokenBalance.toString()).to.eq("0");
-        });
-    });
-
-    describe("receive", function () {
-        it("入札する_success_正常な入札", async function () {
-        const { factory, owner } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = ethers.utils.parseEther("1");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
-
-        await timeTravel(DAY);
-        await sendEther(sale.address, "0.001", owner);
-
-        await expect(await sale.totalRaised()).to.be.eq(
-            ethers.utils.parseEther("0.001"),
-        );
-        await expect(await sale.raised(owner.address)).to.be.eq(
-            ethers.utils.parseEther("0.001"),
-        );
-        });
-
-        it("入札する_fail_最低入札金額以下の入札", async function () {
-        const { factory, owner } = await loadFixture(
-            deployFactoryAndTemplateFixture,
-        );
-        const { token } = await loadFixture(deployTokenFixture);
-        const allocatedAmount = ethers.utils.parseEther("1");
-        await token.approve(factory.address, allocatedAmount);
-        const now = await time.latest();
-
-        const sale = await deploySaleTemplate(
-            factory,
-            token.address,
-            owner.address,
-            allocatedAmount,
-            now + DAY,
-            DAY,
-            ethers.utils.parseEther("0.1"),
-        );
-
-        await timeTravel(DAY);
-
-        await expect(
-            sendEther(sale.address, "0.0009", owner),
-        ).to.be.revertedWith(
-            "The amount must be greater than or equal to 0.001ETH",
-        );
         });
     });
 
