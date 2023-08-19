@@ -25,8 +25,8 @@ describe("Distributor", function () {
     const { factory, feePool, owner, addr1, addr2 } = await loadFixture(
       deployFactoryAndFeePoolFixture,
     );
-    const YMWK = await ethers.getContractFactory("SampleToken");
-    const ymwk = await YMWK.deploy(initialSupply);
+    const YMWK = await ethers.getContractFactory("YMWK");
+    const ymwk = await YMWK.deploy();
     await ymwk.deployed();
 
     const Distributor = await ethers.getContractFactory("Distributor");
