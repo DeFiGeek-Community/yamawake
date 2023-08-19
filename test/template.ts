@@ -1,12 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import {
-  getTokenAbiArgs,
-  getSaleAbiArgs,
-  sendEther,
-  timeTravel,
-} from "./scenarioHelper";
+import { sendEther, timeTravel, deploySaleTemplate } from "./scenarioHelper";
 
 describe("TemplateV1", function () {
   const templateName = ethers.utils.formatBytes32String("TemplateV1");
@@ -27,13 +22,31 @@ describe("TemplateV1", function () {
     return { factory, feePool, owner, addr1, addr2 };
   }
 
-  async function deployFactoryAndTemplateFixture() {
+  async function deployDistributorFixture() {
     const { factory, feePool, owner, addr1, addr2 } = await loadFixture(
       deployFactoryAndFeePoolFixture,
     );
+    const YMWK = await ethers.getContractFactory("SampleToken");
+    const ymwk = await YMWK.deploy(initialSupply);
+    await ymwk.deployed();
+
+    const Distributor = await ethers.getContractFactory("Distributor");
+    const distributor = await Distributor.deploy(factory.address, ymwk.address);
+    await distributor.deployed();
+
+    return { factory, feePool, distributor, ymwk, owner, addr1, addr2 };
+  }
+
+  async function deployFactoryAndTemplateFixture() {
+    const { factory, feePool, distributor, ymwk, owner, addr1, addr2 } =
+      await loadFixture(deployDistributorFixture);
 
     const Template = await ethers.getContractFactory("TemplateV1");
-    const template = await Template.deploy(factory.address, feePool.address);
+    const template = await Template.deploy(
+      factory.address,
+      feePool.address,
+      distributor.address,
+    );
     await template.deployed();
 
     await factory.addTemplate(
@@ -43,7 +56,16 @@ describe("TemplateV1", function () {
       Template.interface.getSighash("initializeTransfer"),
     );
 
-    return { factory, feePool, template, owner, addr1, addr2 };
+    return {
+      factory,
+      feePool,
+      distributor,
+      ymwk,
+      template,
+      owner,
+      addr1,
+      addr2,
+    };
   }
 
   async function deployTokenFixture() {
@@ -52,37 +74,6 @@ describe("TemplateV1", function () {
     await token.deployed();
 
     return { token };
-  }
-
-  async function deploySaleTemplate(
-    factory: any,
-    tokenAddr: string,
-    ownerAddr: string,
-    allocatedAmount: any,
-    startingAt: number,
-    eventDuration: number,
-    minRaisedAmount: any,
-  ) {
-    const abiCoder = ethers.utils.defaultAbiCoder;
-    const args = abiCoder.encode(
-      ["address", "uint256", "uint256", "address", "uint256", "uint256"],
-      [
-        ownerAddr,
-        startingAt,
-        eventDuration,
-        tokenAddr,
-        allocatedAmount,
-        minRaisedAmount,
-      ],
-    );
-    const tx = await factory.deployAuction(templateName, args);
-    const receipt = await tx.wait();
-    const event = receipt.events.find(
-      (event: any) => event.event === "Deployed",
-    );
-    const [, templateAddr] = event.args;
-    const Sale = await ethers.getContractFactory("TemplateV1");
-    return await Sale.attach(templateAddr);
   }
 
   describe("initialize", function () {

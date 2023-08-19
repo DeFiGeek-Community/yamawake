@@ -21,13 +21,31 @@ describe("Yamawake Dapp", function () {
     return { factory, feePool, owner, addr1, addr2 };
   }
 
-  async function deployFactoryAndTemplateFixture() {
+  async function deployDistributorFixture() {
     const { factory, feePool, owner, addr1, addr2 } = await loadFixture(
       deployFactoryAndFeePoolFixture,
     );
+    const YMWK = await ethers.getContractFactory("SampleToken");
+    const ymwk = await YMWK.deploy(initialSupply);
+    await ymwk.deployed();
+
+    const Distributor = await ethers.getContractFactory("Distributor");
+    const distributor = await Distributor.deploy(factory.address, ymwk.address);
+    await distributor.deployed();
+
+    return { factory, feePool, distributor, ymwk, owner, addr1, addr2 };
+  }
+
+  async function deployFactoryAndTemplateFixture() {
+    const { factory, feePool, distributor, ymwk, owner, addr1, addr2 } =
+      await loadFixture(deployDistributorFixture);
 
     const Template = await ethers.getContractFactory("TemplateV1");
-    const template = await Template.deploy(factory.address, feePool.address);
+    const template = await Template.deploy(
+      factory.address,
+      feePool.address,
+      distributor.address,
+    );
     await template.deployed();
 
     await factory.addTemplate(
@@ -37,7 +55,16 @@ describe("Yamawake Dapp", function () {
       Template.interface.getSighash("initializeTransfer"),
     );
 
-    return { factory, feePool, template, owner, addr1, addr2 };
+    return {
+      factory,
+      feePool,
+      distributor,
+      ymwk,
+      template,
+      owner,
+      addr1,
+      addr2,
+    };
   }
 
   describe("deploy", function () {
