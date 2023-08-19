@@ -18,18 +18,18 @@ contract YMWK is ERC20 {
 
     // Allocation:
     // =========
-    // * shareholders - 30%
-    // * emplyees - 3%
-    // * DAO-controlled reserve - 5%
+    // * shareholders - ??%
+    // * emplyees - ?%
+    // * DAO-controlled reserve - ?%
     // * Early users - 5%
-    // == 43% ==
-    // left for inflation: 57%
+    // == 45% ==
+    // left for inflation: 55%
 
     // Supply parameters
     uint256 constant INITIAL_SUPPLY = 450_000_000;
     uint256 constant INITIAL_RATE = (55_000_000 * 10 ** 18) / YEAR; // leading to 45% premine
     uint256 constant RATE_REDUCTION_TIME = YEAR;
-    uint256 constant RATE_REDUCTION_COEFFICIENT = 10_000_000_000_000_000_000; // 10 * 1e18
+    uint256 constant RATE_REDUCTION_COEFFICIENT = 1_111_111_111_111_111_111; // 10 * 1e18 / 9
     uint256 constant RATE_DENOMINATOR = 10 ** 18;
     uint256 constant INFLATION_DELAY = 1 days;
 

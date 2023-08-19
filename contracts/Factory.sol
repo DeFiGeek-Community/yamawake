@@ -26,9 +26,7 @@ contract Factory is Ownable {
         bytes32 indexed templateName,
         address indexed implementionAddr
     );
-    event RewardScorerRemoved(
-        address indexed auctionAddress
-    );
+    event RewardScorerRemoved(address indexed auctionAddress);
 
     function deployAuction(
         bytes32 templateName_,
