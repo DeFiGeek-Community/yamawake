@@ -19,7 +19,11 @@ describe("YMWK", function () {
     it("constructor_success_1", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
       const now = await time.latest();
+      const signers = await ethers.getSigners();
 
+      await expect(await ymwk.balanceOf(signers[0].address)).to.be.equal(
+        ethers.utils.parseEther("450000000"),
+      );
       await expect(await ymwk.totalSupply()).to.be.equal(
         ethers.utils.parseEther("450000000"),
       );
