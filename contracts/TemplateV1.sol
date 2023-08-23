@@ -130,7 +130,6 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
             }
             erc20onsale.transfer(recipient, erc20allocation);
 
-            // TODO
             IDistributor(distributor).addScore(
                 participant,
                 raisedAmount * REWARD_SCORE_RATE
@@ -178,7 +177,6 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
             );
         }
 
-        // TODO
         uint256 gross = address(this).balance;
         uint256 fee = (gross) / 100;
         payable(feePool).transfer(fee);
