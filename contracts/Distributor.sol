@@ -2,13 +2,12 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 interface IFactory {
     function rewardScorers(address _address) external view returns (bool);
 }
 
-contract Distributor is ReentrancyGuard {
+contract Distributor {
     IFactory public factory;
     IERC20 public token;
     mapping(address => uint256) public rewardScores;
@@ -16,8 +15,7 @@ contract Distributor is ReentrancyGuard {
     event ScoreAdded(
         address indexed scorerAddress,
         address indexed userAddress,
-        uint256 scoreAdded,
-        uint256 totalScore
+        uint256 scoreAdded
     );
 
     event Claimed(address indexed userAddress, uint256 amount);
@@ -32,9 +30,10 @@ contract Distributor is ReentrancyGuard {
         uint256 amount
     ) external onlyVerifiedScorer {
         rewardScores[targetAddress] += amount;
+        emit ScoreAdded(msg.sender, targetAddress, amount);
     }
 
-    function claim() external nonReentrant {
+    function claim() external {
         uint256 _score = rewardScores[msg.sender];
         require(_score > 0, "Not eligible to get rewarded");
 
@@ -47,6 +46,7 @@ contract Distributor is ReentrancyGuard {
 
         rewardScores[msg.sender] = 0;
         token.transfer(msg.sender, _score);
+        emit Claimed(msg.sender, _score);
     }
 
     /// @dev Allow only scorers who is registered in Factory
