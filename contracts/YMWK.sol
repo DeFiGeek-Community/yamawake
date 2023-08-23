@@ -31,7 +31,7 @@ contract YMWK is ERC20 {
     uint256 constant RATE_REDUCTION_TIME = YEAR;
     uint256 constant RATE_REDUCTION_COEFFICIENT = 1_111_111_111_111_111_111; // 10 * 1e18 / 9
     uint256 constant RATE_DENOMINATOR = 10 ** 18;
-    uint256 constant INFLATION_DELAY = 1 days;
+    uint256 constant INFLATION_DELAY = YEAR;
 
     // Supply variables
     int128 public mining_epoch;
@@ -147,7 +147,7 @@ contract YMWK is ERC20 {
 
         require(end <= current_epoch_time + RATE_REDUCTION_TIME); // dev: too far in future
 
-        // Curve will not work in 1000 years. Darn!
+        // Yamawake will not work in 1000 years. Darn!
         for (uint i; i < 999; ) {
             if (end >= current_epoch_time) {
                 uint256 current_end = end;

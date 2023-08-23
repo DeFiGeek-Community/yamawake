@@ -27,7 +27,9 @@ describe("YMWK", function () {
       await expect(await ymwk.symbol()).to.be.equal("YMWK");
       await expect(await ymwk.decimals()).to.be.equal(18);
       await expect(await ymwk.mining_epoch()).to.be.equal(-1);
-      await expect(await ymwk.start_epoch_time()).to.be.equal(now + DAY - YEAR);
+      await expect(await ymwk.start_epoch_time()).to.be.equal(
+        now + YEAR - YEAR,
+      );
       await expect(await ymwk.rate()).to.be.equal(0);
     });
   });
@@ -147,35 +149,35 @@ describe("YMWK", function () {
   });
 
   describe("update_mining_parameters", function () {
+    it("update_mining_parameters_fail_1", async function () {
+      const { ymwk } = await loadFixture(deployYMWKFixture);
+      expect(ymwk.update_mining_parameters()).to.be.reverted;
+      await timeTravel(YEAR);
+      expect(ymwk.update_mining_parameters()).to.not.be.reverted;
+    });
+
     // 235年目までの供給量
     it("update_mining_parameters_success_1", async function () {
-      const supplyForFirst6Years = [
-        54999999n,
-        49499999n,
-        44549999n,
-        40094999n,
-        36085499n,
-        32476949n,
-      ];
+      const firstYearInfration = 1744038559107052257n;
+      const reductionRate = 1111111111111111111n;
+      const rateDenominator = 10n ** 18n;
       const { ymwk } = await loadFixture(deployYMWKFixture);
 
-      await timeTravel(DAY);
+      await timeTravel(YEAR);
 
       const startTime = time.latest();
 
       await ymwk.update_mining_parameters();
 
-      for (let i = 1; i < 236; i++) {
-        const currentRate = await ymwk.rate();
-        const supply =
-          (BigInt(currentRate.toString()) * 3600n * 24n * 365n) / 10n ** 18n;
-        if (i < 7) {
-          await expect(supply).to.be.equal(supplyForFirst6Years[i - 1]);
-          // console.log(supply);
-        }
-
+      let currentRate = await ymwk.rate();
+      await expect(currentRate.toString()).to.be.equal(firstYearInfration);
+      let localRate = firstYearInfration;
+      for (let i = 1n; i < 236; i++) {
         await timeTravel(YEAR);
         await ymwk.update_mining_parameters();
+        currentRate = await ymwk.rate();
+        localRate = (localRate * rateDenominator) / reductionRate;
+        await expect(currentRate.toString()).to.be.equal(localRate);
       }
 
       const endTime = time.latest();
@@ -185,7 +187,6 @@ describe("YMWK", function () {
         endTime,
       );
 
-      // console.log(availableSupplyAtLast.toString(), mintableIn235.toString())
       await expect(availableSupplyAtLast).to.be.above(
         ethers.utils.parseEther("999999999"),
       );
