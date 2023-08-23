@@ -32,7 +32,7 @@ contract FeePool is Ownable {
             IERC20(token_[i]).transfer(to_, amount);
             emit WithdrawnToken(to_, token_[i], amount);
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

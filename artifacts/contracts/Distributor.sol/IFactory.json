@@ -11,7 +11,7 @@
           "type": "address"
         }
       ],
-      "name": "rewardScorers",
+      "name": "auctions",
       "outputs": [
         {
           "internalType": "bool",

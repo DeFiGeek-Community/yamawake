@@ -14,7 +14,7 @@ contract Factory is Ownable {
     }
 
     mapping(bytes32 => TemplateInfo) public templates;
-    mapping(address => bool) public rewardScorers;
+    mapping(address => bool) public auctions;
     uint256 nonce = 0;
 
     event Deployed(bytes32 templateName, address deployedAddress);
@@ -26,7 +26,6 @@ contract Factory is Ownable {
         bytes32 indexed templateName,
         address indexed implementionAddr
     );
-    event RewardScorerRemoved(address indexed auctionAddress);
 
     function deployAuction(
         bytes32 templateName_,
@@ -69,8 +68,8 @@ contract Factory is Ownable {
             }
         }
 
-        /* 5. Register the deployed auction as a reward scorer. */
-        rewardScorers[deployedAddr] = true;
+        /* 5. Register the deployed auction. */
+        auctions[deployedAddr] = true;
     }
 
     function addTemplate(
@@ -98,14 +97,6 @@ contract Factory is Ownable {
         delete templates[templateName_];
 
         emit TemplateRemoved(templateName_, templateInfo.implemention);
-    }
-
-    function removeRewardScorer(address auctionAddress_) external onlyOwner {
-        require(rewardScorers[auctionAddress_], "Not registered as a scorer.");
-
-        rewardScorers[auctionAddress_] = false;
-
-        emit RewardScorerRemoved(auctionAddress_);
     }
 
     /// @dev Deploy implemention's minimal proxy by create2

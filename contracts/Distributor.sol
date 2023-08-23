@@ -4,13 +4,13 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IFactory {
-    function rewardScorers(address _address) external view returns (bool);
+    function auctions(address _address) external view returns (bool);
 }
 
 contract Distributor {
     IFactory public factory;
     IERC20 public token;
-    mapping(address => uint256) public rewardScores;
+    mapping(address => uint256) public scores;
 
     event ScoreAdded(
         address indexed scorerAddress,
@@ -25,16 +25,13 @@ contract Distributor {
         token = IERC20(token_);
     }
 
-    function addScore(
-        address targetAddress,
-        uint256 amount
-    ) external onlyVerifiedScorer {
-        rewardScores[targetAddress] += amount;
-        emit ScoreAdded(msg.sender, targetAddress, amount);
+    function addScore(address target_, uint256 amount_) external onlyAuction {
+        scores[target_] += amount_;
+        emit ScoreAdded(msg.sender, target_, amount_);
     }
 
     function claim() external {
-        uint256 _score = rewardScores[msg.sender];
+        uint256 _score = scores[msg.sender];
         require(_score > 0, "Not eligible to get rewarded");
 
         uint256 _balance = token.balanceOf(address(this));
@@ -44,17 +41,14 @@ contract Distributor {
             _score = _balance;
         }
 
-        rewardScores[msg.sender] = 0;
+        scores[msg.sender] = 0;
         token.transfer(msg.sender, _score);
         emit Claimed(msg.sender, _score);
     }
 
     /// @dev Allow only scorers who is registered in Factory
-    modifier onlyVerifiedScorer() {
-        require(
-            factory.rewardScorers(msg.sender),
-            "You are not the verified scorer."
-        );
+    modifier onlyAuction() {
+        require(factory.auctions(msg.sender), "You are not the auction.");
         _;
     }
 }

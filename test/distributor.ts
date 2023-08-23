@@ -124,13 +124,13 @@ describe("Distributor", function () {
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
-      expect(await distributor.rewardScores(addr1.address)).to.be.equal(
+      expect(await distributor.scores(addr1.address)).to.be.equal(
         ethers.utils.parseEther("100"),
       );
 
       await sale.connect(owner).withdrawRaisedETH();
 
-      expect(await distributor.rewardScores(owner.address)).to.be.equal(
+      expect(await distributor.scores(owner.address)).to.be.equal(
         ethers.utils.parseEther("100"),
       );
     });
@@ -183,7 +183,7 @@ describe("Distributor", function () {
         [ethers.utils.parseEther("-100"), ethers.utils.parseEther("100")],
       );
 
-      await expect(await distributor.rewardScores(addr1.address)).to.be.equal(
+      await expect(await distributor.scores(addr1.address)).to.be.equal(
         "0",
       );
     });
@@ -254,7 +254,7 @@ describe("Distributor", function () {
         [ethers.utils.parseEther("-50"), ethers.utils.parseEther("50")],
       );
 
-      await expect(await distributor.rewardScores(addr1.address)).to.be.equal(
+      await expect(await distributor.scores(addr1.address)).to.be.equal(
         "0",
       );
     });

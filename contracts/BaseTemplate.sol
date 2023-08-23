@@ -9,9 +9,9 @@ contract BaseTemplate {
     /// Flags that manage instance initialization
     bool initialized;
 
-    address public immutable feePool;
-    address public immutable factory;
-    address public immutable distributor;
+    address immutable feePool;
+    address immutable factory;
+    address immutable distributor;
     address public owner;
     uint256 public startingAt;
     uint256 public closingAt;
