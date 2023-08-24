@@ -44,9 +44,9 @@ const config: HardhatUserConfig = {
       //   url: `https://mainnet.infura.io/v3/${INFURA_API_TOKEN}`,
       // },
       accounts: {
-        count: 101,
+        count: 110,
         initialIndex: 0,
-        accountsBalance: "1000000000000000000000"
+        accountsBalance: "2000000000000000000000"
       }
     },
   },

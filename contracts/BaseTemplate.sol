@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.18;
 
+interface IDistributor {
+    function addScore(address targetAddress, uint256 amount) external;
+}
+
 contract BaseTemplate {
     /// Flags that manage instance initialization
     bool initialized;
 
-    address public immutable feePool;
-    address public immutable factory;
+    address immutable feePool;
+    address immutable factory;
+    address immutable distributor;
     address public owner;
     uint256 public startingAt;
     uint256 public closingAt;
@@ -34,9 +39,10 @@ contract BaseTemplate {
 
     event Raised(address indexed participant, address token, uint256 amount);
 
-    constructor(address factory_, address feePool_) {
+    constructor(address factory_, address feePool_, address distributor_) {
         factory = factory_;
         feePool = feePool_;
+        distributor = distributor_;
     }
 
     /// @dev Allow only owner of auction instance

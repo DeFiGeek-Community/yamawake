@@ -1,25 +1,20 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { parseEther } from "ethers/lib/utils";
-import { deploy, getFoundation } from "../src/deployUtil";
+import { deploy, getFoundation, getContractAddress } from "../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  //disable temporary
-  // return;
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
+  const factoryAddress = getContractAddress(hre.network.name, "Factory");
+  const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
 
-  await deploy("SampleToken", {
+  await deploy("Distributor", {
     from: foundation,
-    args: [
-      parseEther(
-        "115792089237316195423570985008687907853269984665640564039457",
-      ),
-    ],
+    args: [factoryAddress, ymwkAddress],
     log: true,
     getContractFactory,
   });
 };
 export default func;
-func.tags = ["SampleToken"];
+func.tags = ["Distributor"];

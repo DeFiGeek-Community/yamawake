@@ -111,6 +111,36 @@ export async function sendEther(to: any, amountStr: string, signer: any) {
   ).wait();
 }
 
+const templateName = ethers.utils.formatBytes32String("TemplateV1");
+export async function deploySaleTemplate(
+  factory: any,
+  tokenAddr: string,
+  ownerAddr: string,
+  allocatedAmount: any,
+  startingAt: number,
+  eventDuration: number,
+  minRaisedAmount: any,
+) {
+  const abiCoder = ethers.utils.defaultAbiCoder;
+  const args = abiCoder.encode(
+    ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+    [
+      ownerAddr,
+      startingAt,
+      eventDuration,
+      tokenAddr,
+      allocatedAmount,
+      minRaisedAmount,
+    ],
+  );
+  const tx = await factory.deployAuction(templateName, args);
+  const receipt = await tx.wait();
+  const event = receipt.events.find((event: any) => event.event === "Deployed");
+  const [, templateAddr] = event.args;
+  const Sale = await ethers.getContractFactory("TemplateV1");
+  return await Sale.attach(templateAddr);
+}
+
 export async function timeTravel(seconds: number) {
   await ethers.provider.send("evm_increaseTime", [seconds]);
   await ethers.provider.send("evm_mine", []);

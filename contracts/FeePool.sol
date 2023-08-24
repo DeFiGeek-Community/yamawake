@@ -14,7 +14,7 @@ contract FeePool is Ownable {
     );
 
     function withdrawEther(address to_) external onlyOwner {
-        require(to_ != address(0), "Don't discard treaury!");
+        require(to_ != address(0), "Don't discard treasury!");
         uint256 amount = address(this).balance;
         payable(to_).transfer(amount);
 
@@ -25,14 +25,14 @@ contract FeePool is Ownable {
         address to_,
         address[] calldata token_
     ) external onlyOwner {
-        require(to_ != address(0), "Don't discard treaury!");
+        require(to_ != address(0), "Don't discard treasury!");
         uint256 length = token_.length;
         for (uint256 i; i < length; ) {
             uint256 amount = IERC20(token_[i]).balanceOf(address(this));
             IERC20(token_[i]).transfer(to_, amount);
             emit WithdrawnToken(to_, token_[i], amount);
             unchecked {
-                i++;
+                ++i;
             }
         }
     }

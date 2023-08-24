@@ -6,23 +6,36 @@ async function main() {
   const foundation = await getFoundation();
 
   // Factory
-  const factoryAddress = readFileSync(basePath + "FactoryV1").toString();
+  const factoryAddress = readFileSync(basePath + "Factory").toString();
   await run(`verify:verify`, {
     address: factoryAddress,
   });
 
-  // BulkSaleV1
-  const saleAddress = readFileSync(basePath + "SaleTemplateV1").toString();
+  // FeePool
+  const feePoolAddress = readFileSync(basePath + "FeePool").toString();
   await run(`verify:verify`, {
-    address: saleAddress,
+    address: feePoolAddress,
   });
 
-  // SampleToken
-  // const sampleAddress = readFileSync(basePath + 'SampleToken').toString();
-  // await run(`verify:verify`, {
-  //     address: sampleAddress,
-  //     constructorArguments: [parseEther('115792089237316195423570985008687907853269984665640564039457')]
-  // });
+  // YMWK
+  const ymwkAddress = readFileSync(basePath + 'YMWK').toString();
+  await run(`verify:verify`, {
+      address: ymwkAddress,
+  });
+
+  // Distributor
+  const distributorAddress = readFileSync(basePath + "Distributor").toString();
+  await run(`verify:verify`, {
+    address: distributorAddress,
+    constructorArguments: [factoryAddress, ymwkAddress]
+  });
+
+  // TemplateV1
+  const templateAddress = readFileSync(basePath + "TemplateV1").toString();
+  await run(`verify:verify`, {
+    address: templateAddress,
+    constructorArguments: [factoryAddress, feePoolAddress, distributorAddress]
+  });
 }
 
 main().catch((error) => {

@@ -11,14 +11,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const foundation = await getFoundation();
   const factoryAddress = getContractAddress(hre.network.name, "Factory");
   const feePoolAddress = getContractAddress(hre.network.name, "FeePool");
-  if (factoryAddress === null || feePoolAddress === null) {
-    throw new Error("factory or feepool address is null");
+  const distributorAddress = getContractAddress(hre.network.name, "Distributor");
+  if (factoryAddress === null || feePoolAddress === null || distributorAddress === null) {
+    throw new Error("factory, feepool or distributorAddress address is null");
   }
   console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
   const TemplateV1 = await deploy(codename, {
     from: foundation,
-    args: [factoryAddress, feePoolAddress],
+    args: [factoryAddress, feePoolAddress, distributorAddress],
     log: true,
     getContractFactory,
   });

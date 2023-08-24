@@ -14,6 +14,7 @@ contract Factory is Ownable {
     }
 
     mapping(bytes32 => TemplateInfo) public templates;
+    mapping(address => bool) public auctions;
     uint256 nonce = 0;
 
     event Deployed(bytes32 templateName, address deployedAddress);
@@ -66,6 +67,9 @@ contract Factory is Ownable {
                 }
             }
         }
+
+        /* 5. Register the deployed auction. */
+        auctions[deployedAddr] = true;
     }
 
     function addTemplate(
