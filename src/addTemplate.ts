@@ -34,12 +34,6 @@ export async function addTemplate(
       `factoryAddressFromFile=${factoryAddressFromFile} is not equal to deployedFactoryAddress=${deployedFactoryAddress}`,
     );
   }
-  const upstreamEmbeddedFactoryAddress = await Template.factory();
-  if (upstreamEmbeddedFactoryAddress !== deployedFactoryAddress) {
-    throw new Error(
-      `upstreamEmbeddedFactoryAddress=${upstreamEmbeddedFactoryAddress} is not equal to deployedFactoryAddress=${deployedFactoryAddress}`,
-    );
-  }
 
   /*
         3. Finding unique name
