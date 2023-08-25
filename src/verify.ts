@@ -18,23 +18,23 @@ async function main() {
   });
 
   // YMWK
-  const ymwkAddress = readFileSync(basePath + 'YMWK').toString();
+  const ymwkAddress = readFileSync(basePath + "YMWK").toString();
   await run(`verify:verify`, {
-      address: ymwkAddress,
+    address: ymwkAddress,
   });
 
   // Distributor
   const distributorAddress = readFileSync(basePath + "Distributor").toString();
   await run(`verify:verify`, {
     address: distributorAddress,
-    constructorArguments: [factoryAddress, ymwkAddress]
+    constructorArguments: [factoryAddress, ymwkAddress],
   });
 
   // TemplateV1
   const templateAddress = readFileSync(basePath + "TemplateV1").toString();
   await run(`verify:verify`, {
     address: templateAddress,
-    constructorArguments: [factoryAddress, feePoolAddress, distributorAddress]
+    constructorArguments: [factoryAddress, feePoolAddress, distributorAddress],
   });
 }
 
