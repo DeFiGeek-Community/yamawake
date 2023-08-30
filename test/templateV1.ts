@@ -495,6 +495,41 @@ describe("TemplateV1", function () {
         ),
       ).to.be.revertedWith("You are not the factory.");
     });
+
+    // Creation feeを送付した場合のセール立ち上げ操作
+    it("initialize_fail_10", async function () {
+      const { factory, owner } = await loadFixture(
+        deployFactoryAndTemplateFixture,
+      );
+      const Token = await ethers.getContractFactory("SampleToken");
+      const initialSupply = ethers.utils.parseEther("1");
+      const minRaisedAmount = ethers.BigNumber.from(10).pow(27);
+      const token = await Token.deploy(initialSupply);
+      await token.deployed();
+
+      const allocatedAmount = initialSupply;
+      await token.approve(factory.address, allocatedAmount);
+      const now = await time.latest();
+
+      const abiCoder = ethers.utils.defaultAbiCoder;
+      const args = abiCoder.encode(
+        ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+        [
+          owner.address,
+          now + DAY,
+          DAY,
+          token.address,
+          allocatedAmount,
+          minRaisedAmount,
+        ],
+      );
+
+      await expect(
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.be.revertedWith("This contract does not accept the creation fee");
+    });
   });
 
   describe("withdrawRaisedETH", function () {

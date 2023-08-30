@@ -30,7 +30,7 @@ contract Factory is Ownable {
     function deployAuction(
         bytes32 templateName_,
         bytes calldata args_
-    ) external returns (address deployedAddr) {
+    ) external payable returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
         TemplateInfo memory templateInfo = templates[templateName_];
         address templateAddr = templateInfo.implemention;
@@ -42,9 +42,9 @@ contract Factory is Ownable {
         emit Deployed(templateName_, deployedAddr);
 
         /* 3. Initialize it. */
-        (bool success, bytes memory result) = deployedAddr.call(
-            bytes.concat(templateInfo.initializeSignature, args_)
-        );
+        (bool success, bytes memory result) = deployedAddr.call{
+            value: msg.value
+        }(bytes.concat(templateInfo.initializeSignature, args_));
         if (!success) {
             assembly {
                 revert(add(result, 32), mload(result))
