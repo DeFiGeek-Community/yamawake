@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { sendEther, timeTravel, deploySaleTemplate } from "./scenarioHelper";
 
-describe("TemplateV1", function () {
+describe("TemplateV1WithCreationFee", function () {
   const templateName = ethers.utils.formatBytes32String("TemplateV1");
   const initialSupply = ethers.utils.parseEther("1000");
 
@@ -41,7 +41,9 @@ describe("TemplateV1", function () {
     const { factory, feePool, distributor, ymwk, owner, addr1, addr2 } =
       await loadFixture(deployDistributorFixture);
 
-    const Template = await ethers.getContractFactory("TemplateV1");
+    const Template = await ethers.getContractFactory(
+      "TemplateV1WithCreationFee",
+    );
     const template = await Template.deploy(
       factory.address,
       feePool.address,
@@ -100,7 +102,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith("Go with non null address.");
     });
 
@@ -131,7 +135,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith("owner must be there");
     });
 
@@ -163,8 +169,11 @@ describe("TemplateV1", function () {
         ],
       );
 
-      await expect(factory.deployAuction(templateName, args1)).to.not.be
-        .reverted;
+      await expect(
+        factory.deployAuction(templateName, args1, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.not.be.reverted;
 
       const args2 = abiCoder.encode(
         ["address", "uint256", "uint256", "address", "uint256", "uint256"],
@@ -178,8 +187,11 @@ describe("TemplateV1", function () {
         ],
       );
 
-      await expect(factory.deployAuction(templateName, args2)).to.not.be
-        .reverted;
+      await expect(
+        factory.deployAuction(templateName, args2, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.not.be.reverted;
     });
 
     // allocatedAmountの境界値
@@ -210,7 +222,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith(
         "allocatedAmount must be greater than or equal to 1e6.",
       );
@@ -244,7 +258,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith(
         "allocatedAmount must be less than or equal to 1e50.",
       );
@@ -270,8 +286,11 @@ describe("TemplateV1", function () {
         [owner.address, now + 1, DAY, token.address, allocatedAmount, "0"],
       );
 
-      await expect(factory.deployAuction(templateName, args)).to.not.be
-        .reverted;
+      await expect(
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.not.be.reverted;
     });
 
     // startingAtの境界値
@@ -295,7 +314,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith("startingAt must be in the future");
     });
 
@@ -319,8 +340,11 @@ describe("TemplateV1", function () {
         [owner.address, now + DAY, DAY, token.address, allocatedAmount, "0"],
       );
 
-      await expect(factory.deployAuction(templateName, args)).to.not.be
-        .reverted;
+      await expect(
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.not.be.reverted;
     });
 
     // eventDurationの境界値
@@ -351,7 +375,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith("event duration is too short");
     });
 
@@ -383,7 +409,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith("event duration is too long");
     });
 
@@ -428,10 +456,16 @@ describe("TemplateV1", function () {
         ],
       );
 
-      await expect(factory.deployAuction(templateName, args1)).to.not.be
-        .reverted;
-      await expect(factory.deployAuction(templateName, args2)).to.not.be
-        .reverted;
+      await expect(
+        factory.deployAuction(templateName, args1, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.not.be.reverted;
+      await expect(
+        factory.deployAuction(templateName, args2, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
+      ).to.not.be.reverted;
     });
 
     // minRaisedAmountの境界値
@@ -463,7 +497,9 @@ describe("TemplateV1", function () {
       );
 
       await expect(
-        factory.deployAuction(templateName, args),
+        factory.deployAuction(templateName, args, {
+          value: ethers.utils.parseEther("0.1"),
+        }),
       ).to.be.revertedWith(
         "minRaisedAmount must be less than or equal to 1e27.",
       );
@@ -495,6 +531,35 @@ describe("TemplateV1", function () {
         ),
       ).to.be.revertedWith("You are not the factory.");
     });
+
+    // Creation feeを送付した場合のセール立ち上げ操作
+    it("initialize_fail_10", async function () {
+      const { factory, owner } = await loadFixture(
+        deployFactoryAndTemplateFixture,
+      );
+      const Token = await ethers.getContractFactory("SampleToken");
+      const initialSupply = ethers.utils.parseEther("1");
+      const minRaisedAmount = ethers.BigNumber.from(10).pow(27);
+      const token = await Token.deploy(initialSupply);
+      await token.deployed();
+
+      const allocatedAmount = initialSupply;
+      await token.approve(factory.address, allocatedAmount);
+      const now = await time.latest();
+
+      const abiCoder = ethers.utils.defaultAbiCoder;
+      const args = abiCoder.encode(
+        ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+        [
+          owner.address,
+          now + DAY,
+          DAY,
+          token.address,
+          allocatedAmount,
+          minRaisedAmount,
+        ],
+      );
+    });
   });
 
   describe("withdrawRaisedETH", function () {
@@ -516,6 +581,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         "0",
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -552,6 +618,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -580,6 +647,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -607,6 +675,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -650,6 +719,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -699,6 +769,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("100"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -762,6 +833,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("100"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -795,6 +867,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("100"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -822,6 +895,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         "0",
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -851,6 +925,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         "0",
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -887,6 +962,7 @@ describe("TemplateV1", function () {
           now + DAY,
           DAY,
           ethers.utils.parseEther("0.1"),
+          ethers.utils.parseEther("0.1"),
         );
 
         await timeTravel(DAY);
@@ -919,6 +995,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -947,6 +1024,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await expect(sendEther(sale.address, "1", owner)).to.be.revertedWith(
@@ -972,6 +1050,7 @@ describe("TemplateV1", function () {
         allocatedAmount,
         now + DAY,
         DAY,
+        ethers.utils.parseEther("0.1"),
         ethers.utils.parseEther("0.1"),
       );
 
@@ -999,6 +1078,7 @@ describe("TemplateV1", function () {
         allocatedAmount,
         now + DAY,
         DAY,
+        ethers.utils.parseEther("0.1"),
         ethers.utils.parseEther("0.1"),
       );
       await timeTravel(DAY);
@@ -1048,6 +1128,7 @@ describe("TemplateV1", function () {
         allocatedAmount,
         now + DAY,
         DAY,
+        ethers.utils.parseEther("0.1"),
         ethers.utils.parseEther("0.1"),
       );
 
@@ -1108,6 +1189,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -1155,6 +1237,7 @@ describe("TemplateV1", function () {
         allocatedAmount,
         now + DAY,
         DAY,
+        ethers.utils.parseEther("0.1"),
         ethers.utils.parseEther("0.1"),
       );
 
@@ -1206,6 +1289,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -1245,6 +1329,7 @@ describe("TemplateV1", function () {
         allocatedAmount,
         now + DAY,
         DAY,
+        ethers.utils.parseEther("0.1"),
         ethers.utils.parseEther("0.1"),
       );
 
@@ -1286,6 +1371,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -1323,6 +1409,7 @@ describe("TemplateV1", function () {
         allocatedAmount,
         now + DAY,
         DAY,
+        ethers.utils.parseEther("0.1"),
         ethers.utils.parseEther("0.1"),
       );
 
@@ -1370,6 +1457,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("1000000000"),
+        ethers.utils.parseEther("0.1"),
       );
 
       await timeTravel(DAY);
@@ -1421,6 +1509,7 @@ describe("TemplateV1", function () {
         now + DAY,
         DAY,
         ethers.utils.parseEther("0.1"),
+        ethers.utils.parseEther("0.1"),
       );
       await token.approve(sale.address, allocatedAmount);
       await expect(
@@ -1436,6 +1525,83 @@ describe("TemplateV1", function () {
           .connect(owner)
           .initializeTransfer(token.address, allocatedAmount, sale.address),
       ).to.be.revertedWith("You are not the factory.");
+    });
+  });
+
+  describe("TemplateV1WithCreationFee", function () {
+    describe("initialize", function () {
+      // 正しいCreation feeを送付した場合のセール立ち上げ操作
+      it("initialize_success_1", async function () {
+        const { factory, owner, feePool } = await loadFixture(
+          deployFactoryAndTemplateFixture,
+        );
+        const Token = await ethers.getContractFactory("SampleToken");
+        const initialSupply = ethers.utils.parseEther("1");
+        const minRaisedAmount = "0";
+        const token = await Token.deploy(initialSupply);
+        await token.deployed();
+
+        const allocatedAmount = initialSupply;
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const args = abiCoder.encode(
+          ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+          [
+            owner.address,
+            now + DAY,
+            DAY,
+            token.address,
+            allocatedAmount,
+            minRaisedAmount,
+          ],
+        );
+
+        await expect(
+          factory.deployAuction(templateName, args, {
+            value: ethers.utils.parseEther("0.1"),
+          }),
+        ).to.not.be.reverted;
+        await expect(
+          await ethers.provider.getBalance(feePool.address),
+        ).to.be.equal(ethers.utils.parseEther("0.1"));
+      });
+
+      // 正しくない額のCreation feeを送付した場合のセール立ち上げ操作
+      it("initialize_fail_1", async function () {
+        const { factory, owner } = await loadFixture(
+          deployFactoryAndTemplateFixture,
+        );
+        const Token = await ethers.getContractFactory("SampleToken");
+        const initialSupply = ethers.utils.parseEther("1");
+        const minRaisedAmount = "0";
+        const token = await Token.deploy(initialSupply);
+        await token.deployed();
+
+        const allocatedAmount = initialSupply;
+        await token.approve(factory.address, allocatedAmount);
+        const now = await time.latest();
+
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const args = abiCoder.encode(
+          ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+          [
+            owner.address,
+            now + DAY,
+            DAY,
+            token.address,
+            allocatedAmount,
+            minRaisedAmount,
+          ],
+        );
+
+        await expect(
+          factory.deployAuction(templateName, args, {
+            value: ethers.utils.parseEther("0.2"),
+          }),
+        ).to.be.revertedWith("The creation fee must be 0.1 ETH");
+      });
     });
   });
 });

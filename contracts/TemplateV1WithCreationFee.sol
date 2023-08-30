@@ -7,10 +7,10 @@ import "./BaseTemplate.sol";
 
 /**
  * @author 0xMotoko
- * @title TemplateV1
+ * @title TemplateV1WithCreationFee
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract TemplateV1 is BaseTemplate, ReentrancyGuard {
+contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
     uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
     uint256 private constant ETH_UPPER_BOUND = 1000000000 ether;
@@ -20,6 +20,8 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
     uint256 private constant MIN_BID_AMOUNT = 0.001 ether;
     /// Fixed rate for calculate the reward score
     uint256 private constant REWARD_SCORE_RATE = 100;
+    /// Fixed amount of the creation fee 0.1ETH
+    uint256 public constant CREATION_FEE = 0.1 ether;
 
     IERC20 public erc20onsale;
     uint256 public allocatedAmount;
@@ -45,10 +47,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         require(!initialized, "This contract has already been initialized");
         initialized = true;
 
-        require(
-            msg.value == 0,
-            "This contract does not accept the creation fee"
-        );
+        require(msg.value == CREATION_FEE, "The creation fee must be 0.1 ETH");
         require(owner_ != address(0), "owner must be there");
         require(token_ != address(0), "Go with non null address.");
         require(
@@ -76,6 +75,8 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         erc20onsale = IERC20(token_);
         allocatedAmount = allocatedAmount_;
         minRaisedAmount = minRaisedAmount_;
+
+        payable(feePool).transfer(msg.value);
 
         emit Deployed(
             address(this),
@@ -211,7 +212,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         address token_,
         uint256 amount_,
         address to_
-    ) external onlyDelegateFactory {
+    ) external payable onlyDelegateFactory {
         IERC20(token_).transferFrom(msg.sender, to_, amount_);
     }
 }
