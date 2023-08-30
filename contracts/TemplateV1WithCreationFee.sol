@@ -7,10 +7,10 @@ import "./BaseTemplate.sol";
 
 /**
  * @author 0xMotoko
- * @title SampleTemplateWithCreationFee
+ * @title TemplateV1WithCreationFee
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract SampleTemplateWithCreationFee is BaseTemplate, ReentrancyGuard {
+contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
     uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
     uint256 private constant ETH_UPPER_BOUND = 1e27;
