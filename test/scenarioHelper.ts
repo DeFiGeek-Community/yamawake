@@ -120,6 +120,7 @@ export async function deploySaleTemplate(
   startingAt: number,
   eventDuration: number,
   minRaisedAmount: any,
+  creationFee?: string,
 ) {
   const abiCoder = ethers.utils.defaultAbiCoder;
   const args = abiCoder.encode(
@@ -133,7 +134,9 @@ export async function deploySaleTemplate(
       minRaisedAmount,
     ],
   );
-  const tx = await factory.deployAuction(templateName, args);
+  const tx = creationFee
+    ? await factory.deployAuction(templateName, args, { value: creationFee })
+    : await factory.deployAuction(templateName, args);
   const receipt = await tx.wait();
   const event = receipt.events.find((event: any) => event.event === "Deployed");
   const [, templateAddr] = event.args;
