@@ -13,7 +13,7 @@ import "./BaseTemplate.sol";
 contract TemplateV1 is BaseTemplate, ReentrancyGuard {
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
     uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
-    uint256 private constant ETH_UPPER_BOUND = 1000000000 ether;
+    uint256 private constant ETH_UPPER_BOUND = 1_000_000_000 ether;
     /* Multiplier derived from the practical max number of digits for eth (18 + 8) + 1 to avoid rounding error. */
     uint256 private constant SCALE_FACTOR = 1e27;
     /* Minimum bidding amount is set to minimize the possibility of refunds. */
