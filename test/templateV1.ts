@@ -598,8 +598,8 @@ describe("TemplateV1", function () {
     });
 
     // 成功したセールのオーナーアドレス以外からの売上回収
-    it("withdrawRaisedETH_fail_2", async function () {
-      const { factory, owner, addr1 } = await loadFixture(
+    it("withdrawRaisedETH_success_2", async function () {
+      const { factory, owner, feePool, addr1 } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
       const { token } = await loadFixture(deployTokenFixture);
@@ -621,11 +621,21 @@ describe("TemplateV1", function () {
       await sendEther(sale.address, "100", owner);
 
       await timeTravel(DAY * 4);
-      await expect(sale.connect(addr1).withdrawRaisedETH()).to.be.reverted;
+      await expect(
+        sale.connect(addr1).withdrawRaisedETH(),
+      ).to.changeEtherBalances(
+        [owner.address, sale.address, feePool.address, addr1.address],
+        [
+          ethers.utils.parseEther("99"),
+          ethers.utils.parseEther("-100"),
+          ethers.utils.parseEther("1"),
+          ethers.utils.parseEther("0"),
+        ],
+      );
     });
 
     // 成功したセールの売上ロック期間中かつ最低入札額で割当1以上の場合の売上回収
-    it("withdrawRaisedETH_success_2", async function () {
+    it("withdrawRaisedETH_success_3", async function () {
       const { factory, feePool, owner } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
@@ -813,7 +823,7 @@ describe("TemplateV1", function () {
     });
 
     // 失敗したセールのオーナー以外からのトークン回収
-    it("withdrawERC20Onsale_success_1", async function () {
+    it("withdrawERC20Onsale_success_2", async function () {
       const { factory, owner, addr1 } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
@@ -836,11 +846,21 @@ describe("TemplateV1", function () {
       await sendEther(sale.address, "99", owner);
 
       await timeTravel(DAY * 4);
-      await expect(sale.connect(addr1).withdrawERC20Onsale()).to.be.reverted;
+      await expect(
+        sale.connect(addr1).withdrawERC20Onsale(),
+      ).to.changeTokenBalances(
+        token,
+        [owner.address, sale.address, addr1.address],
+        [
+          ethers.utils.parseEther("1"),
+          ethers.utils.parseEther("-1"),
+          ethers.utils.parseEther("0"),
+        ],
+      );
     });
 
     // 成功したセールのトークン回収
-    it("withdrawERC20Onsale_fail_3", async function () {
+    it("withdrawERC20Onsale_fail_2", async function () {
       const { factory, owner } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
@@ -869,7 +889,7 @@ describe("TemplateV1", function () {
     });
 
     // 成功したが売上0のセールのトークン回収
-    it("withdrawERC20Onsale_success_1", async function () {
+    it("withdrawERC20Onsale_success_3", async function () {
       const { factory, owner } = await loadFixture(
         deployFactoryAndTemplateFixture,
       );
