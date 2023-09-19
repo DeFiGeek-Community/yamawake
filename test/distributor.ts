@@ -176,7 +176,7 @@ describe("Distributor", function () {
       await ymwk.transfer(distributor.address, ethers.utils.parseEther("500"));
 
       await expect(
-        await distributor.connect(addr1).claim(),
+        await distributor.connect(addr1).claim(addr1.address),
       ).to.changeTokenBalances(
         ymwk,
         [distributor, addr1],
@@ -201,9 +201,9 @@ describe("Distributor", function () {
 
       await ymwk.transfer(distributor.address, ethers.utils.parseEther("500"));
 
-      await expect(distributor.connect(addr1).claim()).to.be.revertedWith(
-        "Not eligible to get rewarded",
-      );
+      await expect(
+        distributor.connect(addr1).claim(addr1.address),
+      ).to.be.revertedWith("Not eligible to get rewarded");
     });
 
     // Distributorに十分なトークン残高がない場合のクレーム
@@ -245,7 +245,7 @@ describe("Distributor", function () {
       await ymwk.transfer(distributor.address, ethers.utils.parseEther("50"));
 
       await expect(
-        await distributor.connect(addr1).claim(),
+        await distributor.connect(addr1).claim(addr1.address),
       ).to.changeTokenBalances(
         ymwk,
         [distributor, addr1],
@@ -291,9 +291,62 @@ describe("Distributor", function () {
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
-      await expect(distributor.connect(addr1).claim()).to.be.revertedWith(
-        "No reward available.",
+      await expect(
+        distributor.connect(addr1).claim(addr1.address),
+      ).to.be.revertedWith("No reward available.");
+    });
+
+    // 別アドレス宛のクレーム
+    it("claim_success_3", async function () {
+      const {
+        factory,
+        feePool,
+        distributor,
+        template,
+        ymwk,
+        owner,
+        addr1,
+        addr2,
+      } = await loadFixture(deployFactoryAndTemplateFixture);
+
+      const { token } = await loadFixture(deployTokenFixture);
+      const allocatedAmount = ethers.utils.parseEther("100");
+      await token.approve(factory.address, allocatedAmount);
+      const now = await time.latest();
+
+      const sale = await deploySaleTemplate(
+        factory,
+        token.address,
+        owner.address,
+        allocatedAmount,
+        now + DAY,
+        DAY,
+        "0",
       );
+
+      await timeTravel(DAY);
+
+      await sendEther(sale.address, "1", addr1);
+
+      await timeTravel(DAY);
+
+      await sale.connect(addr1).claim(addr1.address, addr1.address);
+
+      await ymwk.transfer(distributor.address, ethers.utils.parseEther("50"));
+
+      await expect(
+        await distributor.connect(addr2).claim(addr1.address),
+      ).to.changeTokenBalances(
+        ymwk,
+        [distributor, addr1, addr2],
+        [
+          ethers.utils.parseEther("-50"),
+          ethers.utils.parseEther("50"),
+          ethers.utils.parseEther("0"),
+        ],
+      );
+
+      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
   });
 });
