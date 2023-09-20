@@ -161,7 +161,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         Owner: Withdraws Ether
         Contributors: Can claim and get their own ERC-20
     */
-    function withdrawRaisedETH() external onlyOwner nonReentrant {
+    function withdrawRaisedETH() external nonReentrant {
         require(closingAt < block.timestamp, "Withdrawal unavailable yet.");
         require(
             totalRaised >= minRaisedAmount,
@@ -185,10 +185,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         uint256 fee = (gross) / 100;
         payable(feePool).transfer(fee);
 
-        IDistributor(distributor).addScore(
-            msg.sender,
-            gross * REWARD_SCORE_RATE
-        );
+        IDistributor(distributor).addScore(owner, gross * REWARD_SCORE_RATE);
         payable(owner).transfer(address(this).balance);
     }
 
@@ -198,7 +195,7 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         Owner: Withdraws ERC-20
         Contributors: Claim and get back Ether
     */
-    function withdrawERC20Onsale() external onlyOwner {
+    function withdrawERC20Onsale() external {
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
             totalRaised < minRaisedAmount || totalRaised == 0,

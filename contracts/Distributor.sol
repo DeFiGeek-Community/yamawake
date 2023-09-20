@@ -30,8 +30,8 @@ contract Distributor {
         emit ScoreAdded(msg.sender, target_, amount_);
     }
 
-    function claim() external {
-        uint256 _score = scores[msg.sender];
+    function claim(address target_) external {
+        uint256 _score = scores[target_];
         require(_score > 0, "Not eligible to get rewarded");
 
         uint256 _balance = token.balanceOf(address(this));
@@ -41,9 +41,9 @@ contract Distributor {
             _score = _balance;
         }
 
-        scores[msg.sender] = 0;
-        token.transfer(msg.sender, _score);
-        emit Claimed(msg.sender, _score);
+        scores[target_] = 0;
+        token.transfer(target_, _score);
+        emit Claimed(target_, _score);
     }
 
     /// @dev Allow only scorers who is registered in Factory
