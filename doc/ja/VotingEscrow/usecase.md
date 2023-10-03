@@ -37,7 +37,6 @@ graph LR
     integral_of[
         更新
         integrate_inv_supply_of
-        integrate_checkpoint_of
         integrate_fraction
     ]
     calc_reward[ユーザの総YMWKリワード額を計算]
