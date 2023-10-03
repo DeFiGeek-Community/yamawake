@@ -4,7 +4,6 @@
 
 YMWK トークンをロックし、移転不可のveYMWK トークンを発行する。
 ロック期間は最大4年間、最小単位は1週間で、veYMWKはロック後の時間経過により線形に減衰する。1YMWKを4年間ロックすると1veYMWKが発行される。
-また、veYMWKホルダーに報酬として分配されるYMWKトークンの額を計算し、保持する。
 
 #### 参考
 
@@ -151,7 +150,7 @@ https://etherscan.io/address/0xca719728Ef172d0961768581fdF35CB116e0B7a4#readCont
 
 CurveのLiquidityGauseから追加
 
-veYMWKの総発行量に対するインフレーションレートの割合をtについて積分した値をepochごとに保持する。この値とユーザごとに記録してある総ve残高のtについての積分値を掛けることでユーザごとのYMWK報酬の割当額が求まる（Pointに含められそう -> point_history\[epoch\].integrate_inv_supply）
+veYMWKの総発行量をtについて積分した値をepochごとに保持する（Pointに含められそう -> point_history\[epoch\].integrate_inv_supply）
 
 ### integrate_inv_supply_of: public(address => uint256)
 
@@ -167,15 +166,7 @@ CurveのLiquidityGauseから追加
 
 ### integrate_fraction: public(address => uint256)
 
-CurveのLiquidityGauseから追加
-
-各ユーザが受け取る権利のあるYMWK報酬の総額
-
-### inflation_rate: public(uint256)
-
-CurveのLiquidityGauseから追加
-
-現在のYMWKのインフレーションレート
+各ユーザのve残高の合計ve残高に対する割合を時間で積分した値
 
 # 機能
 
