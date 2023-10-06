@@ -146,28 +146,6 @@ https://etherscan.io/address/0xca719728Ef172d0961768581fdF35CB116e0B7a4#readCont
 
 次期管理者アドレス
 
-### integrate_inv_supply: public(uint256[])
-
-CurveのLiquidityGauseから追加
-
-veYMWKの総発行量をtについて積分した値をepochごとに保持する（Pointに含められそう -> point_history\[epoch\].integrate_inv_supply）
-
-### integrate_inv_supply_of: public(address => uint256)
-
-CurveのLiquidityGauseから追加
-
-各ユーザの最後のアクション時のintegrate_inv_supplyの値。ユーザアクション時に期間中に発生した報酬の計算のために参照される。（Pointに含められそう -> user_point_history\[addr\]\[epoch\].integrate_inv_supply）
-
-### integrate_checkpoint_of: public(address => uint256)
-
-CurveのLiquidityGauseから追加
-
-各ユーザの最後のアクション時のタイムスタンプ（user_point_historyのtsと同じなので不要と思われる）
-
-### integrate_fraction: public(address => uint256)
-
-各ユーザのve残高の合計ve残高に対する割合を時間で積分した値
-
 # 機能
 
 ### **init**(token_addr: address, \_name: String[64], \_symbol: String[32], \_version: String[32]) external
