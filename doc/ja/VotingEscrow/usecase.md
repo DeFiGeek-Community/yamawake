@@ -11,7 +11,7 @@
 - [VotingEscrow](./index.md)
   - YMWKトークンをロックすることで移転不可のveYMWKを発行する
   - veYMWKの残高を管理をする
-- Gause
+- [Gauge](../Gauge/index.md)
   - veYMWKホルダーに対するYMWK報酬情報を計算・保持する
 - Minter
   - YMWKトークンに設定されたMinter
@@ -33,11 +33,11 @@ graph LR
     uck[ユーザのポイント履歴を更新]
     ck[全体のポイント履歴を更新]
     integral["
-    過去最大20週分の全体ve履歴を取得・保存
+    最大20週分の全体ve履歴を取得・保存
     integrate_inv_supply
     "]
     integral_of[
-        過去最大50ユーザエポック分のve履歴を取得・保存
+        最大50ユーザエポック分のve履歴を取得・保存
         integrate_inv_supply_of
         integrate_checkpoint_of
         integrate_fraction
@@ -92,7 +92,7 @@ graph LR
     integral -.-|include| rate
     integral -.-|include| future_epoch_time_write
 
-    subgraph Gause
+    subgraph Gauge
       calc_reward
       claimable_tokens
       integral_of
