@@ -84,7 +84,6 @@ graph LR
 
     future_epoch_time_write -.->|include| update_rate
 
-    integral_of -.-|include| ve_total_supply
     integral_of -.-|include| ve_user_balance
     integral -.-|include| ve_total_supply
     integral -.-|include| rate
