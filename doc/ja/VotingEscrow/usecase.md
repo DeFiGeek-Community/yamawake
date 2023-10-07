@@ -42,7 +42,6 @@ graph LR
         integrate_checkpoint_of
         integrate_fraction
     ]
-    calc_reward[ユーザのYMWK報酬を計算]
     ve_total_supply[全体のポイント履歴を取得]
     ve_user_balance[ユーザのポイント履歴を取得]
 
@@ -72,8 +71,7 @@ graph LR
     holder --- withdraw
 
     integral_of -.->|include| integral
-    calc_reward -.->|include| integral_of
-    claimable_tokens -.->|include| calc_reward
+    claimable_tokens -.->|include| integral_of
 
     user ---> holder
     user --- claim_ymwk
@@ -93,7 +91,6 @@ graph LR
     integral -.-|include| future_epoch_time_write
 
     subgraph Gauge
-      calc_reward
       claimable_tokens
       integral_of
       integral
