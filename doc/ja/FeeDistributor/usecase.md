@@ -12,6 +12,7 @@
   - veYMWKの残高を管理をする
 - [FeePool](../FeePool/index.md)
   - 各オークション成功時に徴収される入札トークンの集積所
+- [Auction](../Template/index.md)
 
 ## ユースケース図
 
