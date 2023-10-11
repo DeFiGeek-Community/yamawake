@@ -54,7 +54,10 @@ veYMWK のある時点での状態を格納するための構造体
 
 - votingEscrow: public(address)
   - VotingEscrowのアドレスを保持する
-- tokens: public(address => bool)
+- tokenFlags: public(address => bool)
+  - トークンのアドレスが報酬トークンとして登録されているかのフラグを保持する
+  - 0x0はeth
+- tokens: public(address[])
   - 報酬トークンのアドレスを保持する
   - 0x0はeth
 - veSupply: public(uint256[1000000000000000])
@@ -205,7 +208,7 @@ ve履歴を同期する
     - 対象ユーザのアドレス
   - tokens\_
     - 報酬トークンのアドレス配列
-    - 最大8トークンまで（要検討）
+    - 最大20トークンまで（要検討）
 - 条件
   - kill状態でない
 
@@ -270,7 +273,7 @@ kill状態をTrueに変更し、トークン残高を全て緊急時のトーク
   - adminのみ
   - 対象トークンがtokensに登録済みであること
 
-#### トークンを追加する
+#### addRewardToken(address coin\_) returns bool
 
 - Auctionのみ
 - external

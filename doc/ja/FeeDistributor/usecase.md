@@ -30,14 +30,21 @@ graph LR
     send_fee_eth[ETHを入金する]
     send_fee_erc20[トークンを入金する]
     claim[報酬をクレームする]
-    claim_many[複数（最大8トークン）の報酬をまとめてクレームする]
+    claim_many[複数アドレスの報酬をまとめてクレームする]
+    claim_many_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
     claimable_token[報酬額を取得する]
     user_point_history[ユーザのポイント履歴を取得]
     point_history[全体のポイント履歴を取得]
     sync_ve[最大20週分のve履歴を取得・保存]
     sync_user_ve[最大50エポック分のユーザve履歴を取得・保存]
+    set_admin[管理者を変更する]
+    kill[FeeDistributorを非アクティブにする]
+    evacuate[緊急時トークン送金先にトークンを送金する]
 
     owner --- deploy
+    owner --- kill
+    owner --- evacuate
+    owner --- set_admin
 
     auction_owner --- withdraw_ether
     auction_owner --- withdraw_erc20
@@ -53,15 +60,20 @@ graph LR
 
     user --- claim
     user --- claim_many
+    user --- claim_many_tokens
     user ---|View関数として実行| claimable_token
 
     claim -.->|include| claimable_token
     claim_many -.->|include| claimable_token
+    claim_many_tokens -.->|include| claimable_token
     claimable_token -.->|include| sync_user_ve
 
     sync_user_ve -.->|include| sync_ve
     sync_user_ve -.->|include| user_point_history
     sync_ve -.->|include| point_history
+
+    classDef green fill:#555,stroke-width:2px,stroke-dasharray:6;
+    class send_fee_eth,send_fee_erc20,deposit_reward_ether,deposit_reward_token green
 
     subgraph Auction
         withdraw_ether
@@ -76,11 +88,15 @@ graph LR
 
     subgraph FeeDistributor
         direction LR
+        kill
+        evacuate
+        set_admin
         add_reward
         deposit_reward_token
         deposit_reward_ether
         claim
         claim_many
+        claim_many_tokens
         claimable_token
         sync_ve
         sync_user_ve
