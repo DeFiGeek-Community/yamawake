@@ -39,7 +39,7 @@ uint256 public constant WEEK = 604800
 - inflation_params(uint256 public)
 
   - YMWKのインフレーションレート、次回のインフレーションレート変更タイムスタンプを保持する
-  - futureEpochTimeが40byte, inflationRateが216byte
+  - futureEpochTimeが 40 bit, inflationRateが 216 bit
 
 - integrate_inv_supply(uint256[100000000000000000000000000000] public)
 
