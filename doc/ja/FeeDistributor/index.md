@@ -40,10 +40,10 @@ veYMWK のある時点での状態を格納するための構造体
   - 報酬の分配を開始するタイムスタンプを保持する
 - timeCursor: public(uint256)
   - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- timeCursorOf: public(address => uint256)
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- userEpochOf: public(address => uint256)
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数を保持する
+- timeCursorOf: public(mapping(address => mapping(address => uint256)))
+  - ユーザごとの、ve同期が完了している最後（最新）の履歴のタイムスタンプをトークンごとに保持する
+- userEpochOf: public(mapping(address => mapping(address => uint256))
+  - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数をトークンごとに保持する
 - lastTokenTime: public(address => uint256)
   - チェックポイント時点のタイムスタンプをトークンごとに保持する
 - tokensPerWeek: public(address => uint256[1000000000000000])
@@ -185,7 +185,7 @@ ve履歴を同期する
 - 条件
   - kill状態でない
 
-#### claimMany(address[] receivers\_, address token)
+#### claimMany(address[] receivers\_, address token\_)
 
 複数のアドレスの報酬をまとめてクレームする
 
@@ -198,7 +198,7 @@ ve履歴を同期する
 - 条件
   - kill状態でない
 
-#### claimManyTokens(address addr\_, address tokens)
+#### claimMultipleTokens(address addr\_, address[20] tokens\_)
 
 複数のトークン報酬をまとめてクレームする
 

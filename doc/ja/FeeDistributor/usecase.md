@@ -31,7 +31,7 @@ graph LR
     send_fee_erc20[トークンを入金する]
     claim[報酬をクレームする]
     claim_many[複数アドレスの報酬をまとめてクレームする]
-    claim_many_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
+    claim_multiple_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
     claimable_token[報酬額を取得する]
     user_point_history[ユーザのポイント履歴を取得]
     point_history[全体のポイント履歴を取得]
@@ -60,12 +60,12 @@ graph LR
 
     user --- claim
     user --- claim_many
-    user --- claim_many_tokens
+    user --- claim_multiple_tokens
     user ---|View関数として実行| claimable_token
 
     claim -.->|include| claimable_token
     claim_many -.->|include| claimable_token
-    claim_many_tokens -.->|include| claimable_token
+    claim_multiple_tokens -.->|include| claimable_token
     claimable_token -.->|include| sync_user_ve
 
     sync_user_ve -.->|include| sync_ve
@@ -96,7 +96,7 @@ graph LR
         deposit_reward_ether
         claim
         claim_many
-        claim_many_tokens
+        claim_multiple_tokens
         claimable_token
         sync_ve
         sync_user_ve
