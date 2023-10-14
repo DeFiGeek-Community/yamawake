@@ -30,13 +30,14 @@ graph LR
     send_fee_eth[ETHを入金する]
     send_fee_erc20[トークンを入金する]
     claim[報酬をクレームする]
-    claim_many[複数アドレスの報酬をまとめてクレームする]
+    claim_many[複数アドレス（最大20アドレス）の報酬をまとめてクレームする]
     claim_multiple_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
     claimable_token[報酬額を取得する]
     user_point_history[ユーザのポイント履歴を取得]
     point_history[全体のポイント履歴を取得]
     sync_ve[最大20週分のve履歴を取得・保存]
     sync_user_ve[最大50エポック分のユーザve履歴を取得・保存]
+    checkpoint_token[入金された手数料を週ごとに配分]
     set_admin[管理者を変更する]
     kill[FeeDistributorを非アクティブにする]
     evacuate[緊急時トークン送金先にトークンを送金する]
@@ -57,6 +58,8 @@ graph LR
 
     deposit_reward_ether -.->|include| sync_ve
     deposit_reward_token -.->|include| sync_ve
+    deposit_reward_ether -.->|include| checkpoint_token
+    deposit_reward_token -.->|include| checkpoint_token
 
     user --- claim
     user --- claim_many
@@ -67,8 +70,9 @@ graph LR
     claim_many -.->|include| claimable_token
     claim_multiple_tokens -.->|include| claimable_token
     claimable_token -.->|include| sync_user_ve
+    claimable_token -.->|include| sync_ve
+    claimable_token -.->|include| checkpoint_token
 
-    sync_user_ve -.->|include| sync_ve
     sync_user_ve -.->|include| user_point_history
     sync_ve -.->|include| point_history
 
@@ -100,6 +104,7 @@ graph LR
         claimable_token
         sync_ve
         sync_user_ve
+        checkpoint_token
     end
 
     subgraph VotinEscrow
