@@ -9,6 +9,7 @@
 ### 定数
 
 uint256 public constant WEEK = 604800
+uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
 
 ### プロパティ
 
@@ -41,20 +42,52 @@ uint256 public constant WEEK = 604800
   - YMWKのインフレーションレート、次回のインフレーションレート変更タイムスタンプを保持する
   - futureEpochTimeが 40 bit, inflationRateが 216 bit
 
-- integrate_inv_supply(uint256[100000000000000000000000000000] public)
+- timeCursor: public(uint256)
+  - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
+- timeCursorOf: public(mapping(address => uint256))
+  - ユーザごとの、ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
+- userEpochOf: public(mapping(address => uint256))
+  - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数を保持する
+- lastTokenTime: public(uint256)
+  - チェックポイント時点のタイムスタンプを保持する
+- tokensPerWeek: public(uint256[1000000000000000])
 
-  - veYMWK残高に対するYMWKインフレーション量の割合の履歴を保持する
-    - ∫(r(t) \* w(t) / total_ve_balance(t) dt)
+  - 報酬額を週ごとに保持する
 
-- integrateInvSupplyOf(address => uint256 public)
-
-  - ユーザの最後のチェックポイント時の総veYMWK残高を保持する
-
-- integrateCheckpointOf(address => uint256 public)
-  - ユーザの最後のチェックポイント時の総veYMWK残高を保持する
+- veSupply: public(uint256[1000000000000000])
+  - veYMWK残高を週ごとに保持する
 - integrateFraction(address => uint256 public)
+
   - ユーザごとのYMWK報酬の累計を保持する
-    - ∫((r(t) \* w(t) / total_ve_balance(t)) user_ve_balance(t) dt)
+
+    - Weight × 各週のYMWK新規発行量 × 各週頭時点でのユーザve残高 / 各週頭時点での累計ve残高
+
+    N週目までのYMWK報酬額：
+
+    $$
+    \sum_{n=0}^{N-1}\left(\int_{t_0+ W\cdot n}^{t_0+ W\cdot\left(n+1\right)}r\left(t\right)dt\cdot\frac{b_{u}\left(t_0+ W\cdot n\right)}{S\left(t_0+ W\cdot n\right)}\right)
+    $$
+
+    $
+    W: 604800（=60*60*24*7）
+    $
+
+    $
+    r(t): 
+    $ YMWKの単位時間あたりの新規発行量（インフレーションレート）
+
+    $
+    S(t): 
+    $ t時点でのve残高
+
+    $
+    b_u(t): 
+    $ t時点でのユーザve残高
+
+    $
+    t_0:
+    $ 報酬分配を開始するタイムスタンプ
+
 - timeCursor(uint256 public)
   - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
 - timeCursorOf(address => uint256 public)
@@ -85,15 +118,62 @@ uint256 public constant WEEK = 604800
 - それぞれの週について、veYMWK残高に対するYMWKインフレーション量の割合を計算し履歴を更新する
 - 履歴のタイムスタンプを更新する
 
-#### ユーザごとのYMWK報酬を更新する
+#### \_checkpointToken()
 
-- 最後に同期されたユーザの履歴から最大50回分の履歴を取得する
-- それぞれの履歴が発生した週について、YMWK報酬を計算し、記録する
-- 履歴のタイムスタンプ、エポック数を更新する
+期間中のYMWK新規発行額を週ごとに分配する
+
+- internal
+
+#### checkpointToken()
+
+\_checkpointTokenを呼ぶ
+
+- external
+
+#### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
+
+タイムスタンプからエポックをバイナリサーチ
+
+- internal
+- 引数
+  - ve\_
+    - VotingEsctowのアドレス
+  - timestamp\_
+    - 検索対象のタイムスタンプ
+
+#### \_findTimestampUserEpoch(address ve\_, address user\_, uint256 timestamp\_, uint256 maxUserEpoch\_) returns uint256
+
+タイムスタンプからユーザエポックをバイナリサーチ
+
+- internal
+- 引数
+  - ve\_
+    - VotingEsctowのアドレス
+  - user\_
+    - 検索対象のユーザ
+  - timestamp\_
+    - 検索対象のタイムスタンプ
+
+#### veForAt(address user\_ , uint256 timestamp\_) returns uint256
+
+指定のタイムスタンプ時点でのユーザのve残高を返す
+
+- external
+- 引数
+  - user\_
+    - 検索対象のユーザ
+  - timestamp\_
+    - 検索対象のタイムスタンプ
 
 #### \_checkpointTotalSupply()
 
-ve履歴を同期する
+- ve履歴を同期する
+
+  - 最後に同期された時点から20週分に渡りveYMWK残高をVoting Escrowから情報を取得する
+  - Gauge ControllerからWeightを取得する
+  - YMWKトークンのインフレーションレートの更新タイムスタンプを跨ぐ場合はYMWKトークンのインフレーションレートと次回のインフレーションレート更新タイムスタンプを更新する
+  - それぞれの週について、veYMWK残高に対するYMWKインフレーション量の割合を計算し履歴を更新する
+  - 履歴のタイムスタンプを更新する
 
 - internal
 
@@ -103,25 +183,52 @@ ve履歴を同期する
 
 - external
 
-#### \_checkpoint(address addr\_)
+#### \_claim(address addr\_, address ve\_, uint256 lastTokenTime\_) returns uint256
 
-ve履歴を更新した上で、対象ユーザの最大50エポック分のVotingEscrowに対するアクション履歴を取得し、YMWK報酬額を計算する
+- 指定ユーザの報酬額を計算する
+
+  - 最後に同期されたユーザの履歴から最大50回分の履歴を取得する
+  - 各週についてYMWK報酬を計算し、記録する
+  - 履歴のタイムスタンプ、エポック数を更新する
 
 - internal
 - 引数
   - addr\_
     - 対象ユーザのアドレス
+  - ve\_
+    - VotingEscrowのアドレス
+  - last_token_time\_
+    - トークンの最後のチェックポイントのタイムスタンプ
+- 戻り値
+  - \_amount
+    - 指定トークンの報酬額
 
-#### userCheckpoint(address addr\_) returns bool
+#### claim(address addr\_) returns uint256
 
-\_checkpointを呼ぶ
+報酬をクレームする。View関数として実行することで報酬額を取得する
 
 - external
 - 引数
   - addr\_
     - 対象ユーザのアドレス
+- 戻り値
+
+  - \_amount
+    - 指定トークンの報酬額
+
 - 条件
-  - senderがaddr\_またはminter
+  - kill状態でない
+
+#### claimMany(address[] receivers\_)
+
+複数のアドレスの報酬をまとめてクレームする
+
+- external
+- 引数
+  - receivers\_
+    - 対象ユーザのアドレス配列
+- 条件
+  - kill状態でない
 
 #### setKilled(bool isKilled\_)
 
@@ -165,7 +272,7 @@ Gaugeに保存されているYMWKのインフレーションレートを返す
 
 ### YMWK報酬簡易シミュレーション
 
-https://www.desmos.com/calculator/uslkumq90d
+https://www.desmos.com/calculator/9qm15hlyjq
 
 ### Curve Contracts
 

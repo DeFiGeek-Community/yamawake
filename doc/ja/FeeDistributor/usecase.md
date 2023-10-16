@@ -69,9 +69,9 @@ graph LR
     claim -.->|include| claimable_token
     claim_many -.->|include| claimable_token
     claim_multiple_tokens -.->|include| claimable_token
-    claimable_token -.->|include| sync_user_ve
     claimable_token -.->|include| sync_ve
     claimable_token -.->|include| checkpoint_token
+    claimable_token -.->|include| sync_user_ve
 
     sync_user_ve -.->|include| user_point_history
     sync_ve -.->|include| point_history
