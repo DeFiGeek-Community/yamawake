@@ -17,7 +17,7 @@ uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
 
   - YMWKトークンのアドレスを保持する
 
-- gauge_controller(address public immutable)
+- gaugeController(address public immutable)
 
   - ゲージコントローラーのアドレスを保持する
 
@@ -37,7 +37,7 @@ uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
 
   - kill状態フラグ
 
-- inflation_params(uint256 public)
+- inflationParams(uint256 public)
 
   - YMWKのインフレーションレート、次回のインフレーションレート変更タイムスタンプを保持する
   - futureEpochTimeが 40 bit, inflationRateが 216 bit
@@ -74,7 +74,7 @@ uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
 
     $
     r(t): 
-    $ YMWKの単位時間あたりの新規発行量（インフレーションレート）
+    $ YMWKの単位時間あたりの新規発行量
 
     $
     S(t): 

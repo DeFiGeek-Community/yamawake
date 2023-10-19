@@ -125,17 +125,19 @@ Weight のある時点での状態を格納するための構造体
 - votingEscrowを設定する
 - timeTotalを設定する（block.timestamp / WEEK \* WEEK）
 
-### commit_transfer_ownership(addr: address) external
+### commitTransferOwnership(addr address)
 
 次期管理者アドレスを設定
 
+- external
 - 条件
   - 管理者のみ
 
-### apply_transfer_ownership() external
+### applyTransferOwnership()
 
 管理者アドレスに次期管理者アドレスを設定
 
+- external
 - 条件
   - 管理者のみ
 
@@ -193,7 +195,7 @@ Gauge Typeの過去のWeightの合計値の履歴を週ごとに埋め、翌週�
 
 ### addGauge(address addr\_, int128 gaugeType\_, uint256 weight\_)
 
-Gaugeを追加する
+任意のWeightでGaugeを追加する
 
 - external
 - 引数
@@ -203,6 +205,21 @@ Gaugeを追加する
     - Gauge Type
   - weight\_
     - 初期に設定するWeight
+- 条件
+  - 管理者のみ
+  - gaugeTypeが0以上であるかつ登録されているGauge数未満であること
+  - 同じアドレスのGaugeが登録されていないこと
+
+### addGauge(address addr\_, int128 gaugeType\_)
+
+初期Weight0でGaugeを追加する
+
+- external
+- 引数
+  - addr\_
+    - 対象のGaugeアドレス
+  - gaugeType\_
+    - Gauge Type
 - 条件
   - 管理者のみ
 
@@ -250,9 +267,33 @@ inflationRate \* relativeWeight / 1e18
 - 戻り値
   - 相対Weight
 
+### gaugeRelativeWeight(address addr\_) returns uint256
+
+\_gaugeRelativeWeightを呼んで現在（block.timestamp）時点での相対Weightを取得する
+
+- external
+- 引数
+  - addr\_
+    - 対象のGaugeアドレス
+- 戻り値
+  - 相対Weight
+
 ### gaugeRelativeWeightWrite(address addr\_, uint256 time\_) returns uint256
 
 GaugeのWeight履歴とWeightの合計を更新した上で\_gaugeRelativeWeightを呼び、相対Weightを取得する
+
+- external
+- 引数
+  - addr\_
+    - 対象のGaugeアドレス
+  - time\_
+    - Weightを取得するタイムスタンプ
+- 戻り値
+  - 相対Weight
+
+### gaugeRelativeWeightWrite(address addr\_) returns uint256
+
+GaugeのWeight履歴とWeightの合計を更新した上で\_gaugeRelativeWeightを呼び、現在（block.timestamp）時点での相対Weightを取得する
 
 - external
 - 引数
@@ -284,6 +325,17 @@ Typeを追加する
     - Typeの名称
   - weight\_
     - 初期のWeight
+- 条件
+  - 管理者のみ
+
+### addType(String[64] name\_)
+
+初期Weight0でTypeを追加する
+
+- internal
+- 引数
+  - name\_
+    - Typeの名称
 - 条件
   - 管理者のみ
 
@@ -326,17 +378,19 @@ Gaugeの Weightを変更する
 
 ### voteForGaugeWeights(address gaugeAddr\_, uint256 userWeight\_)
 
-GaugeのWeightに投票する
+ユーザのVotingPowerを使用して投票し、GaugeのWeightを変化させる
 
 - external
 - 引数
   - gaugeAddr\_
     - 対象のGaugeアドレス
   - userWeight\_
-    - ユーザのVotingPowerからの割当てを1(0.01%)〜10000(100.00%)で指定
+    - ユーザのVotingPowerからの割当てを0(0.00%)〜10000(100.00%)で指定
 - 条件
   - ユーザのveロック終了が1週間より先であること
+  - userWeightが0〜10000の範囲であること
   - 最後の投票から最低10日間経過していること
+  - 指定されたGaugeが登録されていること
 
 ### getGaugeWeight(address addr\_) returns uint256
 
