@@ -16,18 +16,18 @@ export function getTokenAbiArgs(
     name: string;
     symbol: string;
     owner: string;
-  },
+  }
 ) {
   let types;
   if (!templateName || templateName.length == 0)
     throw new Error(
-      `scenarioHelper::getTokenAbiArgs() -> templateName is empty.`,
+      `scenarioHelper::getTokenAbiArgs() -> templateName is empty.`
     );
   if (templateName.indexOf("OwnableToken") == 0) {
     types = ["uint", "string", "string", "address"];
   } else {
     console.trace(
-      `${templateName} is not planned yet. Add your typedef for abi here.`,
+      `${templateName} is not planned yet. Add your typedef for abi here.`
     );
     throw 1;
   }
@@ -50,12 +50,12 @@ export function getSaleAbiArgs(
     eventDuration: number /* in sec */;
     allocatedAmount: BigNumber;
     minEtherTarget: BigNumber;
-  },
+  }
 ) {
   let types;
   if (!templateName || templateName.length == 0)
     throw new Error(
-      `scenarioHelper::getBulksaleAbiArgs() -> templateName is empty.`,
+      `scenarioHelper::getBulksaleAbiArgs() -> templateName is empty.`
     );
   if (templateName.indexOf(saleTemplateName) == 0) {
     types = ["address", "address", "uint", "uint", "uint", "uint"];
@@ -74,7 +74,7 @@ export function getSaleAbiArgs(
     ];
   } else {
     console.trace(
-      `${templateName} is not planned yet. Add your typedef for abi here.`,
+      `${templateName} is not planned yet. Add your typedef for abi here.`
     );
     throw 1;
   }
@@ -93,7 +93,7 @@ export async function sendERC20(
   erc20contract: any,
   to: any,
   amountStr: string,
-  signer: any,
+  signer: any
 ) {
   let sendResult = await (
     await signer.sendTransaction({
@@ -120,7 +120,7 @@ export async function deploySaleTemplate(
   startingAt: number,
   eventDuration: number,
   minRaisedAmount: any,
-  creationFee?: string,
+  creationFee?: string
 ) {
   const abiCoder = ethers.utils.defaultAbiCoder;
   const args = abiCoder.encode(
@@ -132,7 +132,7 @@ export async function deploySaleTemplate(
       tokenAddr,
       allocatedAmount,
       minRaisedAmount,
-    ],
+    ]
   );
   const tx = creationFee
     ? await factory.deployAuction(templateName, args, { value: creationFee })
@@ -147,4 +147,17 @@ export async function deploySaleTemplate(
 export async function timeTravel(seconds: number) {
   await ethers.provider.send("evm_increaseTime", [seconds]);
   await ethers.provider.send("evm_mine", []);
+}
+
+export async function timeTravelTo(timestamp: number) {
+  await ethers.provider.send("evm_setNextBlockTimestamp", [timestamp]);
+  await ethers.provider.send("evm_mine", []);
+}
+
+export async function snapshot() {
+  return ethers.provider.send("evm_snapshot", []);
+}
+
+export async function restore(snapshotId: string): Promise<void> {
+  return ethers.provider.send("evm_revert", [snapshotId]);
 }

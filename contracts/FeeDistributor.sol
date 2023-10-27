@@ -404,7 +404,45 @@ contract FeeDistributor is ReentrancyGuard {
     }
 
     /***
-     * @notice @notice Claim fees for `addr_`
+     * @notice Claim fees for `msg.sender`
+     * @dev Each call to claim look at a maximum of 50 user veCRV points.
+         For accounts with many veCRV related actions, this function
+         may need to be called more than once to claim all available
+         fees. In the `Claimed` event that fires, if `claim_epoch` is
+         less than `max_epoch`, the account may claim again.
+     * @return uint256 Amount of fees claimed in the call
+     */
+    function claim() external nonReentrant returns (uint256) {
+        require(!isKilled, "Contract is killed");
+        address _addr = msg.sender;
+        if (block.timestamp >= timeCursor) {
+            _checkpointTotalSupply();
+        }
+
+        uint256 _lastTokenTime = lastTokenTime;
+
+        if (
+            canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
+        ) {
+            _checkpointToken();
+            _lastTokenTime = block.timestamp;
+        }
+
+        unchecked {
+            _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
+        }
+
+        uint256 amount = _claim(_addr, votingEscrow, _lastTokenTime);
+        if (amount != 0) {
+            require(IERC20(token).transfer(_addr, amount), "Transfer failed");
+            tokenLastBalance -= amount;
+        }
+
+        return amount;
+    }
+
+    /***
+     * @notice Claim fees for `addr_`
      * @dev Each call to claim look at a maximum of 50 user veCRV points.
          For accounts with many veCRV related actions, this function
          may need to be called more than once to claim all available
