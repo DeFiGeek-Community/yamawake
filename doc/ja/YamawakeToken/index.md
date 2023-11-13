@@ -36,36 +36,40 @@ Curve Dao TokenをベースにしたERC20トークン。初期発行量450,000,0
 - エポック数のスタート時間を設定できる
 - 単位時間当たりの発行可能量上昇レートを設定できる
 
-### update_mining_parameters
+### updateMiningParameters
 
 - 単位時間当たりの発行可能量上昇レートを更新する
 
-### start_epoch_time_write
+### startEpochTimeWrite
 
 - 現在のエポックのスタート時間を返却する
 - 単位時間当たりの発行可能量上昇レートを更新する
 
-### future_epoch_time_write
+### futureEpochTimeWrite
 
 - 次回のエポックのスタート時間を返却する
 - 単位時間当たりの発行可能量上昇レートを更新する
 
-### available_supply
+### availableSupply
 
 - 現在の発行可能数を取得できる
 
-### mintable_in_timeframe
+### mintableInTimeframe
 
 - 指定した期間に発行可能な量を返却する
 
-### set_minter
+### setMinter
 
 - AdminはMinterを1度だけ設定できる
 
-### set_admin
+### setAdmin
 
 - AdminはAdminを設定できる
 
 ### mint
 
 - Minterは指定枚数をMintし、現発行量を加算できる
+
+### burn
+
+- ユーザは自分のYMWK残高から指定数量をburnできる
