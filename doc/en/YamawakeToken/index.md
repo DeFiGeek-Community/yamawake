@@ -36,36 +36,40 @@ An ERC20 token based on the Curve Dao Token. It has an initial issuance of 450,0
 - Can set the start time for the number of epochs.
 - Can set the rate of possible issuance increase per unit time.
 
-### update_mining_parameters
+### updateMiningParameters
 
 - Update the rate of possible issuance increase per unit time.
 
-### start_epoch_time_write
+### startEpochTimeWrite
 
 - Return the start time of the current epoch.
 - Update the rate of possible issuance increase per unit time.
 
-### future_epoch_time_write
+### futureEpochTimeWrite
 
 - Return the start time of the next epoch.
 - Update the rate of possible issuance increase per unit time.
 
-### available_supply
+### availableSupply
 
 - Can retrieve the current possible issuance.
 
-### mintable_in_timeframe
+### mintableInTimeframe
 
 - Return the amount that can be issued in a specified period.
 
-### set_minter
+### setMinter
 
 - Admin can set the Minter only once.
 
-### set_admin
+### setAdmin
 
 - Admin can set the Admin.
 
 ### mint
 
 - Minter can mint a specified number and add to the current issuance.
+
+### burn
+
+- Users can burn YMWK from their balance
