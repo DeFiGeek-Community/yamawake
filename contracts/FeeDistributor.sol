@@ -27,22 +27,29 @@ interface IVotingEscrow {
     function checkpoint() external;
 }
 
+interface IFactory {
+    function auctions(address _address) external view returns (bool);
+}
+
 contract FeeDistributor is ReentrancyGuard {
     uint256 public constant WEEK = 7 * 86400;
     uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400;
 
+    address public immutable factory;
     uint256 public startTime;
     uint256 public timeCursor;
-    mapping(address => uint256) public timeCursorOf;
-    mapping(address => uint256) public userEpochOf;
+    mapping(address => mapping(address => uint256)) public timeCursorOf; // user -> token -> timestamp
+    mapping(address => mapping(address => uint256)) public userEpochOf; // user -> token -> epoch
 
-    uint256 public lastTokenTime;
-    mapping(uint256 => uint256) public tokensPerWeek;
+    mapping(address => uint256) public lastTokenTime;
+    mapping(address => uint256[1000000000000000]) public tokensPerWeek; // token -> week(timestamp) -> amount
 
     address public votingEscrow;
-    address public token;
-    uint256 public totalReceived;
-    uint256 public tokenLastBalance;
+    address[] public tokens;
+    mapping(address => bool) public tokenFlags;
+
+    // uint256 public totalReceived;
+    mapping(address => uint256) public tokenLastBalance; // token -> balance
 
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
 
@@ -52,10 +59,16 @@ contract FeeDistributor is ReentrancyGuard {
     address public emergencyReturn;
     bool public isKilled;
 
+    struct ClaimParams {
+        int256 dt;
+        int256 balanceOf;
+        uint256 tokensPerWeek;
+    }
+
     event CommitAdmin(address indexed admin);
     event ApplyAdmin(address indexed admin);
     event ToggleAllowCheckpointToken(bool toggleFlag);
-    event CheckpointToken(uint256 time, uint256 tokens);
+    event CheckpointToken(address indexed token, uint256 time, uint256 tokens);
     event Claimed(
         address indexed recipient,
         uint256 amount,
@@ -73,29 +86,35 @@ contract FeeDistributor is ReentrancyGuard {
      */
     constructor(
         address votingEscrow_,
+        address factory_,
         uint256 startTime_,
-        address token_,
         address admin_,
         address emergencyReturn_
     ) {
         uint256 t = (startTime_ / WEEK) * WEEK;
         startTime = t;
-        lastTokenTime = t;
+        lastTokenTime[address(0)] = t;
         timeCursor = t;
-        token = token_;
+        tokens.push(address(0));
         votingEscrow = votingEscrow_;
+        factory = factory_;
         admin = admin_;
         emergencyReturn = emergencyReturn_;
     }
 
-    function _checkpointToken() internal {
-        uint256 _tokenBalance = IERC20(token).balanceOf(address(this));
-        uint256 _toDistribute = _tokenBalance - tokenLastBalance;
-        tokenLastBalance = _tokenBalance;
+    function _checkpointToken(address token_) internal {
+        uint256 _tokenBalance;
+        if (token_ == address(0)) {
+            _tokenBalance = address(this).balance;
+        } else {
+            _tokenBalance = IERC20(token_).balanceOf(address(this));
+        }
+        uint256 _toDistribute = _tokenBalance - tokenLastBalance[token_];
+        tokenLastBalance[token_] = _tokenBalance;
 
-        uint256 _t = lastTokenTime;
+        uint256 _t = lastTokenTime[token_];
         uint256 _sinceLast = block.timestamp - _t;
-        lastTokenTime = block.timestamp;
+        lastTokenTime[token_] = block.timestamp;
         uint256 _thisWeek = (_t / WEEK) * WEEK;
         uint256 _nextWeek = 0;
 
@@ -103,18 +122,18 @@ contract FeeDistributor is ReentrancyGuard {
             _nextWeek = _thisWeek + WEEK;
             if (block.timestamp < _nextWeek) {
                 if (_sinceLast == 0 && block.timestamp == _t) {
-                    tokensPerWeek[_thisWeek] += _toDistribute;
+                    tokensPerWeek[token_][_thisWeek] += _toDistribute;
                 } else {
-                    tokensPerWeek[_thisWeek] +=
+                    tokensPerWeek[token_][_thisWeek] +=
                         (_toDistribute * (block.timestamp - _t)) /
                         _sinceLast;
                 }
                 break;
             } else {
                 if (_sinceLast == 0 && _nextWeek == _t) {
-                    tokensPerWeek[_thisWeek] += _toDistribute;
+                    tokensPerWeek[token_][_thisWeek] += _toDistribute;
                 } else {
-                    tokensPerWeek[_thisWeek] +=
+                    tokensPerWeek[token_][_thisWeek] +=
                         (_toDistribute * (_nextWeek - _t)) /
                         _sinceLast;
                 }
@@ -126,7 +145,7 @@ contract FeeDistributor is ReentrancyGuard {
             }
         }
 
-        emit CheckpointToken(block.timestamp, _toDistribute);
+        emit CheckpointToken(token_, block.timestamp, _toDistribute);
     }
 
     /***
@@ -136,14 +155,14 @@ contract FeeDistributor is ReentrancyGuard {
          by the contract owner. Beyond initial distro, it can be enabled for anyone
          to call.
      */
-    function checkpointToken() external {
+    function checkpointToken(address token_) external {
         require(
             msg.sender == admin ||
                 (canCheckpointToken &&
-                    block.timestamp > lastTokenTime + 1 hours),
+                    block.timestamp > lastTokenTime[token_] + 1 hours),
             "Unauthorized"
         );
-        _checkpointToken();
+        _checkpointToken(token_);
     }
 
     function _findTimestampEpoch(
@@ -294,6 +313,7 @@ contract FeeDistributor is ReentrancyGuard {
 
     function _claim(
         address addr_,
+        address token_,
         address ve_,
         uint256 lastTokenTime_
     ) internal returns (uint256) {
@@ -309,7 +329,7 @@ contract FeeDistributor is ReentrancyGuard {
             return 0;
         }
 
-        uint256 _weekCursor = timeCursorOf[addr_];
+        uint256 _weekCursor = timeCursorOf[addr_][token_];
         if (_weekCursor == 0) {
             // Need to do the initial binary search
             _userEpoch = _findTimestampUserEpoch(
@@ -319,7 +339,7 @@ contract FeeDistributor is ReentrancyGuard {
                 _maxUserEpoch
             );
         } else {
-            _userEpoch = userEpochOf[addr_];
+            _userEpoch = userEpochOf[addr_][token_];
         }
 
         if (_userEpoch == 0) {
@@ -368,25 +388,27 @@ contract FeeDistributor is ReentrancyGuard {
                     );
                 }
             } else {
-                int256 _dt = int256(_weekCursor) - int256(_oldUserPoint.ts);
-                int256 _balanceOf = int256(_oldUserPoint.bias) -
-                    _dt *
-                    int256(_oldUserPoint.slope);
-                if (
+                ClaimParams memory _cp = ClaimParams({
+                    dt: int256(_weekCursor) - int256(_oldUserPoint.ts),
+                    balanceOf: 0,
+                    tokensPerWeek: 0
+                });
+                _cp.balanceOf =
                     int256(_oldUserPoint.bias) -
-                        _dt *
-                        int256(_oldUserPoint.slope) <
-                    0
-                ) {
-                    _balanceOf = 0;
+                    _cp.dt *
+                    int256(_oldUserPoint.slope);
+
+                if (_cp.balanceOf < 0) {
+                    _cp.balanceOf = 0;
                 }
 
-                if (_balanceOf == 0 && _userEpoch > _maxUserEpoch) {
+                if (_cp.balanceOf == 0 && _userEpoch > _maxUserEpoch) {
                     break;
                 }
-                if (_balanceOf > 0) {
+                if (_cp.balanceOf > 0) {
+                    _cp.tokensPerWeek = tokensPerWeek[token_][_weekCursor];
                     _toDistribute +=
-                        (uint256(_balanceOf) * tokensPerWeek[_weekCursor]) /
+                        (uint256(_cp.balanceOf) * _cp.tokensPerWeek) /
                         veSupply[_weekCursor];
                 }
                 _weekCursor += WEEK;
@@ -397,8 +419,8 @@ contract FeeDistributor is ReentrancyGuard {
         }
 
         _userEpoch = Math.min(_maxUserEpoch, _userEpoch - 1);
-        userEpochOf[addr_] = _userEpoch;
-        timeCursorOf[addr_] = _weekCursor;
+        userEpochOf[addr_][token_] = _userEpoch;
+        timeCursorOf[addr_][token_] = _weekCursor;
 
         emit Claimed(addr_, _toDistribute, _userEpoch, _maxUserEpoch);
 
@@ -414,19 +436,19 @@ contract FeeDistributor is ReentrancyGuard {
          less than `max_epoch`, the account may claim again.
      * @return uint256 Amount of fees claimed in the call
      */
-    function claim() external nonReentrant returns (uint256) {
+    function claim(address token_) external nonReentrant returns (uint256) {
         require(!isKilled, "Contract is killed");
         address _addr = msg.sender;
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply();
         }
 
-        uint256 _lastTokenTime = lastTokenTime;
+        uint256 _lastTokenTime = lastTokenTime[token_];
 
         if (
             canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
         ) {
-            _checkpointToken();
+            _checkpointToken(token_);
             _lastTokenTime = block.timestamp;
         }
 
@@ -434,10 +456,17 @@ contract FeeDistributor is ReentrancyGuard {
             _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
         }
 
-        uint256 _amount = _claim(_addr, votingEscrow, _lastTokenTime);
+        uint256 _amount = _claim(_addr, token_, votingEscrow, _lastTokenTime);
         if (_amount != 0) {
-            require(IERC20(token).transfer(_addr, _amount), "Transfer failed");
-            tokenLastBalance -= _amount;
+            tokenLastBalance[token_] -= _amount;
+            if (token_ == address(0)) {
+                require(payable(_addr).send(_amount), "Transfer failed");
+            } else {
+                require(
+                    IERC20(token_).transfer(_addr, _amount),
+                    "Transfer failed"
+                );
+            }
         }
 
         return _amount;
@@ -453,19 +482,22 @@ contract FeeDistributor is ReentrancyGuard {
      * @param addr_ Address to claim fees for
      * @return uint256 Amount of fees claimed in the call
      */
-    function claim(address addr_) external nonReentrant returns (uint256) {
+    function claim(
+        address addr_,
+        address token_
+    ) external nonReentrant returns (uint256) {
         require(!isKilled, "Contract is killed");
 
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply();
         }
 
-        uint256 _lastTokenTime = lastTokenTime;
+        uint256 _lastTokenTime = lastTokenTime[token_];
 
         if (
             canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
         ) {
-            _checkpointToken();
+            _checkpointToken(token_);
             _lastTokenTime = block.timestamp;
         }
 
@@ -473,13 +505,20 @@ contract FeeDistributor is ReentrancyGuard {
             _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
         }
 
-        uint256 amount = _claim(addr_, votingEscrow, _lastTokenTime);
-        if (amount != 0) {
-            require(IERC20(token).transfer(addr_, amount), "Transfer failed");
-            tokenLastBalance -= amount;
+        uint256 _amount = _claim(addr_, token_, votingEscrow, _lastTokenTime);
+        if (_amount != 0) {
+            tokenLastBalance[token_] -= _amount;
+            if (token_ == address(0)) {
+                require(payable(addr_).send(_amount), "Transfer failed");
+            } else {
+                require(
+                    IERC20(token_).transfer(addr_, _amount),
+                    "Transfer failed"
+                );
+            }
         }
 
-        return amount;
+        return _amount;
     }
 
     /***
@@ -492,7 +531,8 @@ contract FeeDistributor is ReentrancyGuard {
      * @return bool success
      */
     function claimMany(
-        address[] memory receivers_
+        address[20] memory receivers_,
+        address token_
     ) external nonReentrant returns (bool) {
         require(!isKilled, "Contract is killed");
 
@@ -500,12 +540,12 @@ contract FeeDistributor is ReentrancyGuard {
             _checkpointTotalSupply();
         }
 
-        uint256 _lastTokenTime = lastTokenTime;
+        uint256 _lastTokenTime = lastTokenTime[token_];
 
         if (
             canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
         ) {
-            _checkpointToken();
+            _checkpointToken(token_);
             _lastTokenTime = block.timestamp;
         }
 
@@ -518,10 +558,15 @@ contract FeeDistributor is ReentrancyGuard {
                 break;
             }
 
-            uint256 _amount = _claim(_addr, votingEscrow, _lastTokenTime);
+            uint256 _amount = _claim(
+                _addr,
+                token_,
+                votingEscrow,
+                _lastTokenTime
+            );
             if (_amount != 0) {
                 require(
-                    IERC20(token).transfer(_addr, _amount),
+                    IERC20(token_).transfer(_addr, _amount),
                     "Transfer failed"
                 );
                 _total += _amount;
@@ -532,7 +577,57 @@ contract FeeDistributor is ReentrancyGuard {
         }
 
         if (_total != 0) {
-            tokenLastBalance -= _total;
+            tokenLastBalance[token_] -= _total;
+        }
+
+        return true;
+    }
+
+    function claimMultipleTokens(
+        address addr_,
+        address[20] memory tokens_
+    ) external nonReentrant returns (bool) {
+        require(!isKilled, "Contract is killed");
+        require(addr_ != address(0), "Address should not zero");
+
+        if (block.timestamp >= timeCursor) {
+            _checkpointTotalSupply();
+        }
+
+        uint256 _l = tokens_.length;
+        for (uint256 i; i < _l; ) {
+            address _token = tokens_[i];
+            uint256 _lastTokenTime = lastTokenTime[_token];
+
+            if (
+                canCheckpointToken &&
+                (block.timestamp > _lastTokenTime + 1 hours)
+            ) {
+                _checkpointToken(_token);
+                _lastTokenTime = block.timestamp;
+            }
+
+            _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
+            uint256 _amount = _claim(
+                addr_,
+                _token,
+                votingEscrow,
+                _lastTokenTime
+            );
+            if (_amount != 0) {
+                if (_token == address(0)) {
+                    require(payable(addr_).send(_amount), "Transfer failed");
+                } else {
+                    require(
+                        IERC20(_token).transfer(addr_, _amount),
+                        "Transfer failed"
+                    );
+                }
+                tokenLastBalance[_token] -= _amount;
+            }
+            unchecked {
+                ++i;
+            }
         }
 
         return true;
@@ -544,16 +639,17 @@ contract FeeDistributor is ReentrancyGuard {
      * @return bool success
      */
     function burn(address coin_) external returns (bool) {
-        require(coin_ == address(token), "Invalid token");
+        require(tokenFlags[coin_], "Invalid token");
         require(!isKilled, "Contract is killed");
 
-        uint256 _amount = IERC20(token).balanceOf(msg.sender);
+        uint256 _amount = IERC20(coin_).balanceOf(msg.sender);
         if (_amount > 0) {
-            IERC20(token).transferFrom(msg.sender, address(this), _amount);
+            IERC20(coin_).transferFrom(msg.sender, address(this), _amount);
             if (
-                canCheckpointToken && block.timestamp > lastTokenTime + 1 hours
+                canCheckpointToken &&
+                block.timestamp > lastTokenTime[coin_] + 1 hours
             ) {
-                _checkpointToken();
+                _checkpointToken(coin_);
             }
         }
         return true;
@@ -592,13 +688,20 @@ contract FeeDistributor is ReentrancyGuard {
      */
     function killMe() external onlyAdmin {
         isKilled = true;
-        require(
-            IERC20(token).transfer(
-                emergencyReturn,
-                IERC20(token).balanceOf(address(this))
-            ),
-            "Transfer failed"
-        );
+        uint256 _length = tokens.length;
+        for (uint256 i; i < _length; ) {
+            address _token = tokens[i];
+            require(
+                IERC20(_token).transfer(
+                    emergencyReturn,
+                    IERC20(_token).balanceOf(address(this))
+                ),
+                "Transfer failed"
+            );
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /***
@@ -608,7 +711,7 @@ contract FeeDistributor is ReentrancyGuard {
      * @return bool success
      */
     function recoverBalance(address coin_) external onlyAdmin returns (bool) {
-        require(coin_ != address(token), "Cannot recover this token");
+        require(tokenFlags[coin_], "Cannot recover this token");
 
         uint256 _amount = IERC20(coin_).balanceOf(address(this));
         require(
@@ -618,8 +721,28 @@ contract FeeDistributor is ReentrancyGuard {
         return true;
     }
 
+    function addRewardToken(address coin_) external onlyAuction returns (bool) {
+        require(coin_ != address(0), "ETH is already registered");
+        require(!tokenFlags[coin_], "Token is already registered");
+
+        uint256 t = (block.timestamp / WEEK) * WEEK;
+        lastTokenTime[coin_] = t;
+        tokenFlags[coin_] = true;
+        tokens.push(coin_);
+        return true;
+    }
+
     modifier onlyAdmin() {
         require(admin == msg.sender, "Access denied");
+        _;
+    }
+
+    /// @dev Allow only scorers who is registered in Factory
+    modifier onlyAuction() {
+        require(
+            IFactory(factory).auctions(msg.sender),
+            "You are not the auction."
+        );
         _;
     }
 }
