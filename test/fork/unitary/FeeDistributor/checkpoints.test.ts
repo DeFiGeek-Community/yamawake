@@ -11,6 +11,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 const DAY = 86400;
 const WEEK = DAY * 7;
 const YEAR = DAY * 365;
+const MAX_COIN = 20;
 
 describe("FeeDistributor", () => {
   let alice: SignerWithAddress,
@@ -19,8 +20,9 @@ describe("FeeDistributor", () => {
 
   let distributor: Contract;
   let votingEscrow: Contract;
+  let factory: Contract;
   let token: Contract;
-  let coinA: Contract;
+  let coins: Contract[];
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -31,12 +33,16 @@ describe("FeeDistributor", () => {
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
+    const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
     await token.deployed();
 
-    coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    coins = [];
+    for (let i = 0; i < MAX_COIN; i++) {
+      coins.push(await Token.deploy(`Coin ${i}`, `USD${i}`, 18));
+      await coins[i].deployed();
+    }
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -46,10 +52,13 @@ describe("FeeDistributor", () => {
     );
     await votingEscrow.deployed();
 
+    factory = await Factory.deploy();
+    await factory.deployed();
+
     distributor = await Distributor.deploy(
       votingEscrow.address,
+      factory.address,
       await time.latest(),
-      coinA.address,
       alice.address,
       alice.address
     );
@@ -109,7 +118,9 @@ describe("FeeDistributor", () => {
     it("test_claim_checkpoints_total_supply", async function () {
       const start_time = (await distributor.timeCursor()).toNumber();
 
-      await distributor.connect(alice)["claim()"]();
+      await distributor
+        .connect(alice)
+        ["claim(address)"](ethers.constants.AddressZero);
 
       expect((await distributor.timeCursor()).toNumber()).to.equal(
         start_time + WEEK
@@ -117,23 +128,33 @@ describe("FeeDistributor", () => {
     });
 
     it("test_toggle_allow_checkpoint", async function () {
-      const lastTokenTime = (await distributor.lastTokenTime()).toNumber();
+      const lastTokenTime = (
+        await distributor.lastTokenTime(ethers.constants.AddressZero)
+      ).toNumber();
 
       await time.increase(WEEK);
 
-      await distributor.connect(alice)["claim()"]();
-      expect((await distributor.lastTokenTime()).toNumber()).to.equal(
-        lastTokenTime
-      );
+      await distributor
+        .connect(alice)
+        ["claim(address)"](ethers.constants.AddressZero);
+      expect(
+        (
+          await distributor.lastTokenTime(ethers.constants.AddressZero)
+        ).toNumber()
+      ).to.equal(lastTokenTime);
 
       await distributor.toggleAllowCheckpointToken();
-      const tx = await distributor.connect(alice)["claim()"]();
+      const tx = await distributor
+        .connect(alice)
+        ["claim(address)"](ethers.constants.AddressZero);
       const receipt = await tx.wait();
       const block = await ethers.provider.getBlock(receipt.blockNumber);
 
-      expect((await distributor.lastTokenTime()).toNumber()).to.equal(
-        block.timestamp
-      );
+      expect(
+        (
+          await distributor.lastTokenTime(ethers.constants.AddressZero)
+        ).toNumber()
+      ).to.equal(block.timestamp);
     });
   });
 });
