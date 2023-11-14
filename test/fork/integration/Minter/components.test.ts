@@ -150,6 +150,8 @@ describe("Minter components", function () {
 
       await time.increase(WEEK);
 
+      // TODO
+      // liquidityGaugeへのdepositでなく、VotingEscrowへのロックに変更
       for (let i = 0; i < 3; i++) {
         await liquidityGauge
           .connect(accounts[i + 1])
@@ -243,6 +245,8 @@ describe("Minter components", function () {
       const stAmounts = generateUniqueRandomNumbers(3, 1e17, 1e18);
       const depositTime: number[] = [];
 
+      // TODO
+      // liquidityGaugeへのdepositでなく、VotingEscrowへのロックに変更
       for (let i = 0; i < 3; i++) {
         await liquidityGauge
           .connect(accounts[i + 1])

@@ -13,6 +13,11 @@ const WEEK = 86400 * 7;
 const MONTH = 86400 * 30;
 const W = BigNumber.from(10).pow(18);
 
+// TODO
+// threeGaugesへのdeposit、withdrawをVotingEsctowへのlock, withdrawに変更
+// threeGauges[1].connect(bob).deposit
+// threeGauges[1].connect(bob).withdraw
+
 describe("Minter integration", function () {
   let admin: SignerWithAddress,
     bob: SignerWithAddress,

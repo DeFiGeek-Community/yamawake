@@ -14,7 +14,6 @@ describe("Minter", function () {
   let minter: Contract;
   let gaugeController: Contract;
   let token: Contract;
-  let mockLpToken: Contract;
   let threeGauges: String[];
   let gauges: Contract[];
 
@@ -35,11 +34,12 @@ describe("Minter", function () {
   beforeEach(async function () {
     snapshot = await takeSnapshot();
     accounts = await ethers.getSigners();
+
     ({ gaugeController, minter, token, threeGauges, gauges } =
       await deployContracts());
 
     // Set minter for the token
-    await token.setMinter(minter.address);
+    // await token.setMinter(minter.address);
 
     // Skip to the start of a new epoch week
     const currentWeek = BigNumber.from(
@@ -62,14 +62,15 @@ describe("Minter", function () {
         GAUGE_WEIGHTS[i]
       );
     }
-    for (const account of accounts) {
-      mockLpToken.transfer(account.address, ten_to_the_18);
-    }
-    for (let i = 1; i <= 3; i++) {
-      for (const gauge of threeGauges) {
-        await mockLpToken.connect(accounts[i]).approve(gauge, ten_to_the_18);
-      }
-    }
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
+    // for (const account of accounts) {
+    //   mockLpToken.transfer(account.address, ten_to_the_18);
+    // }
+    // for (let i = 1; i <= 3; i++) {
+    //   for (const gauge of threeGauges) {
+    //     await mockLpToken.connect(accounts[i]).approve(gauge, ten_to_the_18);
+    //   }
+    // }
   });
 
   afterEach(async () => {
@@ -77,6 +78,7 @@ describe("Minter", function () {
   });
   describe("Minter Behavior", function () {
     // Test basic mint functionality
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -95,6 +97,7 @@ describe("Minter", function () {
     });
 
     // Test minting immediately after setup
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_immediate", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -122,6 +125,7 @@ describe("Minter", function () {
     });
 
     // Test multiple mint operations on the same gauge
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_multiple_same_gauge", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -142,6 +146,7 @@ describe("Minter", function () {
     });
 
     // Test minting across multiple gauges
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_multiple_gauges", async () => {
       //setup
       await gauges[0]
@@ -177,6 +182,7 @@ describe("Minter", function () {
     });
 
     // Test minting after withdrawing
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_after_withdraw", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -193,6 +199,7 @@ describe("Minter", function () {
     });
 
     // Test multiple mints after withdrawing
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_multiple_after_withdraw", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -211,6 +218,7 @@ describe("Minter", function () {
     });
 
     // Test mint without any deposit
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_no_deposit", async () => {
       await minter.connect(accounts[1]).mint(threeGauges[0]);
       expect(await token.balanceOf(accounts[1].address)).to.equal(zero);
@@ -220,6 +228,7 @@ describe("Minter", function () {
     });
 
     // Test minting with the wrong gauge
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_wrong_gauge", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -246,6 +255,7 @@ describe("Minter", function () {
     });
 
     // Test minting before inflation begins
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mint_before_inflation_begins", async function () {
       await gauges[0]
         .connect(accounts[1])
@@ -268,6 +278,7 @@ describe("Minter", function () {
     });
 
     // Test mintMany function with multiple gauges
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mintMany_function_multiple_gauges", async () => {
       //setup
       await gauges[0]
@@ -323,6 +334,7 @@ describe("Minter", function () {
     });
 
     // Test minting on behalf of another user
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mintFor_function", async () => {
       await gauges[0]
         .connect(accounts[1])
@@ -348,6 +360,7 @@ describe("Minter", function () {
     });
 
     // Test mintFor function when not approved
+    // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
     it("test_mintForFail_function", async () => {
       await gauges[0]
         .connect(accounts[1])
