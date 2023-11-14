@@ -75,6 +75,7 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 claimEpoch,
         uint256 maxEpoch
     );
+    event AddedToken(address indexed token);
 
     /***
      * @notice Contract constructor
@@ -96,6 +97,7 @@ contract FeeDistributor is ReentrancyGuard {
         lastTokenTime[address(0)] = t;
         timeCursor = t;
         tokens.push(address(0));
+        tokenFlags[address(0)] = true;
         votingEscrow = votingEscrow_;
         factory = factory_;
         admin = admin_;
@@ -156,6 +158,7 @@ contract FeeDistributor is ReentrancyGuard {
          to call.
      */
     function checkpointToken(address token_) external {
+        require(tokenFlags[token_], "Token not registered");
         require(
             msg.sender == admin ||
                 (canCheckpointToken &&
@@ -549,7 +552,10 @@ contract FeeDistributor is ReentrancyGuard {
             _lastTokenTime = block.timestamp;
         }
 
-        _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
+        unchecked {
+            _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
+        }
+
         uint256 _total = 0;
         uint256 _l = receivers_.length;
         for (uint256 i; i < _l; ) {
@@ -565,11 +571,15 @@ contract FeeDistributor is ReentrancyGuard {
                 _lastTokenTime
             );
             if (_amount != 0) {
-                require(
-                    IERC20(token_).transfer(_addr, _amount),
-                    "Transfer failed"
-                );
                 _total += _amount;
+                if (token_ == address(0)) {
+                    require(payable(_addr).send(_amount), "Transfer failed");
+                } else {
+                    require(
+                        IERC20(token_).transfer(_addr, _amount),
+                        "Transfer failed"
+                    );
+                }
             }
             unchecked {
                 ++i;
@@ -615,6 +625,7 @@ contract FeeDistributor is ReentrancyGuard {
                 _lastTokenTime
             );
             if (_amount != 0) {
+                tokenLastBalance[_token] -= _amount;
                 if (_token == address(0)) {
                     require(payable(addr_).send(_amount), "Transfer failed");
                 } else {
@@ -623,7 +634,6 @@ contract FeeDistributor is ReentrancyGuard {
                         "Transfer failed"
                     );
                 }
-                tokenLastBalance[_token] -= _amount;
             }
             unchecked {
                 ++i;
@@ -725,10 +735,13 @@ contract FeeDistributor is ReentrancyGuard {
         require(coin_ != address(0), "ETH is already registered");
         require(!tokenFlags[coin_], "Token is already registered");
 
-        uint256 t = (block.timestamp / WEEK) * WEEK;
-        lastTokenTime[coin_] = t;
+        uint256 _t = (block.timestamp / WEEK) * WEEK;
+        lastTokenTime[coin_] = _t;
         tokenFlags[coin_] = true;
         tokens.push(coin_);
+
+        emit AddedToken(coin_);
+
         return true;
     }
 
@@ -737,7 +750,7 @@ contract FeeDistributor is ReentrancyGuard {
         _;
     }
 
-    /// @dev Allow only scorers who is registered in Factory
+    /// @dev Allow only auctions
     modifier onlyAuction() {
         require(
             IFactory(factory).auctions(msg.sender),
@@ -745,4 +758,6 @@ contract FeeDistributor is ReentrancyGuard {
         );
         _;
     }
+
+    receive() external payable {}
 }
