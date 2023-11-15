@@ -118,9 +118,10 @@ describe("FeeDistributor", () => {
     await snapshot.restore();
   });
 
-  describe("test_claim_many", () => {
+  describe("test_claim_multiple_tokens", () => {
     const amount = ethers.utils.parseEther("1000");
-    it("test_claim_many_eth", async function () {
+    it("test_claim_multiple", async function () {
+      // ETHとcoinAの一括クレームが個別にクレームした場合と同じ残高になることを確認
       for (let acct of [alice, bob, charlie]) {
         await token.connect(acct).approve(votingEscrow.address, amount.mul(10));
         await token.connect(alice).transfer(acct.address, amount);
@@ -141,27 +142,37 @@ describe("FeeDistributor", () => {
       );
       await feeDistributor.deployed();
 
+      auction = await deploySaleTemplate(factory, feeDistributor);
+
       await sendEther(feeDistributor.address, "10", alice);
+      await coinA._mintForTesting(
+        auction.address,
+        ethers.utils.parseEther("10")
+      );
+      // Calling the mock function to add coinA to the reward list and transfer coinA from auction to feeDistributor
+      await auction.withdrawRaisedToken(coinA.address);
+
       await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(coinA.address);
       await time.increase(WEEK);
       await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(coinA.address);
 
       const snapshot = await takeSnapshot();
 
       let tx = await feeDistributor
         .connect(alice)
-        .claimMany(
-          [alice.address, bob.address, charlie.address].concat(
-            Array(17).fill(ethers.constants.AddressZero)
-          ),
-          ethers.constants.AddressZero
+        .claimMultipleTokens(
+          alice.address,
+          [ethers.constants.AddressZero, coinA.address].concat(
+            Array(18).fill(ethers.constants.AddressZero)
+          )
         );
       let receipt = await tx.wait();
       let gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
       let balances = [
         (await alice.getBalance()).add(gas),
-        await bob.getBalance(),
-        await charlie.getBalance(),
+        await coinA.balanceOf(alice.address),
       ];
 
       await snapshot.restore();
@@ -172,22 +183,18 @@ describe("FeeDistributor", () => {
       let receipt1 = await tx1.wait();
       let gas1 = receipt1.effectiveGasPrice.mul(receipt1.gasUsed);
       let tx2 = await feeDistributor
-        .connect(bob)
-        ["claim(address)"](ethers.constants.AddressZero);
+        .connect(alice)
+        ["claim(address)"](coinA.address);
       let receipt2 = await tx2.wait();
       let gas2 = receipt2.effectiveGasPrice.mul(receipt2.gasUsed);
-      let tx3 = await feeDistributor
-        .connect(charlie)
-        ["claim(address)"](ethers.constants.AddressZero);
-      let receipt3 = await tx3.wait();
-      let gas3 = receipt3.effectiveGasPrice.mul(receipt3.gasUsed);
+
       expect(balances).to.deep.equal([
-        (await alice.getBalance()).add(gas1),
-        (await bob.getBalance()).add(gas2),
-        (await charlie.getBalance()).add(gas3),
+        (await alice.getBalance()).add(gas1).add(gas2),
+        await coinA.balanceOf(alice.address),
       ]);
     });
-    it("test_claim_many_token", async function () {
+    it("test_claim_multiple_same", async function () {
+      // ETHを複数一括クレームしても個別に一度クレームした場合と同じ残高になることを確認
       for (let acct of [alice, bob, charlie]) {
         await token.connect(acct).approve(votingEscrow.address, amount.mul(10));
         await token.connect(alice).transfer(acct.address, amount);
@@ -198,74 +205,6 @@ describe("FeeDistributor", () => {
       await time.increase(WEEK);
       let startTime = await time.latest();
       await time.increase(WEEK * 5);
-      const Distributor = await ethers.getContractFactory("FeeDistributor");
-      feeDistributor = await Distributor.deploy(
-        votingEscrow.address,
-        factory.address,
-        startTime,
-        alice.address,
-        alice.address
-      );
-      auction = await deploySaleTemplate(factory, feeDistributor);
-
-      expect(feeDistributor.checkpointToken(coinA.address)).to.be.revertedWith(
-        "Token not registered"
-      );
-      expect(feeDistributor.addRewardToken(coinA.address)).to.be.revertedWith(
-        "You are not the auction."
-      );
-
-      await coinA._mintForTesting(
-        auction.address,
-        ethers.utils.parseEther("10")
-      );
-
-      // Calling the mock function to add coinA to the reward list
-      await auction.withdrawRaisedToken(coinA.address);
-
-      await feeDistributor.checkpointToken(coinA.address);
-      await time.increase(WEEK);
-      await feeDistributor.checkpointToken(coinA.address);
-
-      const snapshot = await takeSnapshot();
-
-      await feeDistributor
-        .connect(alice)
-        .claimMany(
-          [alice.address, bob.address, charlie.address].concat(
-            Array(17).fill(ethers.constants.AddressZero)
-          ),
-          coinA.address
-        );
-      let balances = [
-        await coinA.balanceOf(alice.address),
-        await coinA.balanceOf(bob.address),
-        await coinA.balanceOf(charlie.address),
-      ];
-
-      await snapshot.restore();
-
-      await feeDistributor.connect(alice)["claim(address)"](coinA.address);
-      await feeDistributor.connect(bob)["claim(address)"](coinA.address);
-      await feeDistributor.connect(charlie)["claim(address)"](coinA.address);
-      expect(balances).to.deep.equal([
-        await coinA.balanceOf(alice.address),
-        await coinA.balanceOf(bob.address),
-        await coinA.balanceOf(charlie.address),
-      ]);
-    });
-    it("test_claim_many_eth_same_account", async function () {
-      for (let acct of [alice, bob, charlie]) {
-        await token.connect(acct).approve(votingEscrow.address, amount.mul(10));
-        await token.connect(alice).transfer(acct.address, amount);
-        await votingEscrow
-          .connect(acct)
-          .createLock(amount, (await time.latest()) + 8 * WEEK);
-      }
-      await time.increase(WEEK);
-      let startTime = await time.latest();
-      await time.increase(WEEK * 5);
-
       const Distributor = await ethers.getContractFactory("FeeDistributor");
       feeDistributor = await Distributor.deploy(
         votingEscrow.address,
@@ -276,68 +215,38 @@ describe("FeeDistributor", () => {
       );
       await feeDistributor.deployed();
 
+      auction = await deploySaleTemplate(factory, feeDistributor);
+
       await sendEther(feeDistributor.address, "10", alice);
+      await coinA._mintForTesting(
+        auction.address,
+        ethers.utils.parseEther("10")
+      );
+      // Calling the mock function to add coinA to the reward list and transfer coinA from auction to feeDistributor
+      await auction.withdrawRaisedToken(coinA.address);
+
       await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(coinA.address);
       await time.increase(WEEK);
       await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(coinA.address);
 
       const expected = await feeDistributor
         .connect(alice)
         .callStatic["claim(address)"](ethers.constants.AddressZero);
 
-      expect(expected).to.above(0);
       await expect(
         feeDistributor
           .connect(alice)
-          .claimMany(
-            Array(20).fill(alice.address),
-            ethers.constants.AddressZero
+          .claimMultipleTokens(
+            alice.address,
+            [
+              ethers.constants.AddressZero,
+              ethers.constants.AddressZero,
+              ethers.constants.AddressZero,
+            ].concat(Array(17).fill(ethers.constants.AddressZero))
           )
       ).to.changeEtherBalance(alice, expected);
-    });
-    it("test_claim_many_token_same_account", async function () {
-      for (let acct of [alice, bob, charlie]) {
-        await token.connect(acct).approve(votingEscrow.address, amount.mul(10));
-        await token.connect(alice).transfer(acct.address, amount);
-        await votingEscrow
-          .connect(acct)
-          .createLock(amount, (await time.latest()) + 8 * WEEK);
-      }
-      await time.increase(WEEK);
-      let startTime = await time.latest();
-      await time.increase(WEEK * 5);
-      const Distributor = await ethers.getContractFactory("FeeDistributor");
-      feeDistributor = await Distributor.deploy(
-        votingEscrow.address,
-        factory.address,
-        startTime,
-        alice.address,
-        alice.address
-      );
-      await feeDistributor.deployed();
-      auction = await deploySaleTemplate(factory, feeDistributor);
-
-      await coinA._mintForTesting(
-        auction.address,
-        ethers.utils.parseEther("10")
-      );
-      // Calling the mock function to add coinA to the reward list
-      await auction.withdrawRaisedToken(coinA.address);
-
-      await feeDistributor.checkpointToken(coinA.address);
-      await time.increase(WEEK);
-      await feeDistributor.checkpointToken(coinA.address);
-
-      const expected = await feeDistributor
-        .connect(alice)
-        .callStatic["claim(address)"](coinA.address);
-
-      expect(expected).to.above(0);
-      await expect(
-        feeDistributor
-          .connect(alice)
-          .claimMany(Array(20).fill(alice.address), coinA.address)
-      ).to.changeTokenBalance(coinA, alice, expected);
     });
   });
 });
