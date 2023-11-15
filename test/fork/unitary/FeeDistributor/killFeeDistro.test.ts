@@ -7,25 +7,32 @@ import {
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { deploySampleSaleTemplate } from "../../../scenarioHelper";
+
+const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
 
 describe("FeeDistributor", () => {
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
-    charlie: SignerWithAddress;
+    charlie: SignerWithAddress,
+    dan: SignerWithAddress;
 
   let distributor: Contract;
   let votingEscrow: Contract;
+  let factory: Contract;
+  let auction: Contract;
   let token: Contract;
   let coinA: Contract;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
     snapshot = await takeSnapshot();
-    [alice, bob, charlie] = await ethers.getSigners();
+    [alice, bob, charlie, dan] = await ethers.getSigners();
 
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
+    const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
     await token.deployed();
@@ -40,6 +47,9 @@ describe("FeeDistributor", () => {
       "v1"
     );
     await votingEscrow.deployed();
+
+    factory = await Factory.deploy();
+    await factory.deployed();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -50,9 +60,9 @@ describe("FeeDistributor", () => {
     beforeEach(async () => {
       const Distributor = await ethers.getContractFactory("FeeDistributor");
       distributor = await Distributor.deploy(
+        factory.address,
         votingEscrow.address,
         await time.latest(),
-        coinA.address,
         alice.address,
         bob.address
       );
@@ -77,7 +87,17 @@ describe("FeeDistributor", () => {
     });
 
     it("test_killing_transfers_tokens", async function () {
+      auction = await deploySampleSaleTemplate(
+        factory,
+        distributor,
+        token,
+        coinA,
+        TEMPLATE_NAME,
+        dan
+      );
       await coinA._mintForTesting(distributor.address, 31337);
+      // Calling the mock function to add coinA to the reward list
+      await auction.withdrawRaisedToken(coinA.address);
       await distributor.connect(alice).killMe();
 
       expect(await distributor.emergencyReturn()).to.equal(bob.address);
@@ -85,6 +105,17 @@ describe("FeeDistributor", () => {
     });
 
     it("test_multi_kill_token_transfer", async function () {
+      auction = await deploySampleSaleTemplate(
+        factory,
+        distributor,
+        token,
+        coinA,
+        TEMPLATE_NAME,
+        dan
+      );
+      await coinA._mintForTesting(distributor.address, 31337);
+      // Calling the mock function to add coinA to the reward list
+      await auction.withdrawRaisedToken(coinA.address);
       await coinA._mintForTesting(distributor.address, 10000);
       await distributor.connect(alice).killMe();
 
@@ -103,14 +134,17 @@ describe("FeeDistributor", () => {
 
       it(`test_cannot_claim_after_killed_for_account_index_${idx}`, async function () {
         await distributor.connect(alice).killMe();
-        await expect(distributor.connect(accounts[idx])["claim()"]()).to.be
-          .reverted;
+        await expect(
+          distributor.connect(accounts[idx])["claim(address)"](coinA.address)
+        ).to.be.reverted;
       });
 
       it(`test_cannot_claim_for_after_killed_for_account_index_${idx}`, async function () {
         await distributor.connect(alice).killMe();
         await expect(
-          distributor.connect(accounts[idx])["claim(address)"](alice.address)
+          distributor
+            .connect(accounts[idx])
+            ["claim(address, address)"](alice.address, coinA.address)
         ).to.be.reverted;
       });
 
@@ -119,7 +153,7 @@ describe("FeeDistributor", () => {
         await expect(
           distributor
             .connect(accounts[idx])
-            .claimMany(new Array(20).fill(alice.address))
+            .claimMany(new Array(20).fill(alice.address), coinA.address)
         ).to.be.reverted;
       });
     }

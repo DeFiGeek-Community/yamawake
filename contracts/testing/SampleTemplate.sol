@@ -7,6 +7,8 @@ import "../BaseTemplate.sol";
 
 interface IFeeDistributor {
     function addRewardToken(address coin_) external returns (bool);
+
+    function tokenFlags(address _address) external view returns (bool);
 }
 
 /**
@@ -71,10 +73,12 @@ contract SampleTemplate is BaseTemplate, ReentrancyGuard {
         Mock function for testing FeeDistributor
     */
     function withdrawRaisedToken(address token_) external {
-        require(
-            IFeeDistributor(feeDistributor).addRewardToken(token_),
-            "Failed to add reward"
-        );
+        if (!IFeeDistributor(feeDistributor).tokenFlags(token_)) {
+            require(
+                IFeeDistributor(feeDistributor).addRewardToken(token_),
+                "Failed to add reward"
+            );
+        }
 
         require(
             IERC20(token_).transfer(

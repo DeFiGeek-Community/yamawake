@@ -7,7 +7,7 @@ import {
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { sendEther, timeTravel } from "../../../scenarioHelper";
+import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 const DAY = 86400;
 const WEEK = DAY * 7;
@@ -23,7 +23,6 @@ describe("FeeDistributor", () => {
   let feeDistributor: Contract;
   let votingEscrow: Contract;
   let factory: Contract;
-  let template: Contract;
   let auction: Contract;
   let token: Contract;
   let coinA: Contract;
@@ -70,49 +69,6 @@ describe("FeeDistributor", () => {
       .connect(dan)
       .approve(factory.address, ethers.utils.parseEther("10"));
   });
-
-  async function deploySaleTemplate(
-    factory: Contract,
-    feeDistributor: Contract
-  ): Promise<Contract> {
-    const Distributor = await ethers.getContractFactory("Distributor");
-    const Template = await ethers.getContractFactory("SampleTemplate");
-    const FeePool = await ethers.getContractFactory("FeePool");
-
-    const feePool = await FeePool.deploy();
-    await feePool.deployed();
-
-    const distributor = await Distributor.deploy(
-      factory.address,
-      token.address
-    );
-    await distributor.deployed();
-
-    const template = await Template.deploy(
-      factory.address,
-      feePool.address,
-      distributor.address,
-      feeDistributor.address
-    );
-    await template.deployed();
-
-    await factory.addTemplate(
-      TEMPLATE_NAME,
-      template.address,
-      Template.interface.getSighash("initialize"),
-      Template.interface.getSighash("initializeTransfer")
-    );
-
-    const abiCoder = ethers.utils.defaultAbiCoder;
-    const args = abiCoder.encode(["address", "uint256"], [coinA.address, 0]);
-    const tx = await factory.connect(dan).deployAuction(TEMPLATE_NAME, args);
-    const receipt = await tx.wait();
-    const event = receipt.events.find(
-      (event: any) => event.event === "Deployed"
-    );
-    const [, templateAddr] = event.args;
-    return Template.attach(templateAddr);
-  }
 
   afterEach(async () => {
     await snapshot.restore();
@@ -206,7 +162,14 @@ describe("FeeDistributor", () => {
         alice.address,
         alice.address
       );
-      auction = await deploySaleTemplate(factory, feeDistributor);
+      auction = await deploySampleSaleTemplate(
+        factory,
+        feeDistributor,
+        token,
+        coinA,
+        TEMPLATE_NAME,
+        dan
+      );
 
       expect(feeDistributor.checkpointToken(coinA.address)).to.be.revertedWith(
         "Token not registered"
@@ -315,7 +278,14 @@ describe("FeeDistributor", () => {
         alice.address
       );
       await feeDistributor.deployed();
-      auction = await deploySaleTemplate(factory, feeDistributor);
+      auction = await deploySampleSaleTemplate(
+        factory,
+        feeDistributor,
+        token,
+        coinA,
+        TEMPLATE_NAME,
+        dan
+      );
 
       await coinA._mintForTesting(
         auction.address,
