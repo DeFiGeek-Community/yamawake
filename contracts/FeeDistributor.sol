@@ -648,22 +648,23 @@ contract FeeDistributor is ReentrancyGuard {
      * @param coin_ Address of the coin being received (must be 3CRV)
      * @return bool success
      */
-    function burn(address coin_) external returns (bool) {
-        require(tokenFlags[coin_], "Invalid token");
-        require(!isKilled, "Contract is killed");
+    // TODO 不要？
+    // function burn(address coin_) external returns (bool) {
+    //     require(tokenFlags[coin_], "Invalid token");
+    //     require(!isKilled, "Contract is killed");
 
-        uint256 _amount = IERC20(coin_).balanceOf(msg.sender);
-        if (_amount > 0) {
-            IERC20(coin_).transferFrom(msg.sender, address(this), _amount);
-            if (
-                canCheckpointToken &&
-                block.timestamp > lastTokenTime[coin_] + 1 hours
-            ) {
-                _checkpointToken(coin_);
-            }
-        }
-        return true;
-    }
+    //     uint256 _amount = IERC20(coin_).balanceOf(msg.sender);
+    //     if (_amount > 0) {
+    //         IERC20(coin_).transferFrom(msg.sender, address(this), _amount);
+    //         if (
+    //             canCheckpointToken &&
+    //             block.timestamp > lastTokenTime[coin_] + 1 hours
+    //         ) {
+    //             _checkpointToken(coin_);
+    //         }
+    //     }
+    //     return true;
+    // }
 
     /***
      * @notice Commit transfer of ownership
@@ -701,13 +702,21 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _length = tokens.length;
         for (uint256 i; i < _length; ) {
             address _token = tokens[i];
-            require(
-                IERC20(_token).transfer(
-                    emergencyReturn,
-                    IERC20(_token).balanceOf(address(this))
-                ),
-                "Transfer failed"
-            );
+            if (_token == address(0)) {
+                require(
+                    payable(emergencyReturn).send(address(this).balance),
+                    "Transfer failed"
+                );
+            } else {
+                require(
+                    IERC20(_token).transfer(
+                        emergencyReturn,
+                        IERC20(_token).balanceOf(address(this))
+                    ),
+                    "Transfer failed"
+                );
+            }
+
             unchecked {
                 ++i;
             }
@@ -723,11 +732,20 @@ contract FeeDistributor is ReentrancyGuard {
     function recoverBalance(address coin_) external onlyAdmin returns (bool) {
         require(tokenFlags[coin_], "Cannot recover this token");
 
-        uint256 _amount = IERC20(coin_).balanceOf(address(this));
-        require(
-            IERC20(coin_).transfer(emergencyReturn, _amount),
-            "Transfer failed"
-        );
+        if (coin_ == address(0)) {
+            require(
+                payable(emergencyReturn).send(address(this).balance),
+                "Transfer failed"
+            );
+        } else {
+            require(
+                IERC20(coin_).transfer(
+                    emergencyReturn,
+                    IERC20(coin_).balanceOf(address(this))
+                ),
+                "Transfer failed"
+            );
+        }
         return true;
     }
 
