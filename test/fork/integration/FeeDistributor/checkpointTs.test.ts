@@ -17,6 +17,7 @@ describe("FeeDistributor", function () {
   let token: Contract;
   let coinA: Contract;
   let votingEscrow: Contract;
+  let factory: Contract;
   let feeDistributor: Contract;
   let snapshot: SnapshotRestorer;
 
@@ -28,6 +29,7 @@ describe("FeeDistributor", function () {
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
+    const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
     await token.deployed();
@@ -43,10 +45,13 @@ describe("FeeDistributor", function () {
     );
     await votingEscrow.deployed();
 
+    factory = await Factory.deploy();
+    await factory.deployed();
+
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
+      factory.address,
       await time.latest(),
-      coinA.address,
       accounts[0].address,
       accounts[0].address
     );

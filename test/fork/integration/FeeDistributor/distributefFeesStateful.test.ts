@@ -55,6 +55,7 @@ function getRandomsTime(): BigNumber {
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
   let votingEscrow: Contract;
+  let factory: Contract;
   let distributor: Contract;
   let feeCoin: Contract;
   let token: Contract;
@@ -79,6 +80,7 @@ describe("FeeDistributor", function () {
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+    const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
     await token.deployed();
@@ -93,6 +95,9 @@ describe("FeeDistributor", function () {
       "v1"
     );
     await votingEscrow.deployed();
+
+    factory = await Factory.deploy();
+    await factory.deployed();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       // ensure accounts[:5] all have tokens that may be locked
@@ -126,8 +131,8 @@ describe("FeeDistributor", function () {
 
     distributor = await FeeDistributor.deploy(
       votingEscrow.address,
+      factory.address,
       await time.latest(),
-      feeCoin.address,
       accounts[0].address,
       accounts[0].address
     );

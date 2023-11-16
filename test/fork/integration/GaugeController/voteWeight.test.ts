@@ -34,7 +34,7 @@ describe("GaugeController", function () {
 
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("Minter");
-    const LiquidityGauge = await ethers.getContractFactory("LiquidityGaugeV6");
+    const LiquidityGauge = await ethers.getContractFactory("Gauge");
     const GaugeController = await ethers.getContractFactory("GaugeController");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 

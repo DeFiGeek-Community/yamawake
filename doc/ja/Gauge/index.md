@@ -10,37 +10,41 @@
 
 uint256 public constant WEEK = 604800
 uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
+string public constant VERSION = "v1.0.0";
 
 ### プロパティ
-
-- ymwk(address public immutable)
-
-  - YMWKトークンのアドレスを保持する
-
-- gaugeController(address public immutable)
-
-  - ゲージコントローラーのアドレスを保持する
-
-- minter(address public immutable)
-
-  - ミンターのアドレスを保持する
-
-- votingEscrow(address public immutable)
-
-  - VotingEscrowのアドレスを保持する
 
 - admin(address public)
 
   - 管理者アドレスを保持する
 
+- token(address public immutable)
+
+  - YMWKトークンのアドレスを保持する
+
+- votingEscrow(address public immutable)
+
+  - VotingEscrowのアドレスを保持する
+
+- minter(address public immutable)
+
+  - ミンターのアドレスを保持する
+
+- gaugeController(address public immutable)
+
+  - ゲージコントローラーのアドレスを保持する
+
 - isKilled(bool public)
 
   - kill状態フラグ
 
-- inflationParams(uint256 public)
+- futureEpochTime(uint256 public)
 
-  - YMWKのインフレーションレート、次回のインフレーションレート変更タイムスタンプを保持する
-  - futureEpochTimeが 40 bit, inflationRateが 216 bit
+  - 次回のインフレーションレート変更タイムスタンプを保持する
+
+- inflationRate
+
+  - YMWKのインフレーションレートを保持する
 
 - timeCursor: public(uint256)
   - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
@@ -50,6 +54,8 @@ uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
   - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数を保持する
 - lastTokenTime: public(uint256)
   - チェックポイント時点のタイムスタンプを保持する
+- tokenLastBalance: public(uint256)
+  - 前回チェックポイント時のトークン残高を保持する
 - tokensPerWeek: public(uint256[1000000000000000])
 
   - 報酬額を週ごとに保持する
@@ -88,27 +94,25 @@ uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
     t_0:
     $ 報酬分配を開始するタイムスタンプ
 
-- timeCursor(uint256 public)
-  - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- timeCursorOf(address => uint256 public)
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- userEpochOf(address => uint256 public)
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数を保持する
 - periodTimestamp(uint256[100000000000000000000000000000] public)
   - チェックポイントごとのタイムスタンプを保持する
-- period(int128 public)
+- period(uint256 public)
   - チェックポイントの履歴数を保持する
+- startTime(uint256 public immutable)
+  - トークンの配布を開始するタイムスタンプ。YMWKインフレーションの開始週頭の時間。
 
 ### 関数
 
 #### 初期化
 
-- ymwkを設定する
+- minterを設定する
+- tokenを設定する
 - votingEscrowを設定する
 - gaugeControllerを設定する
-- minterを設定する
 - periodTimestampを設定する
-- inflationParamsをymwkから取得し、設定する
+- adminを設定する
+- inflationRateをtokenから取得し、設定する
+- futureEpochTimeをtokenから取得し、設定する
 
 #### veYMWK残高に対するYMWKインフレーション量の割合の履歴を更新する
 
@@ -253,18 +257,6 @@ uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
 #### integrateCheckpoint() returns uint256
 
 最新のチェックポイントのタイムスタンプを返す
-
-- external view
-
-#### futureEpochTime() returns uint256
-
-Gaugeに保存されているYMWKの次回インフレーションレート更新日時のタイムスタンプを返す
-
-- external view
-
-#### inflationRate() returns uint256
-
-Gaugeに保存されているYMWKのインフレーションレートを返す
 
 - external view
 

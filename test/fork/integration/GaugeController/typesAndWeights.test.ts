@@ -145,7 +145,7 @@ describe("GaugeController", function () {
     console.log(
       `ruleAddGauge --- gaugeType: ${gaugeType}, stGaugeWeight: ${stGaugeWeight.toString()}`
     );
-    const LiquidityGauge = await ethers.getContractFactory("LiquidityGaugeV6");
+    const LiquidityGauge = await ethers.getContractFactory("Gauge");
     const gauge = await LiquidityGauge.deploy(minter.address);
     await gauge.deployed();
 

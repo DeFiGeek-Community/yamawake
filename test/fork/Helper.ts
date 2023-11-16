@@ -19,7 +19,7 @@ async function deployContracts() {
   const Token = await ethers.getContractFactory("YMWK");
   const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
   const GaugeController = await ethers.getContractFactory("GaugeController");
-  const LiquidityGauge = await ethers.getContractFactory("LiquidityGaugeV6");
+  const LiquidityGauge = await ethers.getContractFactory("Gauge");
   const Minter = await ethers.getContractFactory("Minter");
 
   // Contract deployments
