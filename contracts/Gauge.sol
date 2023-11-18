@@ -73,7 +73,7 @@ contract Gauge is ReentrancyGuard {
     mapping(address => uint256) public userEpochOf;
 
     uint256 public lastTokenTime;
-    uint256 public tokenLastBalance;
+    // uint256 public tokenLastBalance;
 
     uint256[1000000000000000] public tokensPerWeek;
 
@@ -120,7 +120,10 @@ contract Gauge is ReentrancyGuard {
         inflationRate = IYMWK(token).rate();
         futureEpochTime = IYMWK(token).futureEpochTimeWrite();
 
-        startTime = (futureEpochTime / WEEK) * WEEK; // Distribution starts when YMWK inflation starts
+        uint _t = (futureEpochTime / WEEK) * WEEK;
+        startTime = _t; // Distribution starts when YMWK inflation starts
+        lastTokenTime = _t;
+        timeCursor = _t;
     }
 
     /***
@@ -128,35 +131,76 @@ contract Gauge is ReentrancyGuard {
      * @dev
      */
     function _checkpointToken() internal {
-        uint256 _tokenBalance = IERC20(token).balanceOf(address(this));
-        uint256 _toDistribute = _tokenBalance - tokenLastBalance;
-        tokenLastBalance = _tokenBalance;
+        uint256 _toDistribute;
+
+        uint256 _lastTokenTime = lastTokenTime;
+        uint256 _rate = inflationRate;
+        uint256 _prevFutureEpoch = futureEpochTime;
+        uint256 _newRate = _rate;
 
         uint256 _t = lastTokenTime;
-        uint256 _sinceLast = block.timestamp - _t;
         lastTokenTime = block.timestamp;
         uint256 _thisWeek = (_t / WEEK) * WEEK;
         uint256 _nextWeek = 0;
 
+        // 現在Gaugeに設定されているYMWKの次回インフレ率更新時間が、直近のトークンチェックポイントより未来の場合
+        // 今回のチェックポイントでYMWKエポックを跨ぐ可能性があるので更新を掛けておく。
+        // 基本はこのケースで、直近のトークンチェックポイントが_prevFutureEpochより未来であることはないはず（？）
+        if (_prevFutureEpoch >= _lastTokenTime) {
+            futureEpochTime = IYMWK(token).futureEpochTimeWrite();
+            _newRate = IYMWK(token).rate();
+            inflationRate = _newRate;
+        }
+
+        // Gaugeの状態を更新
+        IGaugeController(gaugeController).checkpointGauge(address(this));
+
         for (uint256 i; i < 20; ) {
             _nextWeek = _thisWeek + WEEK;
+            uint256 _w = IGaugeController(gaugeController).gaugeRelativeWeight(
+                address(this),
+                _thisWeek
+            );
+
             if (block.timestamp < _nextWeek) {
-                if (_sinceLast == 0 && block.timestamp == _t) {
-                    tokensPerWeek[_thisWeek] += _toDistribute;
+                // 次週頭が現在のタイムスタンプより未来になった場合は、
+                // 現在のタイムスタンプまでの報酬額を計算し、今週分のトークン配分に加算する。
+                // 処理はこの週で終了する
+                if (
+                    _prevFutureEpoch <= block.timestamp &&
+                    _t <= _prevFutureEpoch
+                ) {
+                    // TODO 境界条件の確認
+                    // エポックの更新を挟む場合はそれぞれのインフレーションレートでトークン配分を計算する
+                    uint _dt1 = _prevFutureEpoch - _t;
+                    uint _dt2 = block.timestamp - _prevFutureEpoch;
+                    _toDistribute =
+                        (_w * (_rate * _dt1 + _newRate * _dt2)) /
+                        1e18;
                 } else {
-                    tokensPerWeek[_thisWeek] +=
-                        (_toDistribute * (block.timestamp - _t)) /
-                        _sinceLast;
+                    _toDistribute =
+                        (_w * _rate * (block.timestamp - _t)) /
+                        1e18;
                 }
+
+                tokensPerWeek[_thisWeek] += _toDistribute;
                 break;
             } else {
-                if (_sinceLast == 0 && _nextWeek == _t) {
-                    tokensPerWeek[_thisWeek] += _toDistribute;
+                // 次週頭が現在のタイムスタンプより過去の場合は、
+                // 次週頭までの報酬額を計算し、今週分のトークン配分に加算する。
+                if (_prevFutureEpoch <= _nextWeek && _t <= _prevFutureEpoch) {
+                    // TODO 境界条件の確認
+                    // エポックの更新を挟む場合はそれぞれのインフレーションレートでトークン配分を計算する
+                    uint _dt1 = _prevFutureEpoch - _t;
+                    uint _dt2 = _nextWeek - _prevFutureEpoch;
+                    _toDistribute =
+                        (_w * (_rate * _dt1 + _newRate * _dt2)) /
+                        1e18;
+                    _rate = _newRate;
                 } else {
-                    tokensPerWeek[_thisWeek] +=
-                        (_toDistribute * (_nextWeek - _t)) /
-                        _sinceLast;
+                    _toDistribute = (_w * _rate * (_nextWeek - _t)) / 1e18;
                 }
+                tokensPerWeek[_thisWeek] += _toDistribute;
             }
             _t = _nextWeek;
             _thisWeek = _nextWeek;
@@ -297,7 +341,7 @@ contract Gauge is ReentrancyGuard {
     }
 
     /***
-     * @notice Update the veCRV total supply checkpoint
+     * @notice Update the veYMWK total supply checkpoint
      * @dev The checkpoint is also updated by the first claimant each new epoch week. This function may be called independently of a claim, to reduce claiming gas costs.
      */
     function checkpointTotalSupply() external {
@@ -409,15 +453,9 @@ contract Gauge is ReentrancyGuard {
                     break;
                 }
                 if (_balanceOf > 0) {
-                    uint256 w = IGaugeController(gaugeController)
-                        .gaugeRelativeWeight(
-                            address(this),
-                            (_weekCursor / WEEK) * WEEK
-                        );
                     _toDistribute +=
-                        (uint256(_balanceOf) * tokensPerWeek[_weekCursor] * w) /
-                        veSupply[_weekCursor] /
-                        1e18;
+                        (uint256(_balanceOf) * tokensPerWeek[_weekCursor]) /
+                        veSupply[_weekCursor];
                 }
                 _weekCursor += WEEK;
             }
