@@ -7,6 +7,7 @@ import {
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 // 参考) brownie Stateful Tests
 // https://eth-brownie.readthedocs.io/en/stable/tests-hypothesis-stateful.html
@@ -14,12 +15,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 const ACCOUNT_NUM = 5;
 const MAX_EXAMPLES = 50;
 const STATEFUL_STEP_COUNT = 30;
+const FEE_TOKEN_NUM = 2;
 const WEEK = 86400 * 7;
 const YEAR = 86400 * 365;
 const two_to_the_256_minus_1 = BigNumber.from("2")
   .pow(BigNumber.from("256"))
   .sub(BigNumber.from("1"));
 const MOUNT_DECIMALS = 3;
+const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
 
 // Helper functions to generate random variables ----->
 function randomBigValue(min: number, max: number): BigNumber {
@@ -54,26 +57,37 @@ function getRandomsTime(): BigNumber {
 
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
+  let admin: SignerWithAddress; // FeeDistributor Admin
   let votingEscrow: Contract;
   let factory: Contract;
   let distributor: Contract;
   let feeCoin: Contract;
   let token: Contract;
+  let auction: Contract;
 
   let lockedUntil: { [key: string]: number } = {};
   let fees: { [key: number]: BigNumber } = {}; // timestamp -> amount
   let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> timestamp -> [claimed, timeCursor]
+  let userGases: { [key: string]: BigNumber }; // address -> total gas fee
+  let initialEthBalance: { [key: string]: BigNumber };
   let totalFees: BigNumber = ethers.utils.parseEther("1");
+
+  let tokenAddresses: string[];
+  let stToken: string;
 
   let snapshot: SnapshotRestorer;
 
   beforeEach(async () => {
     snapshot = await takeSnapshot();
+
     accounts = (await ethers.getSigners()).slice(0, ACCOUNT_NUM);
+    admin = (await ethers.getSigners())[ACCOUNT_NUM];
 
     lockedUntil = {};
     fees = {};
     userClaims = {};
+    userGases = {};
+    initialEthBalance = {};
     totalFees = ethers.utils.parseEther("1");
 
     const YMWK = await ethers.getContractFactory("YMWK");
@@ -133,10 +147,29 @@ describe("FeeDistributor", function () {
       votingEscrow.address,
       factory.address,
       await time.latest(),
-      accounts[0].address,
-      accounts[0].address
+      admin.address,
+      admin.address
     );
     await distributor.deployed();
+
+    tokenAddresses = [ethers.constants.AddressZero, feeCoin.address];
+
+    auction = await deploySampleSaleTemplate(
+      factory,
+      distributor,
+      token,
+      feeCoin,
+      TEMPLATE_NAME,
+      admin
+    );
+
+    // Calling the mock function to add coinA to the reward list
+    await auction.connect(admin).withdrawRaisedToken(feeCoin.address);
+
+    for (let i = 0; i < ACCOUNT_NUM; i++) {
+      initialEthBalance[accounts[i].address] = await accounts[i].getBalance();
+      userGases[accounts[i].address] = ethers.BigNumber.from("0");
+    }
   });
 
   afterEach(async () => {
@@ -153,7 +186,11 @@ describe("FeeDistributor", function () {
     const currentTime = await time.latest();
 
     if (lockedUntil[stAcct.address] < currentTime) {
-      await votingEscrow.connect(stAcct).withdraw();
+      let tx = await votingEscrow.connect(stAcct).withdraw();
+      let receipt = await tx.wait();
+      userGases[stAcct.address] = userGases[stAcct.address].add(
+        receipt.effectiveGasPrice.mul(receipt.gasUsed)
+      );
       delete lockedUntil[stAcct.address];
       return false;
     }
@@ -199,7 +236,11 @@ describe("FeeDistributor", function () {
     if (!(await _checkActiveLock(stAcct))) {
       const until =
         (Math.floor((await time.latest()) / WEEK) + stWeeks.toNumber()) * WEEK;
-      await votingEscrow.connect(stAcct).createLock(stAmount, until);
+      let tx = await votingEscrow.connect(stAcct).createLock(stAmount, until);
+      let receipt = await tx.wait();
+      userGases[stAcct.address] = userGases[stAcct.address].add(
+        receipt.effectiveGasPrice.mul(receipt.gasUsed)
+      );
       lockedUntil[stAcct.address] = until;
     }
   }
@@ -245,7 +286,11 @@ describe("FeeDistributor", function () {
         until,
         Math.floor(((await time.latest()) + YEAR * 4) / WEEK) * WEEK
       );
-      await votingEscrow.connect(stAcct).increaseUnlockTime(newUntil);
+      let tx = await votingEscrow.connect(stAcct).increaseUnlockTime(newUntil);
+      let receipt = await tx.wait();
+      userGases[stAcct.address] = userGases[stAcct.address].add(
+        receipt.effectiveGasPrice.mul(receipt.gasUsed)
+      );
       lockedUntil[stAcct.address] = newUntil;
     }
   }
@@ -281,7 +326,11 @@ describe("FeeDistributor", function () {
     stTime.gt(0) && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
-      await votingEscrow.connect(stAcct).increaseAmount(stAmount);
+      let tx = await votingEscrow.connect(stAcct).increaseAmount(stAmount);
+      let receipt = await tx.wait();
+      userGases[stAcct.address] = userGases[stAcct.address].add(
+        receipt.effectiveGasPrice.mul(receipt.gasUsed)
+      );
     }
   }
 
@@ -317,11 +366,15 @@ describe("FeeDistributor", function () {
     // ---
 
     const claimed = await feeCoin.balanceOf(stAcct.address);
-    const tx = await distributor.connect(stAcct)["claim()"]();
+    const tx = await distributor.connect(stAcct)["claim(address)"](stToken);
+    let receipt = await tx.wait();
+    userGases[stAcct.address] = userGases[stAcct.address].add(
+      receipt.effectiveGasPrice.mul(receipt.gasUsed)
+    );
     const newClaimed = (await feeCoin.balanceOf(stAcct.address)).sub(claimed);
     userClaims[stAcct.address][tx.blockNumber] = [
       newClaimed,
-      await distributor.timeCursorOf(stAcct.address),
+      await distributor.timeCursorOf(stToken, stAcct.address),
     ];
   }
 
@@ -348,11 +401,22 @@ describe("FeeDistributor", function () {
 
     stTime.gt(0) && (await time.increase(stTime));
 
-    const tx = await feeCoin._mintForTesting(distributor.address, stAmount);
+    let tx;
+    if (stToken === ethers.constants.AddressZero) {
+      tx = await admin.sendTransaction({
+        to: distributor.address,
+        value: stAmount,
+      });
+    } else {
+      const Token = await ethers.getContractFactory("MockToken");
+      tx = await Token.attach(stToken)
+        .connect(admin)
+        ._mintForTesting(distributor.address, stAmount);
+    }
 
     if (!(await distributor.canCheckpointToken())) {
-      await distributor.toggleAllowCheckpointToken();
-      await distributor.checkpointToken();
+      await distributor.connect(admin).toggleAllowCheckpointToken();
+      await distributor.connect(admin).checkpointToken(stToken);
     }
 
     fees[tx.blockNumber] = stAmount;
@@ -382,7 +446,18 @@ describe("FeeDistributor", function () {
 
     stTime.gt(0) && (await time.increase(stTime));
 
-    const tx = await feeCoin._mintForTesting(distributor.address, stAmount);
+    let tx;
+    if (stToken === ethers.constants.AddressZero) {
+      tx = await admin.sendTransaction({
+        to: distributor.address,
+        value: stAmount,
+      });
+    } else {
+      const Token = await ethers.getContractFactory("MockToken");
+      tx = await Token.attach(stToken)
+        .connect(admin)
+        ._mintForTesting(distributor.address, stAmount);
+    }
 
     fees[tx.blockNumber] = stAmount;
     totalFees = totalFees.add(stAmount);
@@ -404,9 +479,9 @@ describe("FeeDistributor", function () {
     // Need two checkpoints to get tokens fully distributed
     // Because tokens for current week are obtained in the next week
     // And that is by design
-    await distributor.checkpointToken();
+    await distributor.connect(admin).checkpointToken(stToken);
     await ethers.provider.send("evm_increaseTime", [WEEK * 2]);
-    await distributor.checkpointToken();
+    await distributor.connect(admin).checkpointToken(stToken);
 
     for (const acct of accounts) {
       // For debug --->
@@ -420,7 +495,11 @@ describe("FeeDistributor", function () {
       //     `);
       // <----
 
-      await distributor.connect(acct)["claim()"]();
+      let tx = await distributor.connect(acct)["claim(address)"](stToken);
+      let receipt = await tx.wait();
+      userGases[acct.address] = userGases[acct.address].add(
+        receipt.effectiveGasPrice.mul(receipt.gasUsed)
+      );
     }
 
     const t0: number = (await distributor.startTime()).toNumber();
@@ -430,7 +509,7 @@ describe("FeeDistributor", function () {
     for (const acct of accounts) {
       tokensPerUserPerWeek[acct.address] = [];
       for (let w = t0; w < t1 + WEEK; w += WEEK) {
-        const tokens: BigNumber = (await distributor.tokensPerWeek(w))
+        const tokens: BigNumber = (await distributor.tokensPerWeek(stToken, w))
           .mul(await distributor.veForAt(acct.address, w))
           .div(await distributor.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
@@ -471,56 +550,82 @@ describe("FeeDistributor", function () {
     // console.log((await feeCoin.balanceOf(distributor.address)).toString());
     // -------------------------------------------
 
+    const Token = await ethers.getContractFactory("MockToken");
+
     for (const acct of accounts) {
-      expect(await feeCoin.balanceOf(acct.address)).to.equal(
-        tokensPerUserPerWeek[acct.address].reduce(
-          (a: BigNumber, b: BigNumber) => a.add(b),
-          BigNumber.from("0")
-        )
-      );
+      if (stToken === ethers.constants.AddressZero) {
+        expect(await ethers.provider.getBalance(acct.address)).to.equal(
+          tokensPerUserPerWeek[acct.address]
+            .reduce(
+              (a: BigNumber, b: BigNumber) => a.add(b),
+              BigNumber.from("0")
+            )
+            .add(initialEthBalance[acct.address])
+            .sub(userGases[acct.address])
+        );
+      } else {
+        expect(await Token.attach(stToken).balanceOf(acct.address)).to.equal(
+          tokensPerUserPerWeek[acct.address].reduce(
+            (a: BigNumber, b: BigNumber) => a.add(b),
+            BigNumber.from("0")
+          )
+        );
+      }
     }
 
     // Check if all fees are distributed
-    expect(await feeCoin.balanceOf(distributor.address)).to.be.lt(100);
+    if (stToken === ethers.constants.AddressZero) {
+      expect(await ethers.provider.getBalance(distributor.address)).to.be.lt(
+        100
+      );
+    } else {
+      expect(
+        await Token.attach(stToken).balanceOf(distributor.address)
+      ).to.be.lt(100);
+    }
   }
 
   let func = [
-    "ruleNewLock",
-    "ruleExtendLock",
-    "ruleIncreaseLockAmount",
-    "ruleClaimFees",
-    "ruleTransferFees",
-    "ruleTransferFeesWithoutCheckpoint",
+    ruleNewLock,
+    ruleExtendLock,
+    ruleIncreaseLockAmount,
+    ruleClaimFees,
+    ruleTransferFees,
+    ruleTransferFeesWithoutCheckpoint,
   ];
 
   describe("test_deposit_withdraw_voting", function () {
-    for (let i = 0; i < MAX_EXAMPLES; i++) {
-      it(`should distributes fee ${i}`, async () => {
-        // Corresponds initializer initialize_new_lock and initialize_transfer_fees
-        // https://eth-brownie.readthedocs.io/en/stable/tests-hypothesis-stateful.html#initializers
-        // initialize_new_lock: This is equivalent to `rule_new_lock` to make it more likely we have at least 2 accounts locked at the start of the test run.
-        // initialize_transfer_fees: This is equivalent to `rule_transfer_fees` to make it more likely that claimable fees are available from the start of the test.
-        const initializerSeed = Math.random();
-        if (initializerSeed < 0.2) {
-          await ruleNewLock();
-          await ruleTransferFees();
-        } else if (initializerSeed < 0.4) {
-          await ruleTransferFees();
-          await ruleNewLock();
-        } else if (initializerSeed < 0.6) {
-          await ruleNewLock();
-        } else if (initializerSeed < 0.8) {
-          await ruleTransferFees();
-        }
+    for (let n = 0; n < FEE_TOKEN_NUM; n++) {
+      for (let i = 0; i < MAX_EXAMPLES; i++) {
+        it(`should distributes fee. Token: ${n}, Try: ${i}`, async () => {
+          stToken = tokenAddresses[n];
 
-        const steps = randomValue(1, STATEFUL_STEP_COUNT);
-        for (let x = 0; x < steps; x++) {
-          let n = randomValue(0, func.length);
-          await eval(func[n])();
-        }
+          // Corresponds initializer initialize_new_lock and initialize_transfer_fees
+          // https://eth-brownie.readthedocs.io/en/stable/tests-hypothesis-stateful.html#initializers
+          // initialize_new_lock: This is equivalent to `rule_new_lock` to make it more likely we have at least 2 accounts locked at the start of the test run.
+          // initialize_transfer_fees: This is equivalent to `rule_transfer_fees` to make it more likely that claimable fees are available from the start of the test.
+          const initializerSeed = Math.random();
+          if (initializerSeed < 0.2) {
+            await ruleNewLock();
+            await ruleTransferFees();
+          } else if (initializerSeed < 0.4) {
+            await ruleTransferFees();
+            await ruleNewLock();
+          } else if (initializerSeed < 0.6) {
+            await ruleNewLock();
+          } else if (initializerSeed < 0.8) {
+            await ruleTransferFees();
+          }
 
-        await teardown();
-      });
+          const steps = randomValue(1, STATEFUL_STEP_COUNT);
+          for (let x = 0; x < steps; x++) {
+            let n = randomValue(0, func.length);
+            await func[n]();
+          }
+
+          await teardown();
+        });
+      }
     }
   });
 });

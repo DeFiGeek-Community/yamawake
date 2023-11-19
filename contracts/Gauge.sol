@@ -469,8 +469,6 @@ contract Gauge is ReentrancyGuard {
         timeCursorOf[addr_] = _weekCursor;
 
         integrateFraction[addr_] += _toDistribute;
-        // integrateInvSupplyOf[addr_] = _st.integrateInvSupply;
-        // integrateCheckpointOf[addr_] = block.timestamp;
     }
 
     function userCheckpoint(address addr_) external returns (bool) {
@@ -479,8 +477,6 @@ contract Gauge is ReentrancyGuard {
             "dev: unauthorized"
         );
         require(!isKilled, "Contract is killed");
-
-        // uint256 _amount = _claim(_addr, _lastTokenTime);
 
         _checkpoint(addr_);
         return true;
