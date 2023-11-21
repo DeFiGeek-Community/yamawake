@@ -81,7 +81,7 @@ contract VotingEscrow is ReentrancyGuard {
     string public name;
     string public symbol;
     string public version;
-    uint256 public decimals;
+    uint8 public decimals;
 
     // Checker for whitelisted (smart contract) wallets which are allowed to deposit
     // The goal is to prevent tokenizing the escrow
@@ -111,12 +111,7 @@ contract VotingEscrow is ReentrancyGuard {
         controller = msg.sender;
         transfersEnabled = true;
 
-        uint256 decimalsFromToken = ERC20(tokenAddr_).decimals();
-        require(
-            decimalsFromToken <= 255,
-            "Decimals should be less than or equal to 255"
-        );
-        decimals = decimalsFromToken;
+        decimals = ERC20(tokenAddr_).decimals();
 
         name = name_;
         symbol = symbol_;
