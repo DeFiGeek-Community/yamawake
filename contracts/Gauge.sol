@@ -90,18 +90,6 @@ contract Gauge is ReentrancyGuard {
 
     uint256 public immutable startTime;
 
-    // TODO 以下変数削除
-
-    // user -> [uint128 claimable amount][uint128 claimed amount]
-    mapping(address => mapping(address => uint256)) public claimData;
-
-    mapping(address => uint256) public workingBalances;
-    uint256 public workingSupply;
-
-    // 1e18 * ∫(rate(t) / totalSupply(t) dt) from (last_action) till checkpoint
-    mapping(address => uint256) public integrateInvSupplyOf;
-    mapping(address => uint256) public integrateCheckpointOf;
-
     /***
      * @notice Constructor
      * @param minter_
@@ -114,8 +102,6 @@ contract Gauge is ReentrancyGuard {
 
         periodTimestamp[0] = block.timestamp;
         admin = msg.sender;
-        // uint256 _startTime = IYMWK(token).startEpochTime + RATE_REDUCTION_TIME;
-        // startTime = (_startTime / WEEK) * WEEK;
 
         inflationRate = IYMWK(token).rate();
         futureEpochTime = IYMWK(token).futureEpochTimeWrite();
@@ -128,12 +114,12 @@ contract Gauge is ReentrancyGuard {
 
     /***
      * @notice
-     * @dev
+     * @dev 過去のトークンチェックポイントの週頭分から、Callされた時点の週頭分までのYMWKトークン分配を計算し、各週に分配する。
+        処理は最大で20週間分まで可能で、それ以上の期間に渡りトークンチェックポイントがない場合はその間のトークンは喪失する
      */
     function _checkpointToken() internal {
         uint256 _toDistribute;
 
-        uint256 _lastTokenTime = lastTokenTime;
         uint256 _rate = inflationRate;
         uint256 _prevFutureEpoch = futureEpochTime;
         uint256 _newRate = _rate;
@@ -145,8 +131,8 @@ contract Gauge is ReentrancyGuard {
 
         // 現在Gaugeに設定されているYMWKの次回インフレ率更新時間が、直近のトークンチェックポイントより未来の場合
         // 今回のチェックポイントでYMWKエポックを跨ぐ可能性があるので更新を掛けておく。
-        // 基本はこのケースで、直近のトークンチェックポイントが_prevFutureEpochより未来であることはないはず（？）
-        if (_prevFutureEpoch >= _lastTokenTime) {
+        // 基本はこのケースで、直近のトークンチェックポイントが_prevFutureEpochより未来であることはないはず
+        if (_prevFutureEpoch >= _t) {
             futureEpochTime = IYMWK(token).futureEpochTimeWrite();
             _newRate = IYMWK(token).rate();
             inflationRate = _newRate;
@@ -202,8 +188,10 @@ contract Gauge is ReentrancyGuard {
                 }
                 tokensPerWeek[_thisWeek] += _toDistribute;
             }
+
             _t = _nextWeek;
             _thisWeek = _nextWeek;
+
             unchecked {
                 ++i;
             }
@@ -326,10 +314,6 @@ contract Gauge is ReentrancyGuard {
                     _dt = int128(int256(_t) - int256(_pt.ts));
                 }
                 veSupply[_t] = uint256(int256(_pt.bias - _pt.slope * _dt));
-                // TODO
-                // Consider retrieve and save ralative weight here
-                // uint256 w = IGaugeController(gaugeController)
-                //    .gaugeRelativeWeight(address(this), (_t / WEEK) * WEEK);
                 _t += WEEK;
             }
             unchecked {
@@ -371,6 +355,7 @@ contract Gauge is ReentrancyGuard {
         if (block.timestamp > _lastTokenTime + 1 hours) {
             _checkpointToken();
             _lastTokenTime = block.timestamp;
+            // _lastTokenTime = lastTokenTime;
         }
 
         unchecked {
@@ -440,12 +425,7 @@ contract Gauge is ReentrancyGuard {
                 int256 _balanceOf = int256(_oldUserPoint.bias) -
                     _dt *
                     int256(_oldUserPoint.slope);
-                if (
-                    int256(_oldUserPoint.bias) -
-                        _dt *
-                        int256(_oldUserPoint.slope) <
-                    0
-                ) {
+                if (_balanceOf < 0) {
                     _balanceOf = 0;
                 }
 
@@ -453,6 +433,10 @@ contract Gauge is ReentrancyGuard {
                     break;
                 }
                 if (_balanceOf > 0) {
+                    // TODO 20週以上の更新時のために && veSupply[_weekCursor] > 0 を追加を検討
+                    // if (veSupply[_weekCursor] == 0) {
+                    // }
+
                     _toDistribute +=
                         (uint256(_balanceOf) * tokensPerWeek[_weekCursor]) /
                         veSupply[_weekCursor];
