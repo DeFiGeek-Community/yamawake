@@ -37,7 +37,7 @@ contract Gauge is ReentrancyGuard {
 
     // to avoid "stack too deep"
     struct CheckPointParameters {
-        int128 period;
+        uint128 period;
         uint256 periodTime;
         uint256 integrateInvSupply;
         uint256 inflationParams;
@@ -82,11 +82,11 @@ contract Gauge is ReentrancyGuard {
     mapping(address => uint256) public integrateFraction;
 
     // The goal is to be able to calculate ∫(rate * balance / totalSupply dt) from 0 till checkpoint
-    int128 public period;
+    uint128 public period;
 
     // Using dynamic array instead of fixed 100000000000000000000000000000 array to avoid warning about collisions
-    uint256[100000000000000000000000000000] public periodTimestamp;
-    uint256[100000000000000000000000000000] public integrateInvSupply;
+    mapping(uint128 => uint256) public periodTimestamp;
+    mapping(uint128 => uint256) public integrateInvSupply;
 
     uint256 public immutable startTime;
 
@@ -478,7 +478,7 @@ contract Gauge is ReentrancyGuard {
     }
 
     function integrateCheckpoint() external view returns (uint256) {
-        return periodTimestamp[uint256(uint128(period))];
+        return periodTimestamp[period];
     }
 
     function version() external pure returns (string memory) {
