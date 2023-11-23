@@ -92,13 +92,13 @@ contract GaugeController {
 
     mapping(int128 => mapping(uint256 => Point)) public pointsSum; // type_id -> time -> Point
     mapping(int128 => mapping(uint256 => uint256)) public changesSum; // type_id -> time -> slope
-    uint256[1000000000] public timeSum; // type_id -> last scheduled time (next week)
+    mapping(int128 => uint256) public timeSum; // type_id -> last scheduled time (next week)
 
     mapping(uint256 => uint256) public pointsTotal; // time -> total weight
     uint256 public timeTotal; // last scheduled time
 
     mapping(int128 => mapping(uint256 => uint256)) public pointsTypeWeight; // type_id -> time -> type weight
-    uint256[1000000000] public timeTypeWeight; // type_id -> last scheduled time (next week)
+    mapping(int128 => uint256) public timeTypeWeight; // type_id -> last scheduled time (next week)
 
     /***
      *@notice Contract constructor
@@ -153,8 +153,7 @@ contract GaugeController {
      *@return Type weight
      */
     function _getTypeWeight(int128 gaugeType_) internal returns (uint256) {
-        uint256 _gaugeType = uint256(uint128(gaugeType_));
-        uint256 _t = timeTypeWeight[_gaugeType];
+        uint256 _t = timeTypeWeight[gaugeType_];
         if (_t > 0) {
             uint256 _w = pointsTypeWeight[gaugeType_][_t];
             for (uint256 i; i < 500; ) {
@@ -164,7 +163,7 @@ contract GaugeController {
                 _t += WEEK;
                 pointsTypeWeight[gaugeType_][_t] = _w;
                 if (_t > block.timestamp) {
-                    timeTypeWeight[_gaugeType] = _t;
+                    timeTypeWeight[gaugeType_] = _t;
                 }
                 unchecked {
                     ++i;
@@ -183,8 +182,7 @@ contract GaugeController {
      *@return Sum of weights
      */
     function _getSum(int128 gaugeType_) internal returns (uint256) {
-        uint256 _gaugeType = uint256(uint128(gaugeType_));
-        uint256 _t = timeSum[_gaugeType];
+        uint256 _t = timeSum[gaugeType_];
         if (_t > 0) {
             Point memory _pt = pointsSum[gaugeType_][_t];
             for (uint256 i; i < 500; ) {
@@ -203,7 +201,7 @@ contract GaugeController {
                 }
                 pointsSum[gaugeType_][_t] = _pt;
                 if (_t > block.timestamp) {
-                    timeSum[_gaugeType] = _t;
+                    timeSum[gaugeType_] = _t;
                 }
                 unchecked {
                     ++i;
@@ -327,7 +325,6 @@ contract GaugeController {
             nGauges = _n + 1;
         }
         gauges[uint256(uint128(_n))] = addr_;
-        uint256 _gaugeType = uint256(uint128(gaugeType_));
         gaugeTypes_[addr_] = gaugeType_ + 1;
         uint256 _nextTime;
         unchecked {
@@ -340,14 +337,14 @@ contract GaugeController {
             uint256 _oldTotal = _getTotal();
 
             pointsSum[gaugeType_][_nextTime].bias = weight_ + _oldSum;
-            timeSum[_gaugeType] = _nextTime;
+            timeSum[gaugeType_] = _nextTime;
             pointsTotal[_nextTime] = _oldTotal + (_typeWeight * weight_);
             timeTotal = _nextTime;
 
             pointsWeight[addr_][_nextTime].bias = weight_;
         }
-        if (timeSum[_gaugeType] == 0) {
-            timeSum[_gaugeType] = _nextTime;
+        if (timeSum[gaugeType_] == 0) {
+            timeSum[gaugeType_] = _nextTime;
         }
         timeWeight[addr_] = _nextTime;
 
@@ -443,7 +440,6 @@ contract GaugeController {
         unchecked {
             _nextTime = ((block.timestamp + WEEK) / WEEK) * WEEK;
         }
-        uint256 _typeId = uint256(uint128(typeId_));
 
         _totalWeight =
             _totalWeight +
@@ -452,7 +448,7 @@ contract GaugeController {
         pointsTotal[_nextTime] = _totalWeight;
         pointsTypeWeight[typeId_][_nextTime] = weight_;
         timeTotal = _nextTime;
-        timeTypeWeight[_typeId] = _nextTime;
+        timeTypeWeight[typeId_] = _nextTime;
 
         emit NewTypeWeight(typeId_, _nextTime, weight_, _totalWeight);
     }
@@ -504,7 +500,7 @@ contract GaugeController {
 
         uint256 newSum = _oldSum + weight_ - _oldGaugeWeight;
         pointsSum[_gaugeType][_nextTime].bias = newSum;
-        timeSum[uint256(uint128(_gaugeType))] = _nextTime;
+        timeSum[_gaugeType] = _nextTime;
 
         _totalWeight =
             _totalWeight +
@@ -655,8 +651,7 @@ contract GaugeController {
      *@return Type weight
      */
     function getTypeWeight(int128 typeId_) external view returns (uint256) {
-        uint256 _typeId = uint256(uint128(typeId_));
-        return pointsTypeWeight[typeId_][timeTypeWeight[_typeId]];
+        return pointsTypeWeight[typeId_][timeTypeWeight[typeId_]];
     }
 
     /***
@@ -675,8 +670,7 @@ contract GaugeController {
     function getWeightsSumPerType(
         int128 typeId_
     ) external view returns (uint256) {
-        uint256 _typeId = uint256(uint128(typeId_));
-        return pointsSum[typeId_][timeSum[_typeId]].bias;
+        return pointsSum[typeId_][timeSum[typeId_]].bias;
     }
 
     function max(uint256 _a, uint256 _b) internal pure returns (uint256) {
