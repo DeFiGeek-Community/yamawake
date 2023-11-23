@@ -8,16 +8,18 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
-const ACCOUNT_NUM = 4;
 const NUMBER_OF_ATTEMPTS = 30;
 const SCALE = BigNumber.from((1e20).toString());
-const WEEK = 86400 * 7;
-const MONTH = 86400 * 30;
+const DAY = 86400;
+const WEEK = DAY * 7;
+const MONTH = DAY * 30;
+const YEAR = DAY * 365;
+const INFLATION_DELAY = YEAR;
 
 describe("Minter components", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
-  let liquidityGauge: Contract;
+  let gauge: Contract;
   let minter: Contract;
   let token: Contract;
   let votingEscrow: Contract;
@@ -28,7 +30,7 @@ describe("Minter components", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("Minter");
-    const LiquidityGauge = await ethers.getContractFactory("Gauge");
+    const Gauge = await ethers.getContractFactory("Gauge");
     const GaugeController = await ethers.getContractFactory("GaugeController");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
@@ -52,13 +54,16 @@ describe("Minter components", function () {
     minter = await Minter.deploy(token.address, gaugeController.address);
     await minter.deployed();
 
-    liquidityGauge = await LiquidityGauge.deploy(minter.address);
-    await liquidityGauge.deployed();
+    gauge = await Gauge.deploy(minter.address);
+    await gauge.deployed();
 
     await token.setMinter(minter.address);
-    await gaugeController.addType("Liquidity", ethers.utils.parseEther("1"));
+    await gaugeController.addType(
+      "YMWK Inflation",
+      ethers.utils.parseEther("1")
+    );
     await gaugeController.addGauge(
-      liquidityGauge.address,
+      gauge.address,
       0,
       ethers.utils.parseEther("10")
     );
@@ -68,17 +73,10 @@ describe("Minter components", function () {
     await snapshot.restore();
   });
 
-  function generateUniqueRandomNumbers(
-    count: number,
-    min: number,
-    max: number
-  ): number[] {
-    const set = new Set<number>();
-    while (set.size < count) {
-      const randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
-      set.add(randomValue);
-    }
-    return Array.from(set);
+  function randomBigValue(min: number, max: number): BigNumber {
+    return BigNumber.from(
+      Math.floor(Math.random() * (max - min) + min).toString()
+    );
   }
 
   function approx(value: BigNumber, target: BigNumber, tol: BigNumber) {
@@ -88,7 +86,7 @@ describe("Minter components", function () {
 
     const diff = value.sub(target).abs();
     const sum = value.add(target);
-    const ratio = diff.mul(2).mul(BigNumber.from(SCALE)).div(sum);
+    const ratio = diff.mul(2).mul(SCALE).div(sum);
 
     // console.log(
     //   `Value: ${value.toString()}, Target: ${target.toString()}, Tol: ${tol.toString()}`
@@ -104,7 +102,7 @@ describe("Minter components", function () {
     console.log("Gauge info----");
     console.log(
       "GaugeWeight: ",
-      (await gaugeController.getGaugeWeight(liquidityGauge.address)).toString()
+      (await gaugeController.getGaugeWeight(gauge.address)).toString()
     );
     console.log(
       "TypeWeight: ",
@@ -131,145 +129,72 @@ describe("Minter components", function () {
       "gaugeRelativeWeight: ",
       (
         await gaugeController.gaugeRelativeWeight(
-          liquidityGauge.address,
+          gauge.address,
           await time.latest()
         )
       ).toString()
     );
-    console.log(
-      "TotalSupply: ",
-      (await liquidityGauge.totalSupply()).toString()
-    );
+    console.log("TotalSupply: ", (await gauge.totalSupply()).toString());
     console.log("----");
   }
 
   for (let i = 0; i < NUMBER_OF_ATTEMPTS; i++) {
-    it(`tests duration ${i}`, async function () {
-      const stDuration = generateUniqueRandomNumbers(3, WEEK, MONTH);
-      const depositTime: number[] = [];
-
-      await time.increase(WEEK);
-
-      // TODO
-      // liquidityGaugeへのdepositでなく、VotingEscrowへのロックに変更
-      for (let i = 0; i < 3; i++) {
-        await liquidityGauge
-          .connect(accounts[i + 1])
-          .deposit(
-            ethers.utils.parseEther("1"),
-            accounts[i + 1].address,
-            false
-          );
-        depositTime.push(await time.latest());
-
-        //   await showGaugeInfo();
-      }
-
-      const durations: number[] = [];
-      const balances: BigNumber[] = [];
-      for (let i = 0; i < 3; i++) {
-        await time.increase(stDuration[i]);
-        await liquidityGauge
-          .connect(accounts[i + 1])
-          .withdraw(ethers.utils.parseEther("1"), false);
-
-        const duration = (await time.latest()) - depositTime[i];
-        durations.push(duration);
-        await minter.connect(accounts[i + 1]).mint(liquidityGauge.address);
-        const balance = await token.balanceOf(accounts[i + 1].address);
-        balances.push(balance);
-
-        //   await showGaugeInfo();
-      }
-
-      const totalMinted: BigNumber = balances.reduce(
-        (a: BigNumber, b: BigNumber) => a.add(b),
-        ethers.BigNumber.from(0)
-      );
-      const weight1 = Math.floor(durations[0]);
-      const weight2 = Math.floor(weight1 + (durations[1] - durations[0]) * 1.5);
-      const weight3 = Math.floor(weight2 + (durations[2] - durations[1]) * 3);
-      const totalWeight = weight1 + weight2 + weight3;
-
-      console.log(
-        `Total minted: ${totalMinted.toString()}, Total Weight: ${totalWeight.toString()}`
-      );
-      console.log(
-        `Balance 1: ${balances[0]} (${balances[0]
-          .mul(SCALE)
-          .div(totalMinted)}) Weight 1: ${weight1.toString()} (${
-          (100 * weight1) / totalWeight
-        }%)`
-      );
-      console.log(
-        `Balance 2: ${balances[1]} (${balances[1]
-          .mul(SCALE)
-          .div(totalMinted)}) Weight 2: ${weight2.toString()} (${
-          (100 * weight2) / totalWeight
-        }%)`
-      );
-      console.log(
-        `Balance 3: ${balances[2]} (${balances[2]
-          .mul(SCALE)
-          .div(totalMinted)}) Weight 3: ${weight3.toString()} (${
-          (100 * weight3) / totalWeight
-        }%)`
-      );
-
-      expect(
-        approx(
-          balances[0].mul(SCALE).div(totalMinted),
-          BigNumber.from(weight1).mul(SCALE).div(totalWeight),
-          BigNumber.from(10).pow(16) // = (10 ** -4) * SCALE
-        )
-      ).to.be.true;
-      expect(
-        approx(
-          balances[1].mul(SCALE).div(totalMinted),
-          BigNumber.from(weight2).mul(SCALE).div(totalWeight),
-          BigNumber.from(10).pow(16) // = (10 ** -4) * SCALE
-        )
-      ).to.be.true;
-      expect(
-        approx(
-          balances[2].mul(SCALE).div(totalMinted),
-          BigNumber.from(weight3).mul(SCALE).div(totalWeight),
-          BigNumber.from(10).pow(16) // = (10 ** -4) * SCALE
-        )
-      ).to.be.true;
-    });
-  }
-
-  for (let i = 0; i < NUMBER_OF_ATTEMPTS; i++) {
     it(`tests amounts ${i}`, async function () {
-      const stAmounts = generateUniqueRandomNumbers(3, 1e17, 1e18);
+      /*
+      複数のアカウントがランダムな額で同期間YMWKをロックし、ロック期間完了後にミントする。
+      各アカウントのYMWKの残高がロック額と対応することを確認
+      */
+      let stAmounts: BigNumber[] = []; //generateUniqueRandomNumbers(3, 1e17, 1e18);
       const depositTime: number[] = [];
 
-      // TODO
-      // liquidityGaugeへのdepositでなく、VotingEscrowへのロックに変更
+      // YMWKトークンを各アカウントへ配布し、VotingEscrowへApprove
       for (let i = 0; i < 3; i++) {
-        await liquidityGauge
+        stAmounts.push(randomBigValue(1e17, 1e18));
+        await token.transfer(accounts[i + 1].address, stAmounts[i]);
+        await token
           .connect(accounts[i + 1])
-          .deposit(stAmounts[i].toString(), accounts[i + 1].address, false);
+          .approve(votingEscrow.address, stAmounts[i]);
+      }
+
+      /* 
+        1. YMWKインフレーション開始時間 + 1週間まで進め、YMWKのレートを更新する
+      */
+      const tokenInflationStarts: BigNumber = (
+        await token.startEpochTime()
+      ).add(INFLATION_DELAY + WEEK);
+      await time.increaseTo(tokenInflationStarts);
+      await token.updateMiningParameters();
+
+      /* 
+        2. 各アカウントがそれぞれYMWKを4週間ロックする
+      */
+      const now = await time.latest();
+      for (let i = 0; i < 3; i++) {
+        await votingEscrow
+          .connect(accounts[i + 1])
+          .createLock(stAmounts[i], now + WEEK * 4);
         depositTime.push(await time.latest());
       }
 
+      /* 
+        3. ロック完了まで時間を進める
+      */
       await time.increase(MONTH);
 
+      /* 
+        4. それぞれのアカウントでミントし、初期残高との差分を保存する
+      */
       const balances: BigNumber[] = [];
       for (let i = 0; i < 3; i++) {
-        liquidityGauge
-          .connect(accounts[i + 1])
-          .withdraw(stAmounts[i].toString(), false);
+        await minter.connect(accounts[i + 1]).mint(gauge.address);
+        const balanceDiff = (
+          await token.balanceOf(accounts[i + 1].address)
+        ).sub(stAmounts[i]);
+        balances.push(balanceDiff);
       }
-
-      for (let i = 0; i < 3; i++) {
-        await minter.connect(accounts[i + 1]).mint(liquidityGauge.address);
-        balances.push(await token.balanceOf(accounts[i + 1].address));
-      }
-      const totalDeposited: number = stAmounts.reduce(
-        (a: number, b: number) => a + b,
-        0
+      const totalDeposited: BigNumber = stAmounts.reduce(
+        (a: BigNumber, b: BigNumber) => a.add(b),
+        ethers.BigNumber.from(0)
       );
       const totalMinted: BigNumber = balances.reduce(
         (a: BigNumber, b: BigNumber) => a.add(b),
@@ -281,26 +206,36 @@ describe("Minter components", function () {
       );
       console.log(
         `Balance 1: ${balances[0]} (${balances[0]
-          .mul(SCALE)
-          .div(totalMinted)}) Deposited 1: ${stAmounts[0].toString()} (${
-          (100 * stAmounts[0]) / totalDeposited
-        }%)`
+          .mul(100)
+          .div(
+            totalMinted
+          )}%) Deposited 1: ${stAmounts[0].toString()} (${stAmounts[0]
+          .mul(100)
+          .div(totalDeposited)}%)`
       );
       console.log(
         `Balance 2: ${balances[1]} (${balances[1]
-          .mul(SCALE)
-          .div(totalMinted)}) Deposited 2: ${stAmounts[1].toString()} (${
-          (100 * stAmounts[1]) / totalDeposited
-        }%)`
+          .mul(100)
+          .div(
+            totalMinted
+          )}%) Deposited 2: ${stAmounts[1].toString()} (${stAmounts[1]
+          .mul(100)
+          .div(totalDeposited)}%)`
       );
       console.log(
         `Balance 3: ${balances[2]} (${balances[2]
-          .mul(SCALE)
-          .div(totalMinted)}) Deposited 3: ${stAmounts[2].toString()} (${
-          (100 * stAmounts[2]) / totalDeposited
-        }%)`
+          .mul(100)
+          .div(
+            totalMinted
+          )}%) Deposited 3: ${stAmounts[2].toString()} (${stAmounts[2]
+          .mul(100)
+          .div(totalDeposited)}%)`
       );
 
+      /* 
+        5. YMWK残高増加分の合計値に対する各アカウントの割合が、
+        各アカウントがロックしたYMWK額の割合と一致することを確認
+      */
       expect(
         approx(
           balances[0].mul(SCALE).div(totalMinted),

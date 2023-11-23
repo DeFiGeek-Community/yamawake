@@ -9,7 +9,7 @@ import {
 import Constants from "../../Constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-describe("LiquidityGauge", function () {
+describe("Gauge", function () {
   let accounts: SignerWithAddress[];
   let factory: Contract;
   let gaugeController: Contract;
