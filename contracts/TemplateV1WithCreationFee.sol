@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./BaseTemplate.sol";
 
@@ -11,6 +12,7 @@ import "./BaseTemplate.sol";
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
 contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
     uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
     uint256 private constant ETH_UPPER_BOUND = 1000000000 ether;
@@ -76,7 +78,8 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         allocatedAmount = allocatedAmount_;
         minRaisedAmount = minRaisedAmount_;
 
-        payable(feePool).transfer(msg.value);
+        (bool success, ) = payable(feePool).call{value: msg.value}("");
+        require(success, "transfer failed");
 
         emit Deployed(
             address(this),
@@ -133,7 +136,7 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
             if (msg.sender != participant && participant != recipient) {
                 revert("participant or recipient invalid");
             }
-            erc20onsale.transfer(recipient, erc20allocation);
+            erc20onsale.safeTransfer(recipient, erc20allocation);
 
             IDistributor(distributor).addScore(
                 participant,
@@ -143,7 +146,10 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
             emit Claimed(participant, recipient, raisedAmount, erc20allocation);
         } else {
             /* Refund process */
-            payable(participant).transfer(raisedAmount);
+            (bool success, ) = payable(participant).call{value: raisedAmount}(
+                ""
+            );
+            require(success, "transfer failed");
             emit Claimed(participant, recipient, raisedAmount, 0);
         }
     }
@@ -184,13 +190,18 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
 
         uint256 gross = address(this).balance;
         uint256 fee = (gross) / 100;
-        payable(feePool).transfer(fee);
+
+        (bool feeSuccess, ) = payable(feePool).call{value: fee}("");
+        require(feeSuccess, "Fee transfer failed");
 
         IDistributor(distributor).addScore(
             msg.sender,
             gross * REWARD_SCORE_RATE
         );
-        payable(owner).transfer(address(this).balance);
+        (bool success, ) = payable(owner).call{value: address(this).balance}(
+            ""
+        );
+        require(success, "Withdraw failed");
     }
 
     /*
@@ -205,7 +216,7 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
             totalRaised < minRaisedAmount || totalRaised == 0,
             "The required amount has been raised!"
         );
-        erc20onsale.transfer(owner, allocatedAmount);
+        erc20onsale.safeTransfer(owner, allocatedAmount);
     }
 
     function initializeTransfer(
@@ -213,6 +224,6 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         uint256 amount_,
         address to_
     ) external payable onlyDelegateFactory {
-        IERC20(token_).transferFrom(msg.sender, to_, amount_);
+        IERC20(token_).safeTransferFrom(msg.sender, to_, amount_);
     }
 }
