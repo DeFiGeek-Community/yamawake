@@ -46,8 +46,8 @@ const config: HardhatUserConfig = {
       accounts: {
         count: 110,
         initialIndex: 0,
-        accountsBalance: "2000000000000000000000"
-      }
+        accountsBalance: "200000000000000000000000",
+      },
     },
   },
   etherscan: {
