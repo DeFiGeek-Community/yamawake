@@ -204,6 +204,51 @@ export async function deploySampleSaleTemplate(
   return Template.attach(templateAddr);
 }
 
+export async function deploySaleTemplateV1_5(
+  factory: Contract,
+  feeDistributor: Contract,
+  token: Contract,
+  auctionToken: Contract,
+  templateName: string,
+  deployer: SignerWithAddress
+): Promise<Contract> {
+  const Distributor = await ethers.getContractFactory("Distributor");
+  const Template = await ethers.getContractFactory("TemplateV1_5");
+  const FeePool = await ethers.getContractFactory("FeePool");
+
+  const feePool = await FeePool.deploy();
+  await feePool.deployed();
+
+  const distributor = await Distributor.deploy(factory.address, token.address);
+  await distributor.deployed();
+
+  const template = await Template.deploy(
+    factory.address,
+    feePool.address,
+    distributor.address,
+    feeDistributor.address
+  );
+  await template.deployed();
+
+  await factory.addTemplate(
+    templateName,
+    template.address,
+    Template.interface.getSighash("initialize"),
+    Template.interface.getSighash("initializeTransfer")
+  );
+
+  const abiCoder = ethers.utils.defaultAbiCoder;
+  const args = abiCoder.encode(
+    ["address", "uint256"],
+    [auctionToken.address, 0]
+  );
+  const tx = await factory.connect(deployer).deployAuction(templateName, args);
+  const receipt = await tx.wait();
+  const event = receipt.events.find((event: any) => event.event === "Deployed");
+  const [, templateAddr] = event.args;
+  return Template.attach(templateAddr);
+}
+
 export async function restore(snapshotId: string): Promise<void> {
   return ethers.provider.send("evm_revert", [snapshotId]);
 }
