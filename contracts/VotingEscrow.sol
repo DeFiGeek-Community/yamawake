@@ -821,6 +821,9 @@ contract VotingEscrow is ReentrancyGuard {
         uint256 _targetEpoch = findBlockEpoch(block_, _epoch);
 
         Point memory _point = pointHistory[_targetEpoch];
+        if (_point.blk > block_) {
+            return 0;
+        }
         uint256 _dt = 0;
         if (_targetEpoch < _epoch) {
             Point memory _pointNext = pointHistory[_targetEpoch + 1];
