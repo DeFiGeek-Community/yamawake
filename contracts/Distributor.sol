@@ -2,12 +2,14 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IFactory {
     function auctions(address _address) external view returns (bool);
 }
 
 contract Distributor {
+    using SafeERC20 for IERC20;
     IFactory public factory;
     IERC20 public token;
     mapping(address => uint256) public scores;
@@ -42,7 +44,7 @@ contract Distributor {
         }
 
         scores[target_] = 0;
-        token.transfer(target_, _score);
+        token.safeTransfer(target_, _score);
         emit Claimed(target_, _score);
     }
 
