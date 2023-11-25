@@ -6,6 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./BaseTemplate.sol";
 
+interface IFeeDistributor {
+    function addRewardToken(address coin_) external returns (bool);
+
+    function tokenFlags(address _address) external view returns (bool);
+
+    function checkpointToken(address token_) external;
+}
+
 /**
  * @author 0xMotoko
  * @title TemplateV1_5
@@ -22,6 +30,10 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
     uint256 private constant MIN_BID_AMOUNT = 0.001 ether;
     /// Fixed rate for calculate the reward score
     uint256 private constant REWARD_SCORE_RATE = 100;
+    // fee = gross / FEE_DENOMINATOR
+    uint256 private constant FEE_DENOMINATOR = 100;
+    // devShare = fee / FEE_DENOMINATOR
+    uint256 private constant DEV_SHARE_DENOMINATOR = 10; // TODO 割合の決定
 
     IERC20 public erc20onsale;
     uint256 public allocatedAmount;
@@ -30,11 +42,16 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
     uint256 public totalRaised;
     mapping(address => uint256) public raised;
 
+    address public immutable feeDistributor;
+
     constructor(
         address factory_,
         address feePool_,
-        address distributor_
-    ) BaseTemplate(factory_, feePool_, distributor_) {}
+        address distributor_,
+        address feeDistributor_
+    ) BaseTemplate(factory_, feePool_, distributor_) {
+        feeDistributor = feeDistributor_;
+    }
 
     function initialize(
         address owner_,
@@ -187,9 +204,11 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
         }
 
         uint256 gross = address(this).balance;
-        uint256 fee = (gross) / 100;
+        uint256 fee = gross / FEE_DENOMINATOR; // 1% of sales
+        uint256 devShare = fee / DEV_SHARE_DENOMINATOR; // 10% of fee. TODO 割合の決定
+        fee = fee - devShare;
 
-        (bool feeSuccess, ) = payable(feePool).call{value: fee}("");
+        (bool feeSuccess, ) = payable(feePool).call{value: devShare}("");
         require(feeSuccess, "Fee transfer failed");
 
         IDistributor(distributor).addScore(owner, gross * REWARD_SCORE_RATE);
@@ -197,6 +216,13 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
             ""
         );
         require(success, "Withdraw failed");
+
+        (bool feeDistributorSuccess, ) = payable(feeDistributor).call{
+            value: fee
+        }("");
+        require(feeDistributorSuccess, "Transfer to FeeDistributor failed");
+
+        IFeeDistributor(feeDistributor).checkpointToken(address(0));
     }
 
     /*
