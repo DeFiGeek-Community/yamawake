@@ -34,11 +34,11 @@ describe("FeePool", function () {
         deployFactoryAndFeePoolFixture
       );
       sendEther(feePool.address, "1", owner);
-      expect(
-        await feePool.connect(owner).withdrawEther(owner.address)
+      await expect(
+        feePool.connect(owner).withdrawEther(owner.address)
       ).to.changeEtherBalances(
         [feePool, owner],
-        [ethers.utils.parseEther("1"), `-${ethers.utils.parseEther("1")}`]
+        [`-${ethers.utils.parseEther("1")}`, ethers.utils.parseEther("1")]
       );
     });
 
@@ -48,7 +48,7 @@ describe("FeePool", function () {
         deployFactoryAndFeePoolFixture
       );
       sendEther(feePool.address, "1", owner);
-      expect(
+      await expect(
         feePool.connect(owner).withdrawEther(ethers.constants.AddressZero)
       ).to.be.revertedWith("Don't discard treasury!");
     });
@@ -59,7 +59,8 @@ describe("FeePool", function () {
         deployFactoryAndFeePoolFixture
       );
       sendEther(feePool.address, "1", owner);
-      expect(feePool.connect(addr1).withdrawEther(addr1)).to.be.reverted;
+      await expect(feePool.connect(addr1).withdrawEther(addr1.address)).to.be
+        .reverted;
     });
   });
 
@@ -105,7 +106,8 @@ describe("FeePool", function () {
       const { token } = await loadFixture(deployTokenFixture);
       const amount = ethers.utils.parseEther("1");
       await token.transfer(feePool.address, amount);
-      expect(feePool.connect(addr1).withdrawEther(addr1)).to.be.reverted;
+      await expect(feePool.connect(addr1).withdrawEther(addr1.address)).to.be
+        .reverted;
     });
   });
 });
