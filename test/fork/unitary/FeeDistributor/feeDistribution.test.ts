@@ -155,8 +155,8 @@ describe("FeeDistributor", () => {
         .createLock(amount, (await time.latest()) + 3 * WEEK);
       await time.increase(2 * WEEK);
 
-      expect(
-        await feeDistributor.connect(alice)["claim(address)"](coinA.address)
+      await expect(
+        feeDistributor.connect(alice)["claim(address)"](coinA.address)
       ).to.changeTokenBalance(coinA, alice, 0);
     });
 

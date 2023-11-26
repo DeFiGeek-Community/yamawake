@@ -211,16 +211,16 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
         (bool feeSuccess, ) = payable(feePool).call{value: devShare}("");
         require(feeSuccess, "Fee transfer failed");
 
+        (bool feeDistributorSuccess, ) = payable(feeDistributor).call{
+            value: fee
+        }("");
+        require(feeDistributorSuccess, "Transfer to FeeDistributor failed");
+
         IDistributor(distributor).addScore(owner, gross * REWARD_SCORE_RATE);
         (bool success, ) = payable(owner).call{value: address(this).balance}(
             ""
         );
         require(success, "Withdraw failed");
-
-        (bool feeDistributorSuccess, ) = payable(feeDistributor).call{
-            value: fee
-        }("");
-        require(feeDistributorSuccess, "Transfer to FeeDistributor failed");
 
         IFeeDistributor(feeDistributor).checkpointToken(address(0));
     }

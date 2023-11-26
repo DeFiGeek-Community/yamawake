@@ -207,11 +207,14 @@ export async function deploySampleSaleTemplate(
 export async function deploySaleTemplateV1_5(
   factory: Contract,
   feeDistributor: Contract,
-  token: Contract,
-  auctionToken: Contract,
-  templateName: string,
+  ymwk: Contract,
+  auctionTokenAddr: string,
+  allocatedAmount: any,
+  startingAt: number,
+  eventDuration: number,
+  minRaisedAmount: any,
   deployer: SignerWithAddress
-): Promise<Contract> {
+): Promise<{ auction: Contract; feePool: Contract; distributor: Contract }> {
   const Distributor = await ethers.getContractFactory("Distributor");
   const Template = await ethers.getContractFactory("TemplateV1_5");
   const FeePool = await ethers.getContractFactory("FeePool");
@@ -219,7 +222,7 @@ export async function deploySaleTemplateV1_5(
   const feePool = await FeePool.deploy();
   await feePool.deployed();
 
-  const distributor = await Distributor.deploy(factory.address, token.address);
+  const distributor = await Distributor.deploy(factory.address, ymwk.address);
   await distributor.deployed();
 
   const template = await Template.deploy(
@@ -239,14 +242,21 @@ export async function deploySaleTemplateV1_5(
 
   const abiCoder = ethers.utils.defaultAbiCoder;
   const args = abiCoder.encode(
-    ["address", "uint256"],
-    [auctionToken.address, 0]
+    ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+    [
+      deployer.address,
+      startingAt,
+      eventDuration,
+      auctionTokenAddr,
+      allocatedAmount,
+      minRaisedAmount,
+    ]
   );
   const tx = await factory.connect(deployer).deployAuction(templateName, args);
   const receipt = await tx.wait();
   const event = receipt.events.find((event: any) => event.event === "Deployed");
   const [, templateAddr] = event.args;
-  return Template.attach(templateAddr);
+  return { auction: Template.attach(templateAddr), feePool, distributor };
 }
 
 export async function restore(snapshotId: string): Promise<void> {
