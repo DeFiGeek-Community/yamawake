@@ -126,8 +126,8 @@ describe("YMWK", function () {
       const amount = availableSupply.sub(totalSupply);
 
       await expect(
-        await ymwk.connect(addr1).mint(addr1.address, amount)
-      ).to.be.changeTokenBalance(ymwk, addr1, amount);
+        ymwk.connect(addr1).mint(addr1.address, amount)
+      ).to.changeTokenBalance(ymwk, addr1, amount);
     });
 
     // Minter以外からのMint
