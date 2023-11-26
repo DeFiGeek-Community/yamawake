@@ -156,9 +156,9 @@ describe("YMWK", function () {
   describe("updateMiningParameters", function () {
     it("updateMiningParameters_fail_1", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
-      expect(ymwk.updateMiningParameters()).to.be.reverted;
+      await expect(ymwk.updateMiningParameters()).to.be.reverted;
       await timeTravel(YEAR);
-      expect(ymwk.updateMiningParameters()).to.not.be.reverted;
+      await expect(ymwk.updateMiningParameters()).to.not.be.reverted;
     });
 
     // 235年目までの供給量
