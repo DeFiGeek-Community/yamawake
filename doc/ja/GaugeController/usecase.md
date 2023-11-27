@@ -36,6 +36,8 @@
   - checkpoint
     - GaugeのWeightを計算する
     - Weightの合計を計算する
+- Minter
+  - GaugeのTypeを取得する
 
 ## ユースケース図
 
@@ -44,6 +46,7 @@ graph LR
     user{{ユーザ}}
     owner{{GaugeControllerオーナー}}
     gauge_{{Gauge}}
+    minter{{Minter}}
 
     admin[管理者を保持する]
     token[トークンアドレスを保持する]
@@ -72,6 +75,7 @@ graph LR
     get_gauge_weight[GaugeのWeightを取得する]
     vote_gauge_weight[GaugeのWeight変更に投票する]
     get_gauge_rel_weight[Gaugeの相対Weightを取得する]
+    get_gauge_type[GaugeのTypeを取得する]
 
     owner --- deploy
     owner --- change_admin
@@ -91,6 +95,8 @@ graph LR
     gauge_ --- calc_gauge_weight
     gauge_ --- calc_weight_sum
 
+    minter --- get_gauge_type
+
     subgraph GaugeController
         direction LR
         admin
@@ -107,6 +113,7 @@ graph LR
         calc_gauge_weight
         calc_gauge_rel_weight
 
+        get_gauge_type
         get_type_weight
         get_type_weight_sum
         get_weight_sum

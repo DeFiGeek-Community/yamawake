@@ -93,7 +93,7 @@ describe("Template V1.5", () => {
         token,
         coinA.address,
         auctionAmount,
-        Math.floor(new Date().getTime() / 1000) + DAY,
+        (await time.latest()) + DAY,
         DAY,
         "0",
         alice
