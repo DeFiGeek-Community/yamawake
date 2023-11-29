@@ -6,18 +6,12 @@ pragma solidity ^0.8.18;
  *@notice Controls liquidity gauges and the issuance of token through the gauges
  */
 
-//dao-contracts
-import "./interfaces/IYMWK.sol";
-import "./interfaces/IVotingEscrow.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../interfaces/IYMWK.sol";
+import "../interfaces/IVotingEscrow.sol";
 
-contract GaugeController {
-    // 7 * 86400 seconds - all future times are rounded by week
-    // uint256 constant WEEK = 604800;
-    uint256 constant WEEK = 7 days;
-
-    // Cannot change weight votes more often than once in 10 days.
-    uint256 constant WEIGHT_VOTE_DELAY = 10 days;
-
+// Upgradable ver of Curve GaugeController
+contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
     struct Point {
         uint256 bias;
         uint256 slope;
@@ -29,6 +23,24 @@ contract GaugeController {
         uint256 end;
     }
 
+    struct VotingParameter {
+        //to avoid "Stack too deep" issue
+        uint256 slope;
+        uint256 lockEnd;
+        uint256 _nGauges;
+        uint256 nextTime;
+        int128 gaugeType;
+        uint256 oldDt;
+        uint256 oldBias;
+    }
+
+    // 7 * 86400 seconds - all future times are rounded by week
+    // uint256 constant WEEK = 604800;
+    uint256 constant WEEK = 7 days;
+
+    // Cannot change weight votes more often than once in 10 days.
+    uint256 constant WEIGHT_VOTE_DELAY = 10 days;
+
     event CommitOwnership(address admin);
     event ApplyOwnership(address admin);
     event AddType(string name, int128 typeId);
@@ -38,7 +50,6 @@ contract GaugeController {
         uint256 weight,
         uint256 totalWeight
     );
-
     event NewGaugeWeight(
         address gaugeAddress,
         uint256 time,
@@ -52,6 +63,8 @@ contract GaugeController {
         uint256 weight
     );
     event NewGauge(address addr, int128 gaugeType, uint256 weight);
+
+    event TestEvent(address indexed admin);
 
     uint256 constant MULTIPLIER = 10 ** 18;
 
@@ -105,7 +118,10 @@ contract GaugeController {
      *@param _token `Token` contract address
      *@param _votingEscrow `VotingEscrow` contract address
      */
-    constructor(address token_, address votingEscrow_) {
+    function initialize(
+        address token_,
+        address votingEscrow_
+    ) public initializer {
         require(token_ != address(0));
         require(votingEscrow_ != address(0));
 
@@ -114,6 +130,10 @@ contract GaugeController {
         votingEscrow = votingEscrow_;
         timeTotal = (block.timestamp / WEEK) * WEEK;
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyAdmin {}
 
     /***
      * @notice Transfer ownership of GaugeController to `addr`
@@ -522,17 +542,6 @@ contract GaugeController {
         uint256 weight_
     ) external onlyAdmin {
         _changeGaugeWeight(addr_, weight_);
-    }
-
-    struct VotingParameter {
-        //to avoid "Stack too deep" issue
-        uint256 slope;
-        uint256 lockEnd;
-        uint256 _nGauges;
-        uint256 nextTime;
-        int128 gaugeType;
-        uint256 oldDt;
-        uint256 oldBias;
     }
 
     /****
