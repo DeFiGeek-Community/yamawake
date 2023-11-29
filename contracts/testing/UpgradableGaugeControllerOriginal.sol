@@ -64,8 +64,6 @@ contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
     );
     event NewGauge(address addr, int128 gaugeType, uint256 weight);
 
-    event TestEvent(address indexed admin);
-
     uint256 constant MULTIPLIER = 10 ** 18;
 
     // Can and will be a smart contract
