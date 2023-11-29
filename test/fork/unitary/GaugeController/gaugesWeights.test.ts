@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import {
   takeSnapshot,
@@ -6,7 +6,6 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { deployContracts } from "../../Helper";
 import Constants from "../../Constants";
 
 describe("GaugeController", function () {
@@ -23,8 +22,32 @@ describe("GaugeController", function () {
   beforeEach(async function () {
     snapshot = await takeSnapshot();
     accounts = await ethers.getSigners();
-    ({ gaugeController, threeGauges } = await deployContracts());
-    await gaugeController.addType("none", TYPE_WEIGHTS[0]);
+    // Contract factories
+    const Token = await ethers.getContractFactory("YMWK");
+    const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
+    const GaugeController = await ethers.getContractFactory(
+      "GaugeControllerV1"
+    );
+    const Minter = await ethers.getContractFactory("Minter");
+
+    // Contract deployments
+    const token = await Token.deploy();
+    const votingEscrow = await VotingEscrow.deploy(
+      token.address,
+      "Voting-escrowed token",
+      "vetoken",
+      "v1"
+    );
+    gaugeController = await upgrades.deployProxy(GaugeController, [
+      token.address,
+      votingEscrow.address,
+    ]);
+
+    const minter = await Minter.deploy(token.address, gaugeController.address);
+
+    const LiquidityGauge = await ethers.getContractFactory("Gauge");
+    const lg1 = await LiquidityGauge.deploy(minter.address);
+    threeGauges = [lg1.address, lg1.address, lg1.address];
   });
 
   afterEach(async () => {
