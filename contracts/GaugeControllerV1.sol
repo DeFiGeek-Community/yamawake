@@ -42,8 +42,7 @@ contract GaugeControllerV1 is UUPSUpgradeable {
      */
     function initialize(
         address token_,
-        address votingEscrow_,
-        address veYMWKGauge_
+        address votingEscrow_
     ) public initializer {
         require(token_ != address(0));
         require(votingEscrow_ != address(0));
@@ -58,14 +57,6 @@ contract GaugeControllerV1 is UUPSUpgradeable {
         unchecked {
             nGaugeTypes = _typeId + 1;
         }
-
-        // Add veYMWK Gauge
-        int128 _n = nGauges;
-        unchecked {
-            nGauges = _n + 1;
-        }
-        gauges[uint256(uint128(_n))] = veYMWKGauge_;
-        gaugeTypes_[veYMWKGauge_] = 1;
     }
 
     function _authorizeUpgrade(
@@ -101,6 +92,29 @@ contract GaugeControllerV1 is UUPSUpgradeable {
         require(_gaugeType != 0, "dev: gauge is not added");
 
         return _gaugeType - 1;
+    }
+
+    /***
+     *@notice Add gauge `addr` of type `gauge_type` with weight `weight`
+     *@param addr_ Gauge address
+     *@param gaugeType_ Gauge type
+     */
+    function addGauge(
+        address addr_,
+        int128 gaugeType_,
+        uint256
+    ) external onlyAdmin {
+        require(
+            (gaugeType_ == 0) && (gaugeType_ < 1),
+            "Only veYMWK Gauge can be added for V1"
+        );
+        require(gaugeTypes_[addr_] == 0, "cannot add the same gauge twice");
+        int128 _n = nGauges;
+        unchecked {
+            nGauges = _n + 1;
+        }
+        gauges[uint256(uint128(_n))] = addr_;
+        gaugeTypes_[addr_] = gaugeType_ + 1;
     }
 
     /***

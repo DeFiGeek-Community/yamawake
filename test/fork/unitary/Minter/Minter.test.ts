@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { BigNumber, Contract } from "ethers";
 import {
   takeSnapshot,
@@ -36,7 +36,9 @@ describe("Minter", function () {
 
     const YMWK = await ethers.getContractFactory("YMWK");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
-    const GaugeController = await ethers.getContractFactory("GaugeController");
+    const GaugeController = await ethers.getContractFactory(
+      "GaugeControllerV1"
+    );
     const Minter = await ethers.getContractFactory("Minter");
     const Gauge = await ethers.getContractFactory("Gauge");
 
@@ -51,10 +53,11 @@ describe("Minter", function () {
     );
     await votingEscrow.deployed();
 
-    gaugeController = await GaugeController.deploy(
+    gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
-      votingEscrow.address
-    );
+      votingEscrow.address,
+    ]);
+    await gaugeController.deployed();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
     await minter.deployed();
@@ -72,8 +75,7 @@ describe("Minter", function () {
     const currentWeek = Math.floor((await time.latest()) / WEEK) * WEEK;
     await time.increaseTo(currentWeek + WEEK);
 
-    // Add types and gauges
-    await gaugeController.addType("YMWK Inflation", TYPE_WEIGHT);
+    // Add gauge
     await gaugeController.addGauge(gauge.address, GAUGE_TYPE, GAUGE_WEIGHT);
 
     // YMWKを各アカウントに配布し、votingEscrowからの使用をapprove
