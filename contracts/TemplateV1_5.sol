@@ -32,8 +32,6 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
     uint256 private constant REWARD_SCORE_RATE = 100;
     // fee = gross / FEE_DENOMINATOR
     uint256 private constant FEE_DENOMINATOR = 100;
-    // devShare = fee / FEE_DENOMINATOR
-    uint256 private constant DEV_SHARE_DENOMINATOR = 10; // TODO 割合の決定
 
     IERC20 public erc20onsale;
     uint256 public allocatedAmount;
@@ -205,24 +203,18 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
 
         uint256 gross = address(this).balance;
         uint256 fee = gross / FEE_DENOMINATOR; // 1% of sales
-        uint256 devShare = fee / DEV_SHARE_DENOMINATOR; // 10% of fee. TODO 割合の決定
-        fee = fee - devShare;
-
-        (bool feeSuccess, ) = payable(feePool).call{value: devShare}("");
-        require(feeSuccess, "Fee transfer failed");
 
         (bool feeDistributorSuccess, ) = payable(feeDistributor).call{
             value: fee
         }("");
         require(feeDistributorSuccess, "Transfer to FeeDistributor failed");
+        IFeeDistributor(feeDistributor).checkpointToken(address(0));
 
         IDistributor(distributor).addScore(owner, gross * REWARD_SCORE_RATE);
         (bool success, ) = payable(owner).call{value: address(this).balance}(
             ""
         );
         require(success, "Withdraw failed");
-
-        IFeeDistributor(feeDistributor).checkpointToken(address(0));
     }
 
     /*
