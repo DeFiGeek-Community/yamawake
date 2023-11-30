@@ -6,14 +6,11 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import Constants from "../../Constants";
 
 describe("GaugeController", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
   let snapshot: SnapshotRestorer;
-
-  const TYPE_WEIGHTS = Constants.TYPE_WEIGHTS;
 
   beforeEach(async function () {
     snapshot = await takeSnapshot();

@@ -99,22 +99,14 @@ contract GaugeControllerV1 is UUPSUpgradeable {
      *@param addr_ Gauge address
      *@param gaugeType_ Gauge type
      */
-    function addGauge(
-        address addr_,
-        int128 gaugeType_,
-        uint256
-    ) external onlyAdmin {
-        require(
-            (gaugeType_ == 0) && (gaugeType_ < 1),
-            "Only veYMWK Gauge can be added for V1"
-        );
-        require(gaugeTypes_[addr_] == 0, "cannot add the same gauge twice");
-        int128 _n = nGauges;
+    function addGauge(address addr_, int128, uint256) external onlyAdmin {
+        // Gauge can be added once for V1
+        require(nGauges < 1, "Only veYMWK Gauge can be added for V1");
         unchecked {
-            nGauges = _n + 1;
+            nGauges = 1;
         }
-        gauges[uint256(uint128(_n))] = addr_;
-        gaugeTypes_[addr_] = gaugeType_ + 1;
+        gauges[0] = addr_;
+        gaugeTypes_[addr_] = 1;
     }
 
     /***
