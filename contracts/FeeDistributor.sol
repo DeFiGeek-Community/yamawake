@@ -616,29 +616,6 @@ contract FeeDistributor is ReentrancyGuard {
     }
 
     /***
-     * @notice Receive 3CRV into the contract and trigger a token checkpoint
-     * @param coin_ Address of the coin being received (must be 3CRV)
-     * @return bool success
-     */
-    // TODO 不要？
-    // function burn(address coin_) external returns (bool) {
-    //     require(tokenFlags[coin_], "Invalid token");
-    //     require(!isKilled, "Contract is killed");
-
-    //     uint256 _amount = IERC20(coin_).balanceOf(msg.sender);
-    //     if (_amount > 0) {
-    //         IERC20(coin_).transferFrom(msg.sender, address(this), _amount);
-    //         if (
-    //             canCheckpointToken &&
-    //             block.timestamp > lastTokenTime[coin_] + 1 hours
-    //         ) {
-    //             _checkpointToken(coin_);
-    //         }
-    //     }
-    //     return true;
-    // }
-
-    /***
      * @notice Commit transfer of ownership
      * @param addr_ New admin address
      */

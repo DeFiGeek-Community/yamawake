@@ -214,20 +214,6 @@ ve履歴を同期する
 - 条件
   - kill状態でない
 
-#### burn(address coin\_) returns bool
-
-対象トークンをmsg.senderから本コントラクトに送金し、チェックポイントを作成する
-
-- external
-
-- 引数
-  - coin\_
-    - 送金対象トークン
-- 条件
-
-  - tokensに登録されているトークンが対象であること
-  - kill状態でない
-
 #### commitAdmin(address addr\_)
 
 次期管理者を設定する
