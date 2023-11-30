@@ -101,6 +101,8 @@ veYMWK のある時点での状態を格納するための構造体
 - 引数
   - address\_
     - 報酬トークンのアドレス
+- 条件
+  - 管理者またはオークション、またはcanCheckpointTokenがtrue
 
 #### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
 

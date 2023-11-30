@@ -161,6 +161,7 @@ contract FeeDistributor is ReentrancyGuard {
         require(tokenFlags[token_], "Token not registered");
         require(
             msg.sender == admin ||
+                IFactory(factory).auctions(msg.sender) ||
                 (canCheckpointToken &&
                     block.timestamp > lastTokenTime[token_] + 1 hours),
             "Unauthorized"
