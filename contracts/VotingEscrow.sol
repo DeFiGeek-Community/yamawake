@@ -17,13 +17,6 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-// Interface for checking whether address belongs to a whitelisted
-// type of a smart wallet.
-// When new types are added - the whole contract is changed
-// The check() method is modifying to be able to use caching
-// for individual wallet addresses
-import "./interfaces/ISmartWalletChecker.sol";
-
 contract VotingEscrow is ReentrancyGuard {
     struct Point {
         int128 bias;
@@ -83,11 +76,6 @@ contract VotingEscrow is ReentrancyGuard {
     string public version;
     uint8 public decimals;
 
-    // Checker for whitelisted (smart contract) wallets which are allowed to deposit
-    // The goal is to prevent tokenizing the escrow
-    address public futureSmartWalletChecker;
-    address public smartWalletChecker;
-
     address public admin;
     address public futureAdmin;
 
@@ -135,38 +123,6 @@ contract VotingEscrow is ReentrancyGuard {
         require(_admin != address(0), "admin not set");
         admin = _admin;
         emit ApplyOwnership(_admin);
-    }
-
-    /***
-     * @notice Set an external contract to check for approved smart contract wallets
-     * @param addr_ Address of Smart contract checker
-     */
-    function commitSmartWalletChecker(address addr_) external onlyAdmin {
-        futureSmartWalletChecker = addr_;
-    }
-
-    /***
-     * @notice Apply setting external contract to check approved smart contract wallets
-     */
-    function applySmartWalletChecker() external onlyAdmin {
-        smartWalletChecker = futureSmartWalletChecker;
-    }
-
-    /***
-     *@notice Check if the call is from a whitelisted smart contract, revert if not
-     *@param addr_ Address to be checked
-     */
-    function assertNotContract(address addr_) internal {
-        if (addr_ != tx.origin) {
-            address _checker = smartWalletChecker;
-            if (
-                _checker != address(0) &&
-                ISmartWalletChecker(_checker).check(addr_)
-            ) {
-                return;
-            }
-            revert("Smart contract depositors not allowed");
-        }
     }
 
     /***
@@ -486,8 +442,6 @@ contract VotingEscrow is ReentrancyGuard {
         uint256 value_,
         uint256 unlockTime_
     ) external nonReentrant {
-        assertNotContract(msg.sender);
-
         uint256 _unlockTimeRounded = (unlockTime_ / WEEK) * WEEK;
         LockedBalance memory _locked = locked[msg.sender];
 
@@ -517,8 +471,6 @@ contract VotingEscrow is ReentrancyGuard {
      * @param value_ Amount of tokens to deposit and add to the lock
      */
     function increaseAmount(uint256 value_) external nonReentrant {
-        assertNotContract(msg.sender);
-
         LockedBalance memory _locked = locked[msg.sender];
 
         require(value_ > 0, "Need non-zero value");
@@ -536,8 +488,6 @@ contract VotingEscrow is ReentrancyGuard {
      * @param unlockTime_ New epoch time for unlocking
      */
     function increaseUnlockTime(uint256 unlockTime_) external nonReentrant {
-        assertNotContract(msg.sender);
-
         LockedBalance memory _locked = locked[msg.sender];
         uint256 _unlockTimeRounded;
         unchecked {
