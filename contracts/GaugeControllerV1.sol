@@ -128,7 +128,7 @@ contract GaugeControllerV1 is UUPSUpgradeable {
      *@notice Checkpoint to fill data for both a specific gauge and common for all gauges
      *@param addr_ Gauge address
      */
-    function checkpointGauge(address addr_) external {
+    function checkpointGauge(address) external {
         // Doing nothing for V1
     }
 
