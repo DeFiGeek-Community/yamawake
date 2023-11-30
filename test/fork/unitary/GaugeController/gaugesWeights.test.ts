@@ -8,7 +8,7 @@ import { Contract, BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import Constants from "../../Constants";
 
-describe("GaugeController", function () {
+describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
   let threeGauges: string[];

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { BigNumber, Contract } from "ethers";
 import {
   takeSnapshot,
@@ -31,7 +31,9 @@ describe("Gauge", function () {
     const YMWK = await ethers.getContractFactory("YMWK");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const Factory = await ethers.getContractFactory("Factory");
-    const GaugeController = await ethers.getContractFactory("GaugeController");
+    const GaugeController = await ethers.getContractFactory(
+      "GaugeControllerV1"
+    );
     const Minter = await ethers.getContractFactory("Minter");
     const Gauge = await ethers.getContractFactory("Gauge");
 
@@ -49,10 +51,10 @@ describe("Gauge", function () {
     factory = await Factory.deploy();
     await factory.deployed();
 
-    gaugeController = await GaugeController.deploy(
+    gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
-      votingEscrow.address
-    );
+      votingEscrow.address,
+    ]);
     await gaugeController.deployed();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
@@ -60,8 +62,6 @@ describe("Gauge", function () {
 
     gauge = await Gauge.deploy(minter.address);
     await gauge.deployed();
-
-    await gaugeController.addType("none", 0);
   });
 
   afterEach(async () => {
@@ -78,9 +78,7 @@ describe("Gauge", function () {
     */
     it("should match theoretical value", async function () {
       /* 前提条件の設定 */
-      // タイプの追加とその重みの変更
-      await gaugeController.addType("Liquidity", 0);
-      await gaugeController.changeTypeWeight(1, BigNumber.from(10).pow(18));
+      // Gaugeの追加
       await gaugeController.addGauge(
         gauge.address,
         1,
@@ -310,9 +308,7 @@ describe("Gauge", function () {
     20週間以上が経過した場合に、一部の期間の報酬は失われるものの、最新の状態まで同期できることを確認
     */
     it("should recover from passing more than 20 weeks", async function () {
-      // タイプの追加とその重みの変更
-      await gaugeController.addType("Liquidity", 0);
-      await gaugeController.changeTypeWeight(1, BigNumber.from(10).pow(18));
+      // Gaugeの追加
       await gaugeController.addGauge(
         gauge.address,
         1,
@@ -366,6 +362,9 @@ describe("Gauge", function () {
       // チェックポイントが成功することを確認
       expect(gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)).to
         .not.be.reverted;
+
+      // TODO
+      // 更新した期間のtokenPerWeekの値を検証
     });
   });
 });

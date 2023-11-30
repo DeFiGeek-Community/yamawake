@@ -7,7 +7,7 @@ import {
 import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-describe("GaugeController", function () {
+describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
   let snapshot: SnapshotRestorer;

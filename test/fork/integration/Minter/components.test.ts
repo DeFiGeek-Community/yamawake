@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { BigNumber, Contract } from "ethers";
 import {
   time,
@@ -31,7 +31,9 @@ describe("Minter components", function () {
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("Minter");
     const Gauge = await ethers.getContractFactory("Gauge");
-    const GaugeController = await ethers.getContractFactory("GaugeController");
+    const GaugeController = await ethers.getContractFactory(
+      "GaugeControllerV1"
+    );
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await Token.deploy();
@@ -45,10 +47,10 @@ describe("Minter components", function () {
     );
     await votingEscrow.deployed();
 
-    gaugeController = await GaugeController.deploy(
+    gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
-      votingEscrow.address
-    );
+      votingEscrow.address,
+    ]);
     await gaugeController.deployed();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
@@ -58,10 +60,7 @@ describe("Minter components", function () {
     await gauge.deployed();
 
     await token.setMinter(minter.address);
-    await gaugeController.addType(
-      "YMWK Inflation",
-      ethers.utils.parseEther("1")
-    );
+
     await gaugeController.addGauge(
       gauge.address,
       0,
