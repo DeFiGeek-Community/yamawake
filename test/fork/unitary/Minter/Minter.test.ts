@@ -7,8 +7,6 @@ import {
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { deployContracts } from "../../Helper";
-import Constants from "../../Constants";
 
 describe("Minter", function () {
   let accounts: SignerWithAddress[];
