@@ -148,6 +148,13 @@ contract Gauge is ReentrancyGuard {
                 _thisWeek
             );
 
+            // TODO
+            // If we went across one or multiple epochs, apply the rate
+            // of the first epoch until it ends, and then the rate of
+            // the last epoch.
+            // If more than one epoch is crossed - the gauge gets less,
+            // but that'd meen it wasn't called for more than 1 year
+
             if (block.timestamp < _nextWeek) {
                 // 次週頭が現在のタイムスタンプより未来になった場合は、
                 // 現在のタイムスタンプまでの報酬額を計算し、今週分のトークン配分に加算する。
@@ -301,7 +308,7 @@ contract Gauge is ReentrancyGuard {
         address _ve = votingEscrow;
         uint256 _t = timeCursor;
         uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
-        IVotingEscrow(_ve).checkpoint();
+        IVotingEscrow(_ve).checkpoint(); // max 255 week
 
         for (uint256 i; i < 20; ) {
             if (_t > _roundedTimestamp) {
@@ -333,6 +340,21 @@ contract Gauge is ReentrancyGuard {
     }
 
     function _checkpoint(address addr_) internal {
+        if (block.timestamp >= timeCursor) {
+            _checkpointTotalSupply();
+        }
+
+        uint256 _lastTokenTime = lastTokenTime;
+
+        if (block.timestamp > _lastTokenTime + 1 hours) {
+            _checkpointToken();
+            _lastTokenTime = block.timestamp;
+        }
+
+        unchecked {
+            _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
+        }
+
         address ve = votingEscrow;
         // Minimal user_epoch is 0 (if user had no point)
         uint256 _userEpoch = 0;
@@ -344,22 +366,6 @@ contract Gauge is ReentrancyGuard {
         if (_maxUserEpoch == 0) {
             // No lock = no fees
             return;
-        }
-
-        if (block.timestamp >= timeCursor) {
-            _checkpointTotalSupply();
-        }
-
-        uint256 _lastTokenTime = lastTokenTime;
-
-        if (block.timestamp > _lastTokenTime + 1 hours) {
-            _checkpointToken();
-            _lastTokenTime = block.timestamp;
-            // _lastTokenTime = lastTokenTime;
-        }
-
-        unchecked {
-            _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
         }
 
         uint256 _weekCursor = timeCursorOf[addr_];
