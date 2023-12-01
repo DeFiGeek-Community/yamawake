@@ -273,6 +273,18 @@ describe("GaugeControllerV1", function () {
       expect(await gaugeController.gaugeTypes_(gauge.address)).to.be.eq(1);
     });
 
+    it("should fail to upgrade with non admin user", async () => {
+      // 1) Admin以外からGaugeControllerV2へアップグレード
+      const GaugeControllerV2 = await ethers.getContractFactory(
+        "UpgradableGaugeControllerOriginal",
+        accounts[1]
+      );
+
+      await expect(
+        upgrades.upgradeProxy(gaugeController.address, GaugeControllerV2)
+      ).to.be.revertedWith("admin only");
+    });
+
     /* 
     Curveのフォーク版GaugeControllerを仮想のGaugeControllerV2としてアップグレードし、Curve版のIntegration testを実行する。
     アップグレードされたGaugeControllerがV1のデータを保持しつつテストをパスすることを確認する
