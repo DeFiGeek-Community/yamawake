@@ -72,7 +72,7 @@ contract Gauge is ReentrancyGuard {
     // user -> user epoch
     mapping(address => uint256) public userEpochOf;
 
-    uint256 public lastTokenTime;
+    uint256 public tokenTimeCursor;
     // uint256 public tokenLastBalance;
 
     uint256[1000000000000000] public tokensPerWeek;
@@ -108,14 +108,13 @@ contract Gauge is ReentrancyGuard {
 
         uint _t = (futureEpochTime / WEEK) * WEEK;
         startTime = _t; // Distribution starts when YMWK inflation starts
-        lastTokenTime = _t;
+        tokenTimeCursor = _t;
         timeCursor = _t;
     }
 
     /***
      * @notice
-     * @dev 過去のトークンチェックポイントの週頭分から、Callされた時点の週頭分までのYMWKトークン分配を計算し、各週に分配する。
-        処理は最大で20週間分まで可能で、それ以上の期間に渡りトークンチェックポイントがない場合はその間のトークンは喪失する
+     * @dev tokenTimeCursorから、最大50週間までのYMWKトークン分配を計算し、各週に分配する。
      */
     function _checkpointToken() internal {
         uint256 _toDistribute;
@@ -124,10 +123,10 @@ contract Gauge is ReentrancyGuard {
         uint256 _prevFutureEpoch = futureEpochTime;
         uint256 _newRate = _rate;
 
-        uint256 _t = lastTokenTime;
-        lastTokenTime = block.timestamp;
+        uint256 _t = tokenTimeCursor;
         uint256 _thisWeek = (_t / WEEK) * WEEK;
         uint256 _nextWeek = 0;
+        uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
 
         // 現在Gaugeに設定されているYMWKの次回インフレ率更新時間が、直近のトークンチェックポイントより未来の場合
         // 今回のチェックポイントでYMWKエポックを跨ぐ可能性があるので更新を掛けておく。
@@ -141,60 +140,31 @@ contract Gauge is ReentrancyGuard {
         // Gaugeの状態を更新
         IGaugeController(gaugeController).checkpointGauge(address(this));
 
-        for (uint256 i; i < 20; ) {
+        for (uint256 i; i < 50; ) {
+            if (_thisWeek >= _roundedTimestamp) {
+                // 2週目頭のトークン報酬額は3週目に入るまで計算しない
+                // |---|-x-|
+                // 1   2   3
+                // この場合は1週目の報酬まで計算
+                break;
+            }
             _nextWeek = _thisWeek + WEEK;
             uint256 _w = IGaugeController(gaugeController).gaugeRelativeWeight(
                 address(this),
                 _thisWeek
             );
 
-            // TODO
-            // If we went across one or multiple epochs, apply the rate
-            // of the first epoch until it ends, and then the rate of
-            // the last epoch.
-            // If more than one epoch is crossed - the gauge gets less,
-            // but that'd meen it wasn't called for more than 1 year
-
-            if (block.timestamp < _nextWeek) {
-                // 次週頭が現在のタイムスタンプより未来になった場合は、
-                // 現在のタイムスタンプまでの報酬額を計算し、今週分のトークン配分に加算する。
-                // 処理はこの週で終了する
-                if (
-                    _prevFutureEpoch <= block.timestamp &&
-                    _t <= _prevFutureEpoch
-                ) {
-                    // TODO 境界条件の確認
-                    // エポックの更新を挟む場合はそれぞれのインフレーションレートでトークン配分を計算する
-                    uint _dt1 = _prevFutureEpoch - _t;
-                    uint _dt2 = block.timestamp - _prevFutureEpoch;
-                    _toDistribute =
-                        (_w * (_rate * _dt1 + _newRate * _dt2)) /
-                        1e18;
-                } else {
-                    _toDistribute =
-                        (_w * _rate * (block.timestamp - _t)) /
-                        1e18;
-                }
-
-                tokensPerWeek[_thisWeek] += _toDistribute;
-                break;
+            // 次週頭までの報酬額を計算し、今週分のトークン配分に加算する。
+            if (_prevFutureEpoch >= _t && _prevFutureEpoch < _nextWeek) {
+                // エポックの更新を挟む場合はそれぞれのインフレーションレートでトークン配分を計算する
+                uint _dt1 = _prevFutureEpoch - _t;
+                uint _dt2 = _nextWeek - _prevFutureEpoch;
+                _toDistribute = (_w * (_rate * _dt1 + _newRate * _dt2)) / 1e18;
+                _rate = _newRate;
             } else {
-                // 次週頭が現在のタイムスタンプより過去の場合は、
-                // 次週頭までの報酬額を計算し、今週分のトークン配分に加算する。
-                if (_prevFutureEpoch <= _nextWeek && _t <= _prevFutureEpoch) {
-                    // TODO 境界条件の確認
-                    // エポックの更新を挟む場合はそれぞれのインフレーションレートでトークン配分を計算する
-                    uint _dt1 = _prevFutureEpoch - _t;
-                    uint _dt2 = _nextWeek - _prevFutureEpoch;
-                    _toDistribute =
-                        (_w * (_rate * _dt1 + _newRate * _dt2)) /
-                        1e18;
-                    _rate = _newRate;
-                } else {
-                    _toDistribute = (_w * _rate * (_nextWeek - _t)) / 1e18;
-                }
-                tokensPerWeek[_thisWeek] += _toDistribute;
+                _toDistribute = (_w * _rate * (_nextWeek - _t)) / 1e18;
             }
+            tokensPerWeek[_thisWeek] += _toDistribute;
 
             _t = _nextWeek;
             _thisWeek = _nextWeek;
@@ -203,7 +173,7 @@ contract Gauge is ReentrancyGuard {
                 ++i;
             }
         }
-
+        tokenTimeCursor = _t;
         emit CheckpointToken(block.timestamp, _toDistribute);
     }
 
@@ -216,7 +186,7 @@ contract Gauge is ReentrancyGuard {
      */
     function checkpointToken() external {
         require(
-            msg.sender == admin || block.timestamp > lastTokenTime + 1 hours,
+            msg.sender == admin || block.timestamp > tokenTimeCursor + 1 hours,
             "Unauthorized"
         );
         _checkpointToken();
@@ -310,7 +280,7 @@ contract Gauge is ReentrancyGuard {
         uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
         IVotingEscrow(_ve).checkpoint(); // max 255 week
 
-        for (uint256 i; i < 20; ) {
+        for (uint256 i; i < 50; ) {
             if (_t > _roundedTimestamp) {
                 break;
             } else {
@@ -341,18 +311,14 @@ contract Gauge is ReentrancyGuard {
 
     function _checkpoint(address addr_) internal {
         if (block.timestamp >= timeCursor) {
-            _checkpointTotalSupply();
+            _checkpointTotalSupply(); // Update max 50 weeks
         }
 
-        uint256 _lastTokenTime = lastTokenTime;
+        uint256 _tokenTimeCursor = tokenTimeCursor;
 
-        if (block.timestamp > _lastTokenTime + 1 hours) {
-            _checkpointToken();
-            _lastTokenTime = block.timestamp;
-        }
-
-        unchecked {
-            _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
+        if (block.timestamp > _tokenTimeCursor + 1 hours) {
+            _checkpointToken(); // Update max 50 weeks
+            _tokenTimeCursor = tokenTimeCursor;
         }
 
         address ve = votingEscrow;
@@ -394,7 +360,7 @@ contract Gauge is ReentrancyGuard {
             _weekCursor = ((_userPoint.ts + WEEK - 1) / WEEK) * WEEK;
         }
 
-        if (_weekCursor >= _lastTokenTime) {
+        if (_weekCursor >= _tokenTimeCursor) {
             return;
         }
 
@@ -405,8 +371,8 @@ contract Gauge is ReentrancyGuard {
         Point memory _oldUserPoint = Point({bias: 0, slope: 0, ts: 0, blk: 0});
 
         // Iterate over weeks
-        for (uint256 i; i < 50; ) {
-            if (_weekCursor >= _lastTokenTime) {
+        for (uint256 i; i < 200; ) {
+            if (_weekCursor >= _tokenTimeCursor) {
                 break;
             } else if (
                 _weekCursor >= _userPoint.ts && _userEpoch <= _maxUserEpoch
