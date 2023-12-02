@@ -6,6 +6,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
+import "@openzeppelin/hardhat-upgrades";
 
 const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, FOUNDATION_PRIVATE_KEY } = process.env;
 
