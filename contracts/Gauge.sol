@@ -50,7 +50,7 @@ contract Gauge is ReentrancyGuard {
 
     // Constants
     uint256 public constant WEEK = 604800;
-    uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400;
+    uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 1 weeks;
     string public constant VERSION = "v1.0.0";
 
     // Gauge
@@ -186,7 +186,8 @@ contract Gauge is ReentrancyGuard {
      */
     function checkpointToken() external {
         require(
-            msg.sender == admin || block.timestamp > tokenTimeCursor + 1 hours,
+            msg.sender == admin ||
+                block.timestamp > tokenTimeCursor + TOKEN_CHECKPOINT_DEADLINE,
             "Unauthorized"
         );
         _checkpointToken();
@@ -316,7 +317,7 @@ contract Gauge is ReentrancyGuard {
 
         uint256 _tokenTimeCursor = tokenTimeCursor;
 
-        if (block.timestamp > _tokenTimeCursor + 1 hours) {
+        if (block.timestamp > _tokenTimeCursor + TOKEN_CHECKPOINT_DEADLINE) {
             _checkpointToken(); // Update max 50 weeks
             _tokenTimeCursor = tokenTimeCursor;
         }
