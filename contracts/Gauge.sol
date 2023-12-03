@@ -402,6 +402,7 @@ contract Gauge is ReentrancyGuard {
                 }
 
                 if (_balanceOf == 0 && _userEpoch > _maxUserEpoch) {
+                    // ve残高0でこれ以上ve履歴がない場合はここで同期を終了
                     break;
                 }
                 if (_balanceOf > 0) {

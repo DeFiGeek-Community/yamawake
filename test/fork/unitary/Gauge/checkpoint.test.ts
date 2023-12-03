@@ -40,8 +40,8 @@ describe("Gauge checkpoint", function () {
 
     const minter = await Minter.deploy(token.address, gaugeController.address);
 
-    const LiquidityGauge = await ethers.getContractFactory("Gauge");
-    const lg1 = await LiquidityGauge.deploy(minter.address);
+    const Gauge = await ethers.getContractFactory("Gauge");
+    const lg1 = await Gauge.deploy(minter.address);
     gauges = [lg1, lg1, lg1];
   });
   afterEach(async () => {
