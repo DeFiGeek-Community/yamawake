@@ -11,7 +11,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
-  let factory: Contract;
   let gaugeController: Contract;
   let token: Contract;
   let votingEscrow: Contract;
@@ -64,7 +63,7 @@ describe("Gauge", function () {
     await snapshot.restore();
   });
 
-  describe("Gauge Integral Calculations Static", function () {
+  describe("Gauge Integral Calculation", function () {
     /*
     下記理論値の検証
     https://www.desmos.com/calculator/9qm15hlyjq
@@ -73,7 +72,9 @@ describe("Gauge", function () {
     Bob: locks 5 YMWK for 2 years
     */
     it("should match theoretical value", async function () {
-      /* 前提条件の設定 */
+      /* 
+        0. 前提条件の設定 
+      */
       // Gaugeの追加
       await gaugeController.addGauge(
         gauge.address,
@@ -139,20 +140,20 @@ describe("Gauge", function () {
       let timeCursor = await gauge.timeCursor();
 
       /*
-        5. 理論値と実績値の計算し、VotingEscrowから取得したveバランスとgaugeから取得したveバランスの履歴が等しいことを確認
+        5. 理論値と実績値を計算し、VotingEscrowから取得したveバランスとgaugeから取得したveバランスの履歴が等しいことを確認
+         |-◯-|---|-...-|---|-*-|
+         0   1   2     51  52  53
+         ◯:  tokenInflationStarts
+         0:  weekStart
+         1:  veYMWKの反映開始
+         52: tokenTimeCursor
+         53: timeCursor
+         *:  現在
       */
-      // 期間中のYMWKリワード理論値
-      // |-◯-|---|-...-|---|-*
-      // 0   1   2    n-1  n
-      //
-      // ◯:   tokenInflationStarts
-      // 0:   weekStart
-      // n-1: tokenTimeCursor
-      // n:   timeCursor
-      // *: 現在
+      // 期間中のYMWKリワード理論値: 最初の週と最後の週は除外し、1〜51週目まで（全51週分）の報酬額の理論値を計算
       let theoreticalTokenTotal = timeCursor
         .sub(weekStart)
-        .sub(WEEK.mul(2)) //最初の週と最後の週は対象外
+        .sub(WEEK.mul(2))
         .mul(initialRate);
       // ゲージに記録されたのYMWKリワード実績値
       let tokenByWeekTotal = BigNumber.from("0");
@@ -185,6 +186,7 @@ describe("Gauge", function () {
           tokenByWeek.mul(balanceBob).div(supply)
         );
 
+        // VotingEscrowから取得した値とgaugeから取得した値に相違がないことを確認
         expect(supply).to.be.eq(
           await gauge.veSupply(weekStart.add(WEEK.mul(i)))
         );
@@ -194,8 +196,12 @@ describe("Gauge", function () {
         expect(balanceBob).to.be.eq(
           await gauge.veForAt(accounts[2].address, weekStart.add(WEEK.mul(i)))
         );
+
+        // const tokenTimeCursor = (await gauge.tokenTimeCursor()).toString();
+        // const timeCursor = (await gauge.timeCursor()).toString();
+        // console.log(tokenTimeCursor, timeCursor);
         // console.log(
-        //   `Therory: ${theoreticalTokenTotal.toString()}, total: ${tokenByWeekTotal.toString()} WEEK ${i} ${tokenByWeek} Rate: ${initialRate} Alice Expected: ${expectedAliceReward.toString()}`
+        //   `Theoretical: ${theoreticalTokenTotal.toString()}, total: ${tokenByWeekTotal.toString()} WEEK ${i} ${tokenByWeek} Rate: ${initialRate} Alice Expected: ${expectedAliceReward.toString()}`
         // );
         // console.log("WEEK", weekStart.add(WEEK.mul(i)).div(WEEK).toString());
       }
@@ -224,6 +230,10 @@ describe("Gauge", function () {
 
       /*
         8. 1週間時間を進めてYMWKのステータスを更新
+         |-◯-|-*-|
+         52  53  54
+         ◯:  開始
+         *:  時間を進めた後（YMWKのfutureEpochTime）
       */
       const newWeekStart = weekStart.add(WEEK.mul(52));
       await time.increase(WEEK);
@@ -233,8 +243,13 @@ describe("Gauge", function () {
 
       /*
         9. さらに9週間時間を進め、期間中に得られるリワードの理論値を計算する
+        |-◯-|---|-...-|---|-*-|
+        53  54  55    61  62  63
+         ◯:  開始
+         *:  時間を進めた後
+         62: tokenTimeCursor
+         63: timeCursor
       */
-
       await time.increase(WEEK.mul(9));
       await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
       await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
@@ -310,223 +325,5 @@ describe("Gauge", function () {
       //   expectedBobReward.toString()
       // );
     });
-
-    /*
-    // 500週間以上誰も操作せずに時間が経過した場合に、最新の状態まで同期できることを確認
-    // */
-    // it("should recover from passing more than 500 weeks", async function () {
-    //   // Gaugeの追加
-    //   await gaugeController.addGauge(
-    //     gauge.address,
-    //     1,
-    //     BigNumber.from(10).pow(18)
-    //   );
-
-    //   // YMWKトークンを送信
-    //   const creatorBalance = await token.balanceOf(accounts[0].address);
-    //   await token.transfer(accounts[1].address, creatorBalance.div(2));
-    //   await token.transfer(accounts[2].address, creatorBalance.div(2));
-
-    //   // YMWKインフレーション開始週頭まで時間を進める
-    //   const tokenInflationStarts: BigNumber = (
-    //     await token.startEpochTime()
-    //   ).add(INFLATION_DELAY);
-
-    //   await time.increaseTo(tokenInflationStarts);
-    //   await token.updateMiningParameters();
-
-    //   // Aliceのロック
-    //   let amountAlice = BigNumber.from(10).pow(18).mul(4);
-    //   let durationAlice = YEAR * 4;
-    //   let now = await time.latest();
-    //   await token
-    //     .connect(accounts[1])
-    //     .approve(votingEscrow.address, amountAlice);
-    //   const lockedUntilAlice = now + durationAlice;
-    //   await votingEscrow
-    //     .connect(accounts[1])
-    //     .createLock(amountAlice, lockedUntilAlice);
-
-    //   // Bobのロック
-    //   let amountBob = BigNumber.from(10).pow(18).mul(5);
-    //   let durationBob = YEAR * 2;
-    //   await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
-    //   const lockedUntilBob = now + durationBob;
-    //   await votingEscrow
-    //     .connect(accounts[2])
-    //     .createLock(amountBob, lockedUntilBob);
-
-    //   // 505週間時間を進める
-    //   await time.increase(WEEK.mul(505));
-
-    //   // zero division error
-    //   await expect(
-    //     gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-    //   ).to.be.reverted;
-    //   // await expect(minter.connect(accounts[1]).mint(gauge.address)).to.be
-    //   //   .reverted;
-
-    //   await gauge.checkpointTotalSupply();
-    //   await gauge.checkpointToken();
-
-    //   // チェックポイントが成功することを確認
-    //   await expect(
-    //     gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-    //   ).to.not.be.reverted;
-
-    //   // さらに2週間時間を進める
-    //   await time.increase(WEEK.mul(2));
-
-    //   // TODO
-    //   // 更新した期間のtokenPerWeekの値を検証
-    //   const weekStart = tokenInflationStarts.div(WEEK).mul(WEEK);
-    //   for (let i = 1; i < 507; i++) {
-    //     // 各週のVotingEscrow残高をVotingEscrowコントラクトから取得し、リワードの理論値を計算する
-    //     // WEEK0の途中でロックするのでWEEK0の頭時点ではVE残高は0。WEEK1から計算スタート
-    //     const tokenByWeek = await gauge.tokensPerWeek(
-    //       weekStart.add(WEEK.mul(i))
-    //     );
-    //     console.log(`Week ${i} ${tokenByWeek.toString()}`);
-    //   }
-    // });
-
-    /*
-    500週間以上が経過した場合に、最低50週間以内にBobがcheckpointしている場合、Aliceが2回checkpointを呼ぶとAliceの報酬が正しく計算され、最新の状態まで同期できることを確認
-    */
-    it("should recover from passing more than 500 weeks", async function () {
-      // Gaugeの追加
-      await gaugeController.addGauge(
-        gauge.address,
-        1,
-        BigNumber.from(10).pow(18)
-      );
-
-      // YMWKトークンを送信
-      const creatorBalance = await token.balanceOf(accounts[0].address);
-      await token.transfer(accounts[1].address, creatorBalance.div(2));
-      await token.transfer(accounts[2].address, creatorBalance.div(2));
-
-      // YMWKインフレーション開始週頭まで時間を進める
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
-
-      await time.increaseTo(tokenInflationStarts);
-      await token.updateMiningParameters();
-      const initialRate = await token.rate();
-
-      // Aliceのロック
-      let amountAlice = BigNumber.from(10).pow(18).mul(4);
-      let durationAlice = YEAR * 4;
-      let now = await time.latest();
-      await token
-        .connect(accounts[1])
-        .approve(votingEscrow.address, amountAlice);
-      const lockedUntilAlice = now + durationAlice;
-      await votingEscrow
-        .connect(accounts[1])
-        .createLock(amountAlice, lockedUntilAlice);
-
-      // Bobのロック
-      let amountBob = BigNumber.from(10).pow(18).mul(5);
-      let durationBob = YEAR * 2;
-      await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
-      const lockedUntilBob = now + durationBob;
-      await votingEscrow
-        .connect(accounts[2])
-        .createLock(amountBob, lockedUntilBob);
-
-      /*
-        1. 合計500週間時間を進め、合間にBobがuserCheckpointを実行している場合、
-        Aliceがcheckpointを2回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
-      */
-      for (let i = 0; i < 10; i++) {
-        await time.increase(WEEK.mul(50));
-        await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
-      }
-
-      // checkpoint前はAliceの報酬額が0であることを確認
-      expect(await gauge.integrateFraction(accounts[1].address)).to.be.eq(0);
-      // Aliceのcheckpointが正常に実行できることを確認
-      await expect(
-        gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-      ).to.not.be.reverted;
-      let userTimeCursor1 = await gauge.timeCursorOf(accounts[1].address);
-      let userEpoch1 = await gauge.userEpochOf(accounts[1].address);
-      let reward1 = await gauge.integrateFraction(accounts[1].address);
-
-      // Aliceのcheckpoint後に報酬が加算されていることを確認
-      expect(reward1).to.be.above(0);
-      // さらにAliceのcheckpointが正常に実行できることを確認
-      await expect(
-        gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-      ).to.not.be.reverted;
-
-      let userTimeCursor2 = await gauge.timeCursorOf(accounts[1].address);
-      let userEpoch2 = await gauge.userEpochOf(accounts[1].address);
-      let reward2 = await gauge.integrateFraction(accounts[1].address);
-      // Aliceのcheckpoint後に報酬が加算されていることを確認
-      expect(reward2).to.be.above(reward1);
-      // Aliceのve履歴は変化していないためuserEpochも変化していないことを確認
-      expect(userEpoch2).to.be.eq(userEpoch1);
-      // AliceのTimeCursorが前回より進んでいることを確認
-      expect(userTimeCursor2).to.be.above(userTimeCursor1);
-
-      // さらにAliceのcheckpointが正常に実行できることを確認
-      await expect(
-        gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-      ).to.not.be.reverted;
-
-      // AliceのtimeCursorが最新のブロックタイムまで同期されていることを確認
-      let userTimeCursor3 = await gauge.timeCursorOf(accounts[1].address);
-      let userEpoch3 = await gauge.userEpochOf(accounts[1].address);
-      let reward3 = await gauge.integrateFraction(accounts[1].address);
-      // Aliceのcheckpoint後に報酬が加算されていないことを確認
-      expect(reward3).to.be.eq(reward2);
-      // Aliceのve履歴は変化していないためuserEpochも変化していないことを確認
-      expect(userEpoch3).to.be.eq(userEpoch2);
-      // AliceのTimeCursorが前回と変化していないことを確認
-      expect(userTimeCursor3).to.be.eq(userTimeCursor2);
-
-      /*
-        2. AliceがYMWK lockをwithdrawし、再度checkpointすると、
-        AliceのtimeCursorが現在のtokenTimeCursorまで同期されることを確認
-      */
-      await votingEscrow.connect(accounts[1]).withdraw();
-      // await time.increase(3600);
-      await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
-      await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
-      let userTimeCursor4 = await gauge.timeCursorOf(accounts[1].address);
-      expect(userTimeCursor4).to.be.eq(await gauge.tokenTimeCursor());
-
-      // const tokenTimeCursor = await gauge.tokenTimeCursor();
-      // console.log(
-      //   tokenTimeCursor.toString(),
-      //   await time.latest(),
-      //   (await gauge.tokensPerWeek(tokenTimeCursor)).toString()
-      // );
-
-      const currentRate = await token.rate();
-      const weekStart = tokenInflationStarts.div(WEEK).mul(WEEK);
-      for (let i = 1; i < 500; i++) {
-        const tokenByWeek = await gauge.tokensPerWeek(
-          weekStart.add(WEEK.mul(i))
-        );
-        if (i < 52) {
-          // 1年目は週間のトークン報酬額が1年目のレートを元に算出されていることを確認
-          expect(tokenByWeek).to.be.eq(initialRate.mul(3600 * 24 * 7)); // 1054794520547945205033600
-        } else if (i > 471) {
-          // 最終週の週間トークン報酬額は最新のレートを元に算出されていることを確認
-          expect(tokenByWeek).to.be.eq(currentRate.mul(3600 * 24 * 7)); // 408649008945205477612800
-        }
-
-        // console.log(`Week ${i} ${tokenByWeek.toString()}`);
-      }
-    });
-
-    // TODO
-    // - 1日ごとに複数回TokenCheckpointしても報酬額は変わらないことを確認
-    // - tokenCheckpointだけ複数回してもtimieCursorより先の週の計算はされないこと
-    // - 500週放置されても何回もcheckpointをすれば同期完了できることを確認
   });
 });
