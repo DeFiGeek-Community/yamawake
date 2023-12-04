@@ -136,6 +136,11 @@ contract Gauge is ReentrancyGuard {
             inflationRate = _newRate;
         }
 
+        if (isKilled) {
+            _rate = 0;
+            _newRate = 0; // Stop distributing inflation as soon as killed
+        }
+
         // Gaugeの状態を更新
         IGaugeController(gaugeController).checkpointGauge(address(this));
 
@@ -437,8 +442,6 @@ contract Gauge is ReentrancyGuard {
             msg.sender == addr_ || msg.sender == minter,
             "dev: unauthorized"
         );
-        require(!isKilled, "Contract is killed");
-
         _checkpoint(addr_);
         return true;
     }
