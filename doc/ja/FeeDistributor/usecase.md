@@ -11,7 +11,6 @@
 - [Auction](../Template/index.md)
   - トークンアドレスを追加する
   - FeeDistributorにトークンを送金する
-  - FeePoolにトークンを送金する
 - FeeDistributorオーナー
   - FeeDistributorを立ち上げる
   - 管理者を変更する
@@ -25,8 +24,6 @@
   - ユーザのポイント履歴を取得
 - [VotingEscrow](./index.md)
   - veYMWKの残高を管理をする
-- [FeePool](../FeePool/index.md)
-  - トークンを保持する
 
 ## ユースケース図
 
@@ -41,8 +38,6 @@ graph LR
     add_reward[トークンアドレスを追加する]
     deposit_reward_ether[ETHを入金する]
     deposit_reward_token[トークンを入金する]
-    send_fee_eth[ETHを入金する]
-    send_fee_erc20[トークンを入金する]
     claim[報酬をクレームする]
     claim_many[複数アドレス（最大20アドレス）の報酬をまとめてクレームする]
     claim_multiple_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
@@ -64,9 +59,7 @@ graph LR
     auction_owner --- withdraw_ether
     auction_owner --- withdraw_erc20
 
-    withdraw_ether -.->|include| send_fee_eth
     withdraw_ether -.->|include| deposit_reward_ether
-    withdraw_erc20 -.->|include| send_fee_erc20
     withdraw_erc20 -.->|include| deposit_reward_token
     withdraw_erc20 -.->|include| add_reward
 
@@ -91,17 +84,11 @@ graph LR
     sync_ve -.->|include| point_history
 
     classDef green fill:#555,stroke-width:2px,stroke-dasharray:6;
-    class send_fee_eth,send_fee_erc20,deposit_reward_ether,deposit_reward_token green
+    class deposit_reward_ether,deposit_reward_token green
 
     subgraph Auction
         withdraw_ether
         withdraw_erc20
-    end
-
-    subgraph FeePool
-        direction LR
-        send_fee_eth
-        send_fee_erc20
     end
 
     subgraph FeeDistributor
