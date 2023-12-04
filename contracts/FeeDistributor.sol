@@ -163,7 +163,8 @@ contract FeeDistributor is ReentrancyGuard {
             msg.sender == admin ||
                 IFactory(factory).auctions(msg.sender) ||
                 (canCheckpointToken &&
-                    block.timestamp > lastTokenTime[token_] + 1 hours),
+                    block.timestamp >
+                    lastTokenTime[token_] + TOKEN_CHECKPOINT_DEADLINE),
             "Unauthorized"
         );
         _checkpointToken(token_);
@@ -421,7 +422,8 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _lastTokenTime = lastTokenTime[token_];
 
         if (
-            canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
+            canCheckpointToken &&
+            (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
         ) {
             _checkpointToken(token_);
             _lastTokenTime = block.timestamp;
@@ -470,7 +472,8 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _lastTokenTime = lastTokenTime[token_];
 
         if (
-            canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
+            canCheckpointToken &&
+            (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
         ) {
             _checkpointToken(token_);
             _lastTokenTime = block.timestamp;
@@ -518,7 +521,8 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _lastTokenTime = lastTokenTime[token_];
 
         if (
-            canCheckpointToken && (block.timestamp > _lastTokenTime + 1 hours)
+            canCheckpointToken &&
+            (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
         ) {
             _checkpointToken(token_);
             _lastTokenTime = block.timestamp;
@@ -583,7 +587,7 @@ contract FeeDistributor is ReentrancyGuard {
 
             if (
                 canCheckpointToken &&
-                (block.timestamp > _lastTokenTime + 1 hours)
+                (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
             ) {
                 _checkpointToken(_token);
                 _lastTokenTime = block.timestamp;
