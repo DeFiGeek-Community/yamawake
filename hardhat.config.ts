@@ -58,8 +58,11 @@ const config: HardhatUserConfig = {
     deployments: 'hardhat-deployments',
   },
   gasReporter: {
-    enabled: true
-  }
+    enabled: true,
+  },
+  mocha: {
+    timeout: 100000,
+  },
 };
 
 export default config;

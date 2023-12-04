@@ -50,7 +50,7 @@ contract Gauge is ReentrancyGuard {
 
     // Constants
     uint256 public constant WEEK = 604800;
-    uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 1 weeks;
+    uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 1 days;
     string public constant VERSION = "v1.0.0";
 
     // Gauge
@@ -129,8 +129,7 @@ contract Gauge is ReentrancyGuard {
         uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
 
         // 現在Gaugeに設定されているYMWKの次回インフレ率更新時間が、直近のトークンチェックポイントより未来の場合
-        // 今回のチェックポイントでYMWKエポックを跨ぐ可能性があるので更新を掛けておく。
-        // 基本はこのケースで、直近のトークンチェックポイントが_prevFutureEpochより未来であることはないはず
+        // 今回のチェックポイントでYMWKエポックを跨ぐ可能性があるので更新を掛けておく
         if (_prevFutureEpoch >= _t) {
             futureEpochTime = IYMWK(token).futureEpochTimeWrite();
             _newRate = IYMWK(token).rate();
@@ -156,7 +155,11 @@ contract Gauge is ReentrancyGuard {
 
             // 次週頭までの報酬額を計算し、今週分のトークン配分に加算する。
             if (_prevFutureEpoch >= _t && _prevFutureEpoch < _nextWeek) {
-                // エポックの更新を挟む場合はそれぞれのインフレーションレートでトークン配分を計算する
+                // If we went across one or multiple epochs, apply the rate
+                // of the first epoch until it ends, and then the rate of
+                // the last epoch.
+                // If more than one epoch is crossed - the gauge gets less,
+                // but that'd meen it wasn't called for more than 1 year
                 uint _dt1 = _prevFutureEpoch - _t;
                 uint _dt2 = _nextWeek - _prevFutureEpoch;
                 _toDistribute = (_w * (_rate * _dt1 + _newRate * _dt2)) / 1e18;
@@ -314,7 +317,7 @@ contract Gauge is ReentrancyGuard {
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply(); // Update max 50 weeks
         }
-
+        uint256 _timeCursor = timeCursor - WEEK; // totalSupplyの同期が完了している最新のタイムスタンプ
         uint256 _tokenTimeCursor = tokenTimeCursor;
 
         if (block.timestamp > _tokenTimeCursor + TOKEN_CHECKPOINT_DEADLINE) {
@@ -361,7 +364,9 @@ contract Gauge is ReentrancyGuard {
             _weekCursor = ((_userPoint.ts + WEEK - 1) / WEEK) * WEEK;
         }
 
-        if (_weekCursor >= _tokenTimeCursor) {
+        if (_weekCursor >= _timeCursor || _weekCursor >= _tokenTimeCursor) {
+            // _weekCursor >= _timeCursor の場合はveのtotalSupply同期が完了していないのでここで終了
+            // _weekCursor >= _tokenTimeCursor の場合は週に分配されるtokenの計算が完了していないのでここで終了
             return;
         }
 
@@ -373,7 +378,9 @@ contract Gauge is ReentrancyGuard {
 
         // Iterate over weeks
         for (uint256 i; i < 200; ) {
-            if (_weekCursor >= _tokenTimeCursor) {
+            if (_weekCursor >= _timeCursor || _weekCursor >= _tokenTimeCursor) {
+                // _weekCursor >= _timeCursor の場合はveのtotalSupply同期が完了していないのでここで終了
+                // _weekCursor >= _tokenTimeCursor の場合は週に分配されるtokenの計算が完了していないのでここで終了
                 break;
             } else if (
                 _weekCursor >= _userPoint.ts && _userEpoch <= _maxUserEpoch
@@ -407,10 +414,6 @@ contract Gauge is ReentrancyGuard {
                     break;
                 }
                 if (_balanceOf > 0) {
-                    // TODO 20週以上の更新時のために && veSupply[_weekCursor] > 0 を追加を検討
-                    // if (veSupply[_weekCursor] == 0) {
-                    // }
-
                     _toDistribute +=
                         (uint256(_balanceOf) * tokensPerWeek[_weekCursor]) /
                         veSupply[_weekCursor];
