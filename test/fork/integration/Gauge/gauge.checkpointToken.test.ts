@@ -196,10 +196,10 @@ describe("Gauge", function () {
       await time.increase(WEEK.mul(500));
       await gauge.checkpointTotalSupply();
 
-      // timeCursorが50週間経過後の週頭時点のタイムスタンプになっていることを確認
+      // timeCursorが20週間経過後の週頭時点のタイムスタンプになっていることを確認
       const timeCursor1 = await gauge.timeCursor();
       expect(timeCursor1).to.be.eq(
-        BigNumber.from(now).div(WEEK).add(50).mul(WEEK)
+        BigNumber.from(now).div(WEEK).add(20).mul(WEEK)
       );
 
       /*
@@ -208,9 +208,9 @@ describe("Gauge", function () {
       await gauge.checkpointToken();
       await gauge.checkpointToken();
 
-      // tokenTimeCursorがtimeCursorから50週間進んだ時点であることを確認
+      // tokenTimeCursorがtimeCursorから20週間進んだ時点であることを確認
       const tokenTimeCursor = await gauge.tokenTimeCursor();
-      expect(tokenTimeCursor).to.be.eq(timeCursor1.add(WEEK.mul(50)));
+      expect(tokenTimeCursor).to.be.eq(timeCursor1.add(WEEK.mul(20)));
 
       /*
         3. Aliceのcheckpointを2回実行する

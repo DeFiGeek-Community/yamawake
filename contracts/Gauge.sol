@@ -144,7 +144,7 @@ contract Gauge is ReentrancyGuard {
         // Gaugeの状態を更新
         IGaugeController(gaugeController).checkpointGauge(address(this));
 
-        for (uint256 i; i < 50; ) {
+        for (uint256 i; i < 20; ) {
             if (_thisWeek >= _roundedTimestamp) {
                 // 2週目頭のトークン報酬額は3週目に入るまで計算しない
                 // |---|-x-|
@@ -289,7 +289,7 @@ contract Gauge is ReentrancyGuard {
         uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
         IVotingEscrow(_ve).checkpoint(); // max 255 week
 
-        for (uint256 i; i < 50; ) {
+        for (uint256 i; i < 20; ) {
             if (_t > _roundedTimestamp) {
                 break;
             } else {
@@ -382,7 +382,7 @@ contract Gauge is ReentrancyGuard {
         Point memory _oldUserPoint = Point({bias: 0, slope: 0, ts: 0, blk: 0});
 
         // Iterate over weeks
-        for (uint256 i; i < 200; ) {
+        for (uint256 i; i < 50; ) {
             if (_weekCursor >= _timeCursor || _weekCursor >= _tokenTimeCursor) {
                 // _weekCursor >= _timeCursor の場合はveのtotalSupply同期が完了していないのでここで終了
                 // _weekCursor >= _tokenTimeCursor の場合は週に分配されるtokenの計算が完了していないのでここで終了

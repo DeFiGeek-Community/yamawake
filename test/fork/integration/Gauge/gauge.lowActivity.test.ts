@@ -146,7 +146,7 @@ describe("Gauge", function () {
     });
 
     /*
-    500週間以上が経過した場合に、50週間ごとにBobがcheckpointしている場合、Aliceが2回checkpointを呼ぶとAliceの報酬が正しく計算され、最新の状態まで同期できることを確認
+    500週間以上が経過した場合に、20週間ごとにBobがcheckpointしている場合、Aliceが2回checkpointを呼ぶとAliceの報酬が正しく計算され、最新の状態まで同期できることを確認
     */
     it("should recover from passing more than 500 weeks where 1 user was active", async function () {
       // Gaugeの追加
@@ -195,8 +195,8 @@ describe("Gauge", function () {
         1. 合計500週間時間を進め、合間にBobがuserCheckpointを実行している場合、
         Aliceがcheckpointを2回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
       */
-      for (let i = 0; i < 10; i++) {
-        await time.increase(WEEK.mul(50));
+      for (let i = 0; i < 25; i++) {
+        await time.increase(WEEK.mul(20));
         await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
       }
 
@@ -212,10 +212,11 @@ describe("Gauge", function () {
 
       // Aliceのcheckpoint後に報酬が加算されていることを確認
       expect(reward1).to.be.above(0);
+
       // さらにAliceのcheckpointが正常に実行できることを確認
-      await expect(
-        gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-      ).to.not.be.reverted;
+      for (let i = 0; i < 7; i++) {
+        await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
+      }
 
       let userTimeCursor2 = await gauge.timeCursorOf(accounts[1].address);
       let userEpoch2 = await gauge.userEpochOf(accounts[1].address);
@@ -228,9 +229,9 @@ describe("Gauge", function () {
       expect(userTimeCursor2).to.be.above(userTimeCursor1);
 
       // さらにAliceのcheckpointが正常に実行できることを確認
-      await expect(
-        gauge.connect(accounts[1]).userCheckpoint(accounts[1].address)
-      ).to.not.be.reverted;
+      for (let i = 0; i < 3; i++) {
+        await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
+      }
 
       // AliceのtimeCursorが最新のブロックタイムまで同期されていることを確認
       let userTimeCursor3 = await gauge.timeCursorOf(accounts[1].address);
@@ -248,8 +249,10 @@ describe("Gauge", function () {
         AliceのtimeCursorが現在のtokenTimeCursorまで同期されることを確認
       */
       await votingEscrow.connect(accounts[1]).withdraw();
-      await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
-      await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
+      // さらにAliceのcheckpointが正常に実行できることを確認
+      for (let i = 0; i < 8; i++) {
+        await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
+      }
       let userTimeCursor4 = await gauge.timeCursorOf(accounts[1].address);
       expect(userTimeCursor4).to.be.eq(await gauge.tokenTimeCursor());
 
