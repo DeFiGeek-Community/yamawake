@@ -182,41 +182,6 @@ describe("Minter", function () {
       ); //tracks fine
     });
 
-    // // Test minting across multiple gauges
-    // it("test_mint_multiple_gauges", async () => {
-    //   //setup
-    //   await gauges[0]
-    //     .connect(accounts[1])
-    //     .deposit(ten_to_the_17, accounts[1].address, false);
-    //   await gauges[1]
-    //     .connect(accounts[1])
-    //     .deposit(ten_to_the_17, accounts[1].address, false);
-    //   await gauges[2]
-    //     .connect(accounts[1])
-    //     .deposit(ten_to_the_17, accounts[1].address, false);
-
-    //   await ethers.provider.send("evm_increaseTime", [month]);
-
-    //   //mint
-    //   for (let i = 0; i < 3; i++) {
-    //     await minter.connect(accounts[1]).mint(threeGauges[i]);
-    //   }
-
-    //   //check
-    //   let total_minted = BigNumber.from("0");
-
-    //   for (let i = 0; i < 3; i++) {
-    //     let gauge = gauges[i];
-    //     let minted = await minter.minted(accounts[1].address, gauge.address);
-    //     expect(minted).to.equal(
-    //       await gauge.integrateFraction(accounts[1].address)
-    //     );
-    //     total_minted = total_minted.add(minted);
-    //   }
-
-    //   expect(await token.balanceOf(accounts[1].address)).to.equal(total_minted);
-    // });
-
     // Test minting after withdrawing
     it("test_mint_after_withdraw", async () => {
       await votingEscrow
@@ -266,28 +231,6 @@ describe("Minter", function () {
       );
     });
 
-    // Test minting with the wrong gauge
-    // it("test_mint_wrong_gauge", async () => {
-    //   await votingEscrow
-    //     .connect(accounts[1])
-    //     .createLock(
-    //       ethers.utils.parseEther("1"),
-    //       (await time.latest()) + MONTH
-    //     );
-
-    //   await ethers.provider.send("evm_increaseTime", [MONTH]);
-    //   await minter.connect(accounts[1]).mint(threeGauges[1]);
-
-    //   //check
-    //   expect(await token.balanceOf(accounts[1].address)).to.equal(0);
-    //   expect(await minter.minted(accounts[1].address, threeGauges[0])).to.equal(
-    //     0
-    //   );
-    //   expect(await minter.minted(accounts[1].address, threeGauges[1])).to.equal(
-    //     0
-    //   );
-    // });
-
     // Test minting with an invalid gauge address
     it("test_mint_not_a_gauge", async () => {
       await expect(minter.mint(accounts[1].address)).to.revertedWith(
@@ -315,49 +258,6 @@ describe("Minter", function () {
         0
       );
     });
-
-    // // Test mintMany function with multiple gauges
-    // // TODO gaugeへのdepositでなくVotingEscrowへのロックに変更
-    // it("test_mintMany_function_multiple_gauges", async () => {
-    //   //setup
-    //   await gauges[0]
-    //     .connect(accounts[1])
-    //     .deposit(ten_to_the_17, accounts[1].address, false);
-    //   await gauges[1]
-    //     .connect(accounts[1])
-    //     .deposit(ten_to_the_17, accounts[1].address, false);
-    //   await gauges[2]
-    //     .connect(accounts[1])
-    //     .deposit(ten_to_the_17, accounts[1].address, false);
-
-    //   await ethers.provider.send("evm_increaseTime", [month]);
-
-    //   let addresses = [
-    //     threeGauges[0],
-    //     threeGauges[1],
-    //     threeGauges[2],
-    //     ZERO_ADDRESS,
-    //     ZERO_ADDRESS,
-    //     ZERO_ADDRESS,
-    //     ZERO_ADDRESS,
-    //     ZERO_ADDRESS,
-    //   ];
-    //   await minter.connect(accounts[1]).mintMany(addresses);
-
-    //   //check
-    //   let total_minted = BigNumber.from("0");
-
-    //   for (let i = 0; i < 3; i++) {
-    //     let gauge = gauges[i];
-    //     let minted = await minter.minted(accounts[1].address, gauge.address);
-    //     expect(minted).to.equal(
-    //       await gauge.integrateFraction(accounts[1].address)
-    //     );
-    //     total_minted = total_minted.add(minted);
-    //   }
-
-    //   expect(await token.balanceOf(accounts[1].address)).to.equal(total_minted);
-    // });
 
     // Test toggling of the mint approval function
     it("test_toggleApproveMint_function", async () => {
