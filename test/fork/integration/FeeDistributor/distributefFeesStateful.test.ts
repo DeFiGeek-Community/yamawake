@@ -365,13 +365,30 @@ describe("FeeDistributor", function () {
     //     `);
     // ---
 
-    const claimed = await feeCoin.balanceOf(stAcct.address);
-    const tx = await distributor.connect(stAcct)["claim(address)"](stToken);
-    let receipt = await tx.wait();
-    userGases[stAcct.address] = userGases[stAcct.address].add(
-      receipt.effectiveGasPrice.mul(receipt.gasUsed)
-    );
-    const newClaimed = (await feeCoin.balanceOf(stAcct.address)).sub(claimed);
+    let claimed;
+    let tx;
+    let newClaimed;
+    if (stToken === ethers.constants.AddressZero) {
+      claimed = await ethers.provider.getBalance(stAcct.address);
+      tx = await distributor
+        .connect(stAcct)
+        ["claim(address)"](ethers.constants.AddressZero);
+      const receipt = await tx.wait();
+      const gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
+      userGases[stAcct.address] = userGases[stAcct.address].add(gas);
+
+      newClaimed = (await ethers.provider.getBalance(stAcct.address))
+        .sub(claimed)
+        .add(gas);
+    } else {
+      claimed = await feeCoin.balanceOf(stAcct.address);
+      tx = await distributor.connect(stAcct)["claim(address)"](stToken);
+      let receipt = await tx.wait();
+      userGases[stAcct.address] = userGases[stAcct.address].add(
+        receipt.effectiveGasPrice.mul(receipt.gasUsed)
+      );
+      newClaimed = (await feeCoin.balanceOf(stAcct.address)).sub(claimed);
+    }
     userClaims[stAcct.address][tx.blockNumber] = [
       newClaimed,
       await distributor.timeCursorOf(stToken, stAcct.address),
