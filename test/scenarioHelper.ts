@@ -214,7 +214,12 @@ export async function deploySaleTemplateV1_5(
   eventDuration: number,
   minRaisedAmount: any,
   deployer: SignerWithAddress
-): Promise<{ auction: Contract; feePool: Contract; distributor: Contract }> {
+): Promise<{
+  auction: Contract;
+  templateName: string;
+  feePool: Contract;
+  distributor: Contract;
+}> {
   const Distributor = await ethers.getContractFactory("Distributor");
   const Template = await ethers.getContractFactory("TemplateV1_5");
   const FeePool = await ethers.getContractFactory("FeePool");
@@ -256,7 +261,12 @@ export async function deploySaleTemplateV1_5(
   const receipt = await tx.wait();
   const event = receipt.events.find((event: any) => event.event === "Deployed");
   const [, templateAddr] = event.args;
-  return { auction: Template.attach(templateAddr), feePool, distributor };
+  return {
+    auction: Template.attach(templateAddr),
+    templateName,
+    feePool,
+    distributor,
+  };
 }
 
 export async function restore(snapshotId: string): Promise<void> {
