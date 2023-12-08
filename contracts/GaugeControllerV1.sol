@@ -11,7 +11,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 contract GaugeControllerV1 is UUPSUpgradeable {
     event CommitOwnership(address admin);
     event ApplyOwnership(address admin);
-    event AddType(string name, int128 typeId);
 
     uint256 constant MULTIPLIER = 10 ** 18;
 
@@ -54,9 +53,7 @@ contract GaugeControllerV1 is UUPSUpgradeable {
         // Add veYMWK GaugeType
         int128 _typeId = nGaugeTypes;
         gaugeTypeNames[_typeId] = "veYMWK";
-        unchecked {
-            nGaugeTypes = _typeId + 1;
-        }
+        nGaugeTypes = 1;
     }
 
     function _authorizeUpgrade(
