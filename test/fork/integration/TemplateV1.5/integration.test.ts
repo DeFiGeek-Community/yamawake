@@ -607,16 +607,13 @@ describe("TemplateV1.5", function () {
       //     `);
       // <----
       try {
+        // veSupplyの同期が20週間以上遅れていると0 divisionエラーでrevert
         await ruleClaimFees(acct, BigNumber.from("0"));
         // console.log(
         //   (await distributor.timeCursor()).div(WEEK).toString(),
         //   Math.floor((await time.latest()) / WEEK)
         // );
       } catch (e: any) {
-        // TODO veSupplyの同期が20週間以上遅れていると0 divisionエラーで落ちる
-        // 1) これを仕様とする（誰かがcheckpointTotalSupplyを呼べば解決）
-        // 2) veSupply同期済みのところ（timeCursorの1週間前）まででclaimをストップする
-
         // RevertしたTXのガスコストを考慮
         const latestBlock = await ethers.provider.getBlock("latest");
         const latestTXHash = latestBlock.transactions.at(-1);
@@ -629,7 +626,7 @@ describe("TemplateV1.5", function () {
         userGases[acct.address] =
           userGases[acct.address].add(revertedTxGasCosts);
 
-        // 一旦 1)の仕様としてここではcheckpointTotalSupplyを呼び、再度claim
+        // revertは仕様とし、checkpointTotalSupplyを呼び、再度claimする
         await distributor.connect(admin).checkpointTotalSupply();
         await ruleClaimFees(acct, BigNumber.from("0"));
         // throw e;

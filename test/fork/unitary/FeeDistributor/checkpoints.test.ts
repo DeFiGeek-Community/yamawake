@@ -69,10 +69,6 @@ describe("FeeDistributor", () => {
     await snapshot.restore();
   });
 
-  // TODO
-  // 下記の観点のテストを追加
-  // https://discord.com/channels/729808684359876718/729812922649542758/1162241240360816730
-
   describe("test_checkpoints", () => {
     beforeEach(async function () {
       await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
