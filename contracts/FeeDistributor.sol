@@ -60,6 +60,15 @@ contract FeeDistributor is ReentrancyGuard {
     bool public isKilled;
 
     struct ClaimParams {
+        uint256 userEpoch;
+        uint256 toDistribute;
+        uint256 maxUserEpoch;
+        uint256 startTime;
+        uint256 thisWeek;
+        uint256 latestFeeUnlockTime;
+    }
+
+    struct RewardParams {
         int256 dt;
         int256 balanceOf;
         uint256 tokensPerWeek;
@@ -294,13 +303,16 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 lastTokenTime_
     ) internal returns (uint256) {
         // Minimal user_epoch is 0 (if user had no point)
-        uint256 _userEpoch = 0;
-        uint256 _toDistribute = 0;
+        ClaimParams memory _cp = ClaimParams({
+            userEpoch: 0,
+            toDistribute: 0,
+            maxUserEpoch: IVotingEscrow(ve_).userPointEpoch(addr_),
+            startTime: startTime,
+            thisWeek: (block.timestamp / WEEK) * WEEK,
+            latestFeeUnlockTime: ((lastTokenTime_ + WEEK) / WEEK) * WEEK
+        });
 
-        uint256 _maxUserEpoch = IVotingEscrow(ve_).userPointEpoch(addr_);
-        uint256 _startTime = startTime;
-
-        if (_maxUserEpoch == 0) {
+        if (_cp.maxUserEpoch == 0) {
             // No lock = no fees
             return 0;
         }
@@ -308,23 +320,23 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _weekCursor = timeCursorOf[addr_][token_];
         if (_weekCursor == 0) {
             // Need to do the initial binary search
-            _userEpoch = _findTimestampUserEpoch(
+            _cp.userEpoch = _findTimestampUserEpoch(
                 ve_,
                 addr_,
-                _startTime,
-                _maxUserEpoch
+                _cp.startTime,
+                _cp.maxUserEpoch
             );
         } else {
-            _userEpoch = userEpochOf[addr_][token_];
+            _cp.userEpoch = userEpochOf[addr_][token_];
         }
 
-        if (_userEpoch == 0) {
-            _userEpoch = 1;
+        if (_cp.userEpoch == 0) {
+            _cp.userEpoch = 1;
         }
 
         Point memory _userPoint = IVotingEscrow(ve_).userPointHistory(
             addr_,
-            _userEpoch
+            _cp.userEpoch
         );
 
         if (_weekCursor == 0) {
@@ -335,8 +347,8 @@ contract FeeDistributor is ReentrancyGuard {
             return 0;
         }
 
-        if (_weekCursor < _startTime) {
-            _weekCursor = _startTime;
+        if (_weekCursor < _cp.startTime) {
+            _weekCursor = _cp.startTime;
         }
 
         Point memory _oldUserPoint = Point({bias: 0, slope: 0, ts: 0, blk: 0});
@@ -346,45 +358,46 @@ contract FeeDistributor is ReentrancyGuard {
             if (_weekCursor >= lastTokenTime_) {
                 break;
             } else if (
-                _weekCursor >= _userPoint.ts && _userEpoch <= _maxUserEpoch
+                _weekCursor >= _userPoint.ts &&
+                _cp.userEpoch <= _cp.maxUserEpoch
             ) {
-                _userEpoch += 1;
+                _cp.userEpoch += 1;
                 _oldUserPoint = Point({
                     bias: _userPoint.bias,
                     slope: _userPoint.slope,
                     ts: _userPoint.ts,
                     blk: _userPoint.blk
                 });
-                if (_userEpoch > _maxUserEpoch) {
+                if (_cp.userEpoch > _cp.maxUserEpoch) {
                     _userPoint = Point({bias: 0, slope: 0, ts: 0, blk: 0});
                 } else {
                     _userPoint = IVotingEscrow(ve_).userPointHistory(
                         addr_,
-                        _userEpoch
+                        _cp.userEpoch
                     );
                 }
             } else {
-                ClaimParams memory _cp = ClaimParams({
+                RewardParams memory _rp = RewardParams({
                     dt: int256(_weekCursor) - int256(_oldUserPoint.ts),
                     balanceOf: 0,
                     tokensPerWeek: 0
                 });
-                _cp.balanceOf =
+                _rp.balanceOf =
                     int256(_oldUserPoint.bias) -
-                    _cp.dt *
+                    _rp.dt *
                     int256(_oldUserPoint.slope);
 
-                if (_cp.balanceOf < 0) {
-                    _cp.balanceOf = 0;
+                if (_rp.balanceOf < 0) {
+                    _rp.balanceOf = 0;
                 }
 
-                if (_cp.balanceOf == 0 && _userEpoch > _maxUserEpoch) {
+                if (_rp.balanceOf == 0 && _cp.userEpoch > _cp.maxUserEpoch) {
                     break;
                 }
-                if (_cp.balanceOf > 0) {
-                    _cp.tokensPerWeek = tokensPerWeek[token_][_weekCursor];
-                    _toDistribute +=
-                        (uint256(_cp.balanceOf) * _cp.tokensPerWeek) /
+                if (_rp.balanceOf > 0) {
+                    _rp.tokensPerWeek = tokensPerWeek[token_][_weekCursor];
+                    _cp.toDistribute +=
+                        (uint256(_rp.balanceOf) * _rp.tokensPerWeek) /
                         veSupply[_weekCursor];
                 }
                 _weekCursor += WEEK;
@@ -394,13 +407,13 @@ contract FeeDistributor is ReentrancyGuard {
             }
         }
 
-        _userEpoch = Math.min(_maxUserEpoch, _userEpoch - 1);
-        userEpochOf[addr_][token_] = _userEpoch;
+        _cp.userEpoch = Math.min(_cp.maxUserEpoch, _cp.userEpoch - 1);
+        userEpochOf[addr_][token_] = _cp.userEpoch;
         timeCursorOf[addr_][token_] = _weekCursor;
 
-        emit Claimed(addr_, _toDistribute, _userEpoch, _maxUserEpoch);
+        emit Claimed(addr_, _cp.toDistribute, _cp.userEpoch, _cp.maxUserEpoch);
 
-        return _toDistribute;
+        return _cp.toDistribute;
     }
 
     /***
