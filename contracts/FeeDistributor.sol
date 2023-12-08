@@ -65,6 +65,7 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 maxUserEpoch;
         uint256 startTime;
         uint256 thisWeek;
+        uint256 lastTokenTime;
         uint256 latestFeeUnlockTime;
     }
 
@@ -89,8 +90,8 @@ contract FeeDistributor is ReentrancyGuard {
     /***
      * @notice Contract constructor
      * @param votingEscrow_ VotingEscrow contract address
+     * @param factory_ Auction Factory contract address
      * @param startTime_ Epoch time for fee distribution to start
-     * @param token_ Fee token address (3CRV)
      * @param admin_ Admin address
      * @param emergencyReturn_ Address to transfer `_token` balance to if this contract is killed
      */
@@ -125,6 +126,20 @@ contract FeeDistributor is ReentrancyGuard {
 
         uint256 _t = lastTokenTime[token_];
         uint256 _sinceLast = block.timestamp - _t;
+        uint256 _sinceLastInWeeks = _sinceLast / WEEK;
+
+        // 前回のチェックポイントから週をまたいでいる場合は_tを前回のチェックポイントの翌週頭に設定する
+        if (_sinceLastInWeeks > 0) {
+            _t = ((_t + WEEK) / WEEK) * WEEK;
+            _sinceLast = block.timestamp - _t;
+            _sinceLastInWeeks = _sinceLast / WEEK;
+        }
+        // _sinceLastが20週間以上経過している場合は_tを現在のブロックタイムから19週間前に設定
+        if (_sinceLastInWeeks >= 20) {
+            _t = ((block.timestamp - (WEEK * 19)) / WEEK) * WEEK;
+            _sinceLast = block.timestamp - _t;
+        }
+
         lastTokenTime[token_] = block.timestamp;
         uint256 _thisWeek = (_t / WEEK) * WEEK;
         uint256 _nextWeek = 0;
@@ -289,7 +304,7 @@ contract FeeDistributor is ReentrancyGuard {
     }
 
     /***
-     * @notice Update the veCRV total supply checkpoint
+     * @notice Update the veYMWK total supply checkpoint
      * @dev The checkpoint is also updated by the first claimant each new epoch week. This function may be called independently of a claim, to reduce claiming gas costs.
      */
     function checkpointTotalSupply() external {
@@ -309,8 +324,13 @@ contract FeeDistributor is ReentrancyGuard {
             maxUserEpoch: IVotingEscrow(ve_).userPointEpoch(addr_),
             startTime: startTime,
             thisWeek: (block.timestamp / WEEK) * WEEK,
+            lastTokenTime: lastTokenTime_,
             latestFeeUnlockTime: ((lastTokenTime_ + WEEK) / WEEK) * WEEK
         });
+
+        if (_cp.thisWeek >= _cp.latestFeeUnlockTime) {
+            _cp.lastTokenTime = _cp.latestFeeUnlockTime;
+        }
 
         if (_cp.maxUserEpoch == 0) {
             // No lock = no fees
@@ -343,7 +363,7 @@ contract FeeDistributor is ReentrancyGuard {
             _weekCursor = ((_userPoint.ts + WEEK - 1) / WEEK) * WEEK;
         }
 
-        if (_weekCursor >= lastTokenTime_) {
+        if (_weekCursor >= _cp.lastTokenTime) {
             return 0;
         }
 
@@ -355,7 +375,7 @@ contract FeeDistributor is ReentrancyGuard {
 
         // Iterate over weeks
         for (uint256 i; i < 50; ) {
-            if (_weekCursor >= lastTokenTime_) {
+            if (_weekCursor >= _cp.lastTokenTime) {
                 break;
             } else if (
                 _weekCursor >= _userPoint.ts &&
@@ -418,8 +438,8 @@ contract FeeDistributor is ReentrancyGuard {
 
     /***
      * @notice Claim fees for `msg.sender`
-     * @dev Each call to claim look at a maximum of 50 user veCRV points.
-         For accounts with many veCRV related actions, this function
+     * @dev Each call to claim look at a maximum of 50 user veYMWK points.
+         For accounts with many veYMWK related actions, this function
          may need to be called more than once to claim all available
          fees. In the `Claimed` event that fires, if `claim_epoch` is
          less than `max_epoch`, the account may claim again.
@@ -464,8 +484,8 @@ contract FeeDistributor is ReentrancyGuard {
 
     /***
      * @notice Claim fees for `addr_`
-     * @dev Each call to claim look at a maximum of 50 user veCRV points.
-         For accounts with many veCRV related actions, this function
+     * @dev Each call to claim look at a maximum of 50 user veYMWK points.
+         For accounts with many veYMWK related actions, this function
          may need to be called more than once to claim all available
          fees. In the `Claimed` event that fires, if `claim_epoch` is
          less than `max_epoch`, the account may claim again.
@@ -516,7 +536,7 @@ contract FeeDistributor is ReentrancyGuard {
      * @notice Make multiple fee claims in a single call
      * @dev Used to claim for many accounts at once, or to make
          multiple claims for the same address when that address
-         has significant veCRV history
+         has significant veYMWK history
      * @param receivers_ List of addresses to claim for. Claiming
                       terminates at the first `ZERO_ADDRESS`.
      * @return bool success
@@ -660,7 +680,7 @@ contract FeeDistributor is ReentrancyGuard {
 
     /***
      * @notice Kill the contract
-     * @dev Killing transfers the entire 3CRV balance to the emergency return address
+     * @dev Killing transfers the entire token balance to the emergency return address
          and blocks the ability to claim or burn. The contract cannot be unkilled.
      */
     function killMe() external onlyAdmin {
