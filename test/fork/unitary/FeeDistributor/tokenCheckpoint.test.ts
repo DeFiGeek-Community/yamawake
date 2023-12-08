@@ -66,17 +66,7 @@ describe("FeeDistributor", () => {
     // チェックポイントが週をまたぐ場合
     // 前回チェックポイントの翌週からの報酬の分配が始まることを確認
     it("test_tokenCheckpoint", async function () {
-      const amount = ethers.utils.parseEther("1000");
-
-      await token.transfer(alice.address, amount);
-      await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
-
-      await votingEscrow
-        .connect(alice)
-        .createLock(amount, (await time.latest()) + 8 * WEEK);
-      await time.increase(WEEK);
       const startTime = await time.latest();
-      await time.increase(WEEK * 5);
 
       const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
       feeDistributor = await FeeDistributor.deploy(
@@ -113,17 +103,7 @@ describe("FeeDistributor", () => {
     // 直近20週間に均等に振り分けられていることを確認
     it("test_token_deposited_before", async function () {
       const fees: BigNumber[] = [];
-      const amount = ethers.utils.parseEther("1000");
-
-      await token.transfer(alice.address, amount);
-      await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
-
-      await votingEscrow
-        .connect(alice)
-        .createLock(amount, (await time.latest()) + 8 * WEEK);
-      await time.increase(WEEK);
       const startTime = await time.latest();
-      await time.increase(WEEK * 5);
 
       const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
       feeDistributor = await FeeDistributor.deploy(
