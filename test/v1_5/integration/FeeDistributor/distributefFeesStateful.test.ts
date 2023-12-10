@@ -66,8 +66,8 @@ describe("FeeDistributor", function () {
   let auction: Contract;
 
   let lockedUntil: { [key: string]: number } = {};
-  let fees: { [key: number]: BigNumber } = {}; // timestamp -> amount
-  let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> timestamp -> [claimed, timeCursor]
+  let fees: { [key: number]: BigNumber } = {}; // block number -> amount
+  let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
   let userGases: { [key: string]: BigNumber }; // address -> total gas fee
   let initialEthBalance: { [key: string]: BigNumber };
   let totalFees: BigNumber = ethers.utils.parseEther("1");
@@ -228,7 +228,9 @@ describe("FeeDistributor", function () {
     ruleNewLock --- 
     stAcct: ${
       stAcct.address
-    }, stAmount: ${stAmount.toString()}, stWeeks: ${stWeeks.toString()}, stTime: ${stTime.toString()}
+    }, stAmount: ${stAmount.toString()}, stWeeks: ${stWeeks.toString()}, stTime: ${stTime.toString()}, WEEK:${
+      (await time.latest()) / WEEK
+    }
     `);
 
     stTime.gt(0) && (await time.increase(stTime));
@@ -270,7 +272,9 @@ describe("FeeDistributor", function () {
     console.log(`
     ruleExtendLock --- stAmount ${
       stAcct.address
-    }, stAmount: ${stWeeks.toString()}, stTime: ${stTime.toString()}
+    }, stAmount: ${stWeeks.toString()}, stTime: ${stTime.toString()}, WEEK:${
+      (await time.latest()) / WEEK
+    }
     `);
 
     stTime.gt(0) && (await time.increase(stTime));
@@ -313,14 +317,16 @@ describe("FeeDistributor", function () {
     stTime : number
         Duration to sleep before action, in seconds.
     */
-    stAcct = accounts[getRandomAccountNum()];
-    stAmount = getRandomAmounts();
-    stTime = getRandomsTime();
+    stAcct = stAcct || accounts[getRandomAccountNum()];
+    stAmount = stAmount || getRandomAmounts();
+    stTime = stTime || getRandomsTime();
 
     console.log(`
     ruleIncreaseLockAmount --- stAmount ${
       stAcct.address
-    }, stAmount: ${stAmount.toString()}, stTime: ${stTime.toString()}
+    }, stAmount: ${stAmount.toString()}, stTime: ${stTime.toString()}, WEEK:${
+      (await time.latest()) / WEEK
+    }
     `);
 
     stTime.gt(0) && (await time.increase(stTime));
@@ -345,11 +351,13 @@ describe("FeeDistributor", function () {
     stTime : number
         Duration to sleep before action, in seconds.
     */
-    stAcct = accounts[getRandomAccountNum()];
-    stTime = getRandomsTime();
+    stAcct = stAcct || accounts[getRandomAccountNum()];
+    stTime = stTime || getRandomsTime();
 
     console.log(`
-    ruleClaimFees --- stAmount ${stAcct.address}, stTime: ${stTime.toString()}
+    ruleClaimFees --- stAmount ${
+      stAcct.address
+    }, stTime: ${stTime.toString()}, WEEK:${(await time.latest()) / WEEK}
     `);
 
     stTime.gt(0) && (await time.increase(stTime));
@@ -368,6 +376,7 @@ describe("FeeDistributor", function () {
     let claimed;
     let tx;
     let newClaimed;
+
     if (stToken === ethers.constants.AddressZero) {
       claimed = await ethers.provider.getBalance(stAcct.address);
       tx = await distributor
@@ -413,7 +422,9 @@ describe("FeeDistributor", function () {
     stTime = stTime || getRandomsTime();
 
     console.log(`
-    ruleTransferFees --- stAmount ${stAmount.toString()}, stTime: ${stTime.toString()}
+    ruleTransferFees --- stAmount ${stAmount.toString()}, stTime: ${stTime.toString()}, WEEK:${
+      (await time.latest()) / WEEK
+    }
     `);
 
     stTime.gt(0) && (await time.increase(stTime));
@@ -431,10 +442,13 @@ describe("FeeDistributor", function () {
         ._mintForTesting(distributor.address, stAmount);
     }
 
-    if (!(await distributor.canCheckpointToken())) {
-      await distributor.connect(admin).toggleAllowCheckpointToken();
-      await distributor.connect(admin).checkpointToken(stToken);
-    }
+    // console.log(
+    //   "lastTokenTime: ",
+    //   (await distributor.lastTokenTime(stToken)).toString()
+    // );
+    // console.log("Now: ", (await time.latest()).toString());
+
+    await distributor.connect(admin).checkpointToken(stToken);
 
     fees[tx.blockNumber] = stAmount;
     totalFees = totalFees.add(stAmount);
@@ -458,7 +472,9 @@ describe("FeeDistributor", function () {
     stTime = stTime || getRandomsTime();
 
     console.log(`
-    ruleTransferFeesWithoutCheckpoint --- stAmount ${stAmount.toString()}, stTime: ${stTime.toString()}
+    ruleTransferFeesWithoutCheckpoint --- stAmount ${stAmount.toString()}, stTime: ${stTime.toString()}, WEEK:${
+      (await time.latest()) / WEEK
+    }
     `);
 
     stTime.gt(0) && (await time.increase(stTime));
@@ -485,7 +501,9 @@ describe("FeeDistributor", function () {
     Claim fees for all accounts and verify that only dust remains.
     */
     console.log("teardown----");
-    if (!(await distributor.canCheckpointToken())) {
+    const startTime = await distributor.startTime();
+    const lastTokenTime = await distributor.lastTokenTime(stToken);
+    if (lastTokenTime.eq(0) || lastTokenTime.eq(startTime)) {
       //if no token checkpoint occured, add 100,000 tokens prior to teardown
       await ruleTransferFees(
         ethers.utils.parseEther("100000"),
@@ -497,8 +515,10 @@ describe("FeeDistributor", function () {
     // Because tokens for current week are obtained in the next week
     // And that is by design
     await distributor.connect(admin).checkpointToken(stToken);
-    await ethers.provider.send("evm_increaseTime", [WEEK * 2]);
+    await time.increase(WEEK * 2);
     await distributor.connect(admin).checkpointToken(stToken);
+
+    // console.log(`Finaly WEEK:${(await time.latest()) / WEEK}`);
 
     for (const acct of accounts) {
       // For debug --->
@@ -523,51 +543,91 @@ describe("FeeDistributor", function () {
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
     const tokensPerUserPerWeek: { [key: string]: BigNumber[] } = {};
-    for (const acct of accounts) {
-      tokensPerUserPerWeek[acct.address] = [];
-      for (let w = t0; w < t1 + WEEK; w += WEEK) {
-        const tokens: BigNumber = (await distributor.tokensPerWeek(stToken, w))
+    const tokensPerWeeks: BigNumber[] = [];
+
+    for (let w = t0; w < t1 + WEEK; w += WEEK) {
+      const tokensPerWeek = await distributor.tokensPerWeek(stToken, w);
+      tokensPerWeeks.push(tokensPerWeek);
+
+      for (const acct of accounts) {
+        tokensPerUserPerWeek[acct.address] =
+          tokensPerUserPerWeek[acct.address] || [];
+        const tokens: BigNumber = tokensPerWeek
           .mul(await distributor.veForAt(acct.address, w))
           .div(await distributor.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
       }
     }
 
-    // Display results--------------------------------------------------
-    // console.log(`Results: ${tokensPerUserPerWeek}`);
-    // console.log(`TokensPerUserPerWeek------------`);
-    // Object.entries(tokensPerUserPerWeek).forEach(([key, val]) => {
-    //   console.log(`${key}: ${val}`);
-    // });
-    // console.log(``);
-    // console.log(`Fees-----------`);
-    // Object.entries(fees).forEach(([key, val]) => {
-    //   console.log(`${key}: ${val}`);
-    // });
-    // console.log(``);
-    // console.log(`Total Fee-----------`);
-    // console.log(totalFees.toString());
-    // console.log(``);
-    // console.log(`User claims---------`);
-    // Object.entries(userClaims).forEach(([key, val]) => {
-    //   console.log(`${key}:`);
-    //   Object.entries(val).forEach(([k, v]) => {
-    //     console.log(`${k}: ${v}`);
-    //   });
-    // });
-    // console.log(``);
-    // console.log(`User balances---------`);
-    // for (const acct of accounts) {
-    //   console.log(
-    //     acct.address,
-    //     (await feeCoin.balanceOf(acct.address)).toString()
-    //   );
-    // }
-    // console.log(`feeCoin balance of Distributor--------`);
-    // console.log((await feeCoin.balanceOf(distributor.address)).toString());
-    // -------------------------------------------
-
     const Token = await ethers.getContractFactory("MockToken");
+    // Display results--------------------------------------------------
+    console.log(``);
+    console.log(`Results ------------------------>`);
+    console.log(`[TokensPerWeek]`);
+    Object.entries(tokensPerWeeks).forEach((val) => {
+      console.log(`${val.toString()}`);
+    });
+    console.log(``);
+    console.log(`[TokensPerUserPerWeek]`);
+    Object.entries(tokensPerUserPerWeek).forEach(([key, val]) => {
+      console.log(`${key}: ${val}`);
+    });
+    console.log(``);
+    console.log(`[Fees]`);
+    Object.entries(fees).forEach(([key, val]) => {
+      console.log(`${key}: ${val}`);
+    });
+    console.log(``);
+    console.log(`[Total Fee]`);
+    console.log(totalFees.toString());
+    console.log(``);
+    console.log(`[User claims]`);
+    Object.entries(userClaims).forEach(([key, val]) => {
+      console.log(`${key}:`);
+      Object.entries(val).forEach(([k, v]) => {
+        console.log(`${k}: ${v}`);
+      });
+      console.log(``);
+    });
+    console.log(``);
+    console.log(`[User balances changes without gas]`);
+    for (const acct of accounts) {
+      console.log(
+        acct.address,
+        initialEthBalance[acct.address].toString(),
+        (await ethers.provider.getBalance(acct.address))
+          .sub(initialEthBalance[acct.address])
+          .toString()
+      );
+    }
+    console.log(``);
+    console.log(`[User balances changes with gas]`);
+    for (const acct of accounts) {
+      console.log(
+        acct.address,
+        initialEthBalance[acct.address].toString(),
+        (await ethers.provider.getBalance(acct.address))
+          .sub(initialEthBalance[acct.address])
+          .add(userGases[acct.address])
+          .toString()
+      );
+    }
+    console.log(``);
+    console.log(`[Coin balance of Distributor]`);
+    if (stToken === ethers.constants.AddressZero) {
+      console.log(
+        "Ether: ",
+        (await ethers.provider.getBalance(distributor.address)).toString()
+      );
+    } else {
+      console.log(
+        "Token: ",
+        (await Token.attach(stToken).balanceOf(distributor.address)).toString()
+      );
+    }
+
+    console.log(``);
+    // -------------------------------------------
 
     for (const acct of accounts) {
       if (stToken === ethers.constants.AddressZero) {

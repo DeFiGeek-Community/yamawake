@@ -104,13 +104,14 @@ contract FeeDistributor is ReentrancyGuard {
 
         uint256 _t = lastTokenTime[token_];
         uint256 _sinceLast = block.timestamp - _t;
-        uint256 _sinceLastInWeeks = _sinceLast / WEEK;
+        uint256 _currentWeek = block.timestamp / WEEK;
+        uint256 _sinceLastInWeeks = _currentWeek - _t / WEEK;
 
         // 前回のチェックポイントから週をまたいでいる場合は_tを前回のチェックポイントの翌週頭に設定する
         if (_sinceLastInWeeks > 0) {
             _t = ((_t + WEEK) / WEEK) * WEEK;
             _sinceLast = block.timestamp - _t;
-            _sinceLastInWeeks = _sinceLast / WEEK;
+            _sinceLastInWeeks = _currentWeek - _t / WEEK;
         }
         // _sinceLastが20週間以上経過している場合は_tを現在のブロックタイムから19週間前に設定
         if (_sinceLastInWeeks >= 20) {
