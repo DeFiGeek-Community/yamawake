@@ -15,7 +15,7 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
     using SafeERC20 for IERC20;
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
     uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
-    uint256 private constant ETH_UPPER_BOUND = 1000000000 ether;
+    uint256 private constant ETH_UPPER_BOUND = 1_000_000_000 ether;
     /* Multiplier derived from the practical max number of digits for eth (18 + 8) + 1 to avoid rounding error. */
     uint256 private constant SCALE_FACTOR = 1e27;
     /* Minimum bidding amount is set to minimize the possibility of refunds. */
@@ -168,7 +168,7 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         Owner: Withdraws Ether
         Contributors: Can claim and get their own ERC-20
     */
-    function withdrawRaisedETH() external onlyOwner nonReentrant {
+    function withdrawRaisedETH() external nonReentrant {
         require(closingAt < block.timestamp, "Withdrawal unavailable yet.");
         require(
             totalRaised >= minRaisedAmount,
@@ -194,10 +194,7 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         (bool feeSuccess, ) = payable(feePool).call{value: fee}("");
         require(feeSuccess, "Fee transfer failed");
 
-        IDistributor(distributor).addScore(
-            msg.sender,
-            gross * REWARD_SCORE_RATE
-        );
+        IDistributor(distributor).addScore(owner, gross * REWARD_SCORE_RATE);
         (bool success, ) = payable(owner).call{value: address(this).balance}(
             ""
         );
@@ -210,7 +207,7 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         Owner: Withdraws ERC-20
         Contributors: Claim and get back Ether
     */
-    function withdrawERC20Onsale() external onlyOwner {
+    function withdrawERC20Onsale() external {
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
             totalRaised < minRaisedAmount || totalRaised == 0,
