@@ -5,27 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-struct Point {
-    int128 bias;
-    int128 slope;
-    uint256 ts;
-    uint256 blk;
-}
-
-interface IVotingEscrow {
-    function userPointEpoch(address addr) external view returns (uint256);
-
-    function epoch() external view returns (uint256);
-
-    function userPointHistory(
-        address addr,
-        uint256 loc
-    ) external view returns (Point memory);
-
-    function pointHistory(uint256 loc) external view returns (Point memory);
-
-    function checkpoint() external;
-}
+import "./interfaces/IVotingEscrow.sol";
 
 interface IFactory {
     function auctions(address _address) external view returns (bool);
@@ -207,7 +187,8 @@ contract FeeDistributor is ReentrancyGuard {
                     break;
                 }
                 uint256 _mid = (_min + _max + 2) / 2;
-                Point memory _pt = IVotingEscrow(ve_).pointHistory(_mid);
+                IVotingEscrow.Point memory _pt = IVotingEscrow(ve_)
+                    .pointHistory(_mid);
                 if (_pt.ts <= timestamp_) {
                     _min = _mid;
                 } else {
@@ -233,10 +214,8 @@ contract FeeDistributor is ReentrancyGuard {
                     break;
                 }
                 uint256 _mid = (_min + _max + 2) / 2;
-                Point memory _pt = IVotingEscrow(ve_).userPointHistory(
-                    user_,
-                    _mid
-                );
+                IVotingEscrow.Point memory _pt = IVotingEscrow(ve_)
+                    .userPointHistory(user_, _mid);
                 if (_pt.ts <= timestamp_) {
                     _min = _mid;
                 } else {
@@ -265,7 +244,10 @@ contract FeeDistributor is ReentrancyGuard {
             timestamp_,
             _maxUserEpoch
         );
-        Point memory _pt = IVotingEscrow(_ve).userPointHistory(user_, _epoch);
+        IVotingEscrow.Point memory _pt = IVotingEscrow(_ve).userPointHistory(
+            user_,
+            _epoch
+        );
         int128 _balance = _pt.bias -
             _pt.slope *
             int128(int256(timestamp_ - _pt.ts));
@@ -287,7 +269,8 @@ contract FeeDistributor is ReentrancyGuard {
                 break;
             } else {
                 uint256 _epoch = _findTimestampEpoch(_ve, _t);
-                Point memory _pt = IVotingEscrow(_ve).pointHistory(_epoch);
+                IVotingEscrow.Point memory _pt = IVotingEscrow(_ve)
+                    .pointHistory(_epoch);
                 int128 _dt = 0;
                 if (_t > _pt.ts) {
                     _dt = int128(int256(_t) - int256(_pt.ts));
@@ -354,10 +337,8 @@ contract FeeDistributor is ReentrancyGuard {
             _cp.userEpoch = 1;
         }
 
-        Point memory _userPoint = IVotingEscrow(ve_).userPointHistory(
-            addr_,
-            _cp.userEpoch
-        );
+        IVotingEscrow.Point memory _userPoint = IVotingEscrow(ve_)
+            .userPointHistory(addr_, _cp.userEpoch);
 
         if (_weekCursor == 0) {
             _weekCursor = ((_userPoint.ts + WEEK - 1) / WEEK) * WEEK;
@@ -371,7 +352,12 @@ contract FeeDistributor is ReentrancyGuard {
             _weekCursor = _cp.startTime;
         }
 
-        Point memory _oldUserPoint = Point({bias: 0, slope: 0, ts: 0, blk: 0});
+        IVotingEscrow.Point memory _oldUserPoint = IVotingEscrow.Point({
+            bias: 0,
+            slope: 0,
+            ts: 0,
+            blk: 0
+        });
 
         // Iterate over weeks
         for (uint256 i; i < 50; ) {
@@ -382,14 +368,19 @@ contract FeeDistributor is ReentrancyGuard {
                 _cp.userEpoch <= _cp.maxUserEpoch
             ) {
                 _cp.userEpoch += 1;
-                _oldUserPoint = Point({
+                _oldUserPoint = IVotingEscrow.Point({
                     bias: _userPoint.bias,
                     slope: _userPoint.slope,
                     ts: _userPoint.ts,
                     blk: _userPoint.blk
                 });
                 if (_cp.userEpoch > _cp.maxUserEpoch) {
-                    _userPoint = Point({bias: 0, slope: 0, ts: 0, blk: 0});
+                    _userPoint = IVotingEscrow.Point({
+                        bias: 0,
+                        slope: 0,
+                        ts: 0,
+                        blk: 0
+                    });
                 } else {
                     _userPoint = IVotingEscrow(ve_).userPointHistory(
                         addr_,

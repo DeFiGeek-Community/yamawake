@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IFeeDistributor",
-  "sourceName": "contracts/TemplateV1_5.sol",
+  "sourceName": "contracts/interfaces/IFeeDistributor.sol",
   "abi": [
     {
       "inputs": [
