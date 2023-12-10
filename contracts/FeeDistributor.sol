@@ -35,7 +35,6 @@ contract FeeDistributor is ReentrancyGuard {
 
     address public admin;
     address public futureAdmin;
-    bool public canCheckpointToken;
     address public emergencyReturn;
     bool public isKilled;
 
@@ -57,7 +56,6 @@ contract FeeDistributor is ReentrancyGuard {
 
     event CommitAdmin(address indexed admin);
     event ApplyAdmin(address indexed admin);
-    event ToggleAllowCheckpointToken(bool toggleFlag);
     event CheckpointToken(address indexed token, uint256 time, uint256 tokens);
     event Claimed(
         address indexed recipient,
@@ -157,18 +155,12 @@ contract FeeDistributor is ReentrancyGuard {
     /***
      * @notice Update the token checkpoint
      * @dev Calculates the total number of tokens to be distributed in a given week.
-         During setup for the initial distribution this function is only callable
-         by the contract owner. Beyond initial distro, it can be enabled for anyone
-         to call.
+         This function is only callable by auctions or the contract owner.
      */
     function checkpointToken(address token_) external {
         require(tokenFlags[token_], "Token not registered");
         require(
-            msg.sender == admin ||
-                IFactory(factory).auctions(msg.sender) ||
-                (canCheckpointToken &&
-                    block.timestamp >
-                    lastTokenTime[token_] + TOKEN_CHECKPOINT_DEADLINE),
+            msg.sender == admin || IFactory(factory).auctions(msg.sender),
             "Unauthorized"
         );
         _checkpointToken(token_);
@@ -445,14 +437,6 @@ contract FeeDistributor is ReentrancyGuard {
 
         uint256 _lastTokenTime = lastTokenTime[token_];
 
-        if (
-            canCheckpointToken &&
-            (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
-        ) {
-            _checkpointToken(token_);
-            _lastTokenTime = block.timestamp;
-        }
-
         unchecked {
             _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
         }
@@ -495,14 +479,6 @@ contract FeeDistributor is ReentrancyGuard {
 
         uint256 _lastTokenTime = lastTokenTime[token_];
 
-        if (
-            canCheckpointToken &&
-            (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
-        ) {
-            _checkpointToken(token_);
-            _lastTokenTime = block.timestamp;
-        }
-
         unchecked {
             _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
         }
@@ -543,14 +519,6 @@ contract FeeDistributor is ReentrancyGuard {
         }
 
         uint256 _lastTokenTime = lastTokenTime[token_];
-
-        if (
-            canCheckpointToken &&
-            (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
-        ) {
-            _checkpointToken(token_);
-            _lastTokenTime = block.timestamp;
-        }
 
         unchecked {
             _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
@@ -609,14 +577,6 @@ contract FeeDistributor is ReentrancyGuard {
             address _token = tokens_[i];
             uint256 _lastTokenTime = lastTokenTime[_token];
 
-            if (
-                canCheckpointToken &&
-                (block.timestamp > _lastTokenTime + TOKEN_CHECKPOINT_DEADLINE)
-            ) {
-                _checkpointToken(_token);
-                _lastTokenTime = block.timestamp;
-            }
-
             _lastTokenTime = (_lastTokenTime / WEEK) * WEEK;
             uint256 _amount = _claim(
                 addr_,
@@ -659,14 +619,6 @@ contract FeeDistributor is ReentrancyGuard {
         require(futureAdmin != address(0), "No admin set");
         admin = futureAdmin;
         emit ApplyAdmin(futureAdmin);
-    }
-
-    /***
-     * @notice Toggle permission for checkpointing by any account
-     */
-    function toggleAllowCheckpointToken() external onlyAdmin {
-        canCheckpointToken = !canCheckpointToken;
-        emit ToggleAllowCheckpointToken(canCheckpointToken);
     }
 
     /***

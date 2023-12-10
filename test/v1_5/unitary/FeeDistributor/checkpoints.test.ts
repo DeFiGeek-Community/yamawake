@@ -122,35 +122,5 @@ describe("FeeDistributor", () => {
         start_time + WEEK
       );
     });
-
-    it("test_toggle_allow_checkpoint", async function () {
-      const lastTokenTime = (
-        await distributor.lastTokenTime(ethers.constants.AddressZero)
-      ).toNumber();
-
-      await time.increase(WEEK);
-
-      await distributor
-        .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
-      expect(
-        (
-          await distributor.lastTokenTime(ethers.constants.AddressZero)
-        ).toNumber()
-      ).to.equal(lastTokenTime);
-
-      await distributor.toggleAllowCheckpointToken();
-      const tx = await distributor
-        .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
-      const receipt = await tx.wait();
-      const block = await ethers.provider.getBlock(receipt.blockNumber);
-
-      expect(
-        (
-          await distributor.lastTokenTime(ethers.constants.AddressZero)
-        ).toNumber()
-      ).to.equal(block.timestamp);
-    });
   });
 });

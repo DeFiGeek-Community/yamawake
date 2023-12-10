@@ -81,8 +81,6 @@ describe("Template V1.5", () => {
       const auctionAmount = ethers.utils.parseEther("100");
       await coinA._mintForTesting(alice.address, auctionAmount);
       await coinA.approve(factory.address, auctionAmount);
-      // TODO
-      await feeDistributor.toggleAllowCheckpointToken();
 
       /*
       1) テンプレートV1.5をデプロイし、factoryに登録後、オークションを開催する

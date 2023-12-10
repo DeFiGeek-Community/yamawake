@@ -66,8 +66,6 @@ veYMWK のある時点での状態を格納するための構造体
   - 管理者のアドレスを保持する
 - futureAdmin: public(address)
   - 次期管理者のアドレスを保持する
-- canCheckpointToken: public(bool)
-  - 第三者によるチェックポイント作成可否フラグ
 - emergencyReturn: public(address)
   - 緊急時のトークン送金先を保持する
 - isKilled: public(bool)
@@ -102,7 +100,7 @@ veYMWK のある時点での状態を格納するための構造体
   - address\_
     - 報酬トークンのアドレス
 - 条件
-  - 管理者またはオークション、またはcanCheckpointTokenがtrue
+  - 管理者またはオークション
 
 #### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
 
@@ -232,14 +230,6 @@ ve履歴を同期する
 次期管理者を管理者に設定する
 
 - external
-- 条件
-
-  - adminのみ
-
-#### toggleAllowCheckpointToken()
-
-チェックポイントの第三者による作成を許可するフラグを切り替える
-
 - 条件
 
   - adminのみ

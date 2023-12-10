@@ -572,13 +572,6 @@ describe("TemplateV1.5", function () {
     Claim fees for all accounts and verify that only dust remains.
     */
     console.log("teardown----");
-    if (!(await distributor.canCheckpointToken())) {
-      //if no token checkpoint occured, add 100,000 tokens prior to teardown
-      //   await ruleTransferFees(
-      //     ethers.utils.parseEther("100000"),
-      //     BigNumber.from("0")
-      //   );
-    }
     for (let i = 0; i < activeAuctions.length; i++) {
       // 開催中のオークションがある場合、期限が過ぎているものはクローズする
       await ruleCloseAuction(i, BigNumber.from("0"));
@@ -645,10 +638,6 @@ describe("TemplateV1.5", function () {
         await ruleClaimFees(acct, BigNumber.from("0"));
       }
     }
-
-    // TODO
-    // 20週間以上間隔が空いた場合のcheckpointToken（売上の引き出し）
-    //
 
     const t0: number = (await distributor.startTime()).toNumber();
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
