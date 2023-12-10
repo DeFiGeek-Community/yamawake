@@ -2,6 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -12,6 +13,8 @@ interface IFactory {
 }
 
 contract FeeDistributor is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     uint256 public constant WEEK = 7 * 86400;
     uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400;
 
@@ -446,12 +449,10 @@ contract FeeDistributor is ReentrancyGuard {
         if (_amount != 0) {
             tokenLastBalance[token_] -= _amount;
             if (token_ == address(0)) {
-                require(payable(_addr).send(_amount), "Transfer failed");
+                (bool success, ) = payable(_addr).call{value: _amount}("");
+                require(success, "Transfer failed");
             } else {
-                require(
-                    IERC20(token_).transfer(_addr, _amount),
-                    "Transfer failed"
-                );
+                IERC20(token_).safeTransfer(_addr, _amount);
             }
         }
 
@@ -488,12 +489,10 @@ contract FeeDistributor is ReentrancyGuard {
         if (_amount != 0) {
             tokenLastBalance[token_] -= _amount;
             if (token_ == address(0)) {
-                require(payable(addr_).send(_amount), "Transfer failed");
+                (bool success, ) = payable(addr_).call{value: _amount}("");
+                require(success, "Transfer failed");
             } else {
-                require(
-                    IERC20(token_).transfer(addr_, _amount),
-                    "Transfer failed"
-                );
+                IERC20(token_).safeTransfer(addr_, _amount);
             }
         }
 
@@ -542,12 +541,10 @@ contract FeeDistributor is ReentrancyGuard {
             if (_amount != 0) {
                 _total += _amount;
                 if (token_ == address(0)) {
-                    require(payable(_addr).send(_amount), "Transfer failed");
+                    (bool success, ) = payable(_addr).call{value: _amount}("");
+                    require(success, "Transfer failed");
                 } else {
-                    require(
-                        IERC20(token_).transfer(_addr, _amount),
-                        "Transfer failed"
-                    );
+                    IERC20(token_).safeTransfer(_addr, _amount);
                 }
             }
             unchecked {
@@ -588,12 +585,10 @@ contract FeeDistributor is ReentrancyGuard {
             if (_amount != 0) {
                 tokenLastBalance[_token] -= _amount;
                 if (_token == address(0)) {
-                    require(payable(addr_).send(_amount), "Transfer failed");
+                    (bool success, ) = payable(addr_).call{value: _amount}("");
+                    require(success, "Transfer failed");
                 } else {
-                    require(
-                        IERC20(_token).transfer(addr_, _amount),
-                        "Transfer failed"
-                    );
+                    IERC20(_token).safeTransfer(addr_, _amount);
                 }
             }
             unchecked {
@@ -633,17 +628,14 @@ contract FeeDistributor is ReentrancyGuard {
         for (uint256 i; i < _length; ) {
             address _token = tokens[i];
             if (_token == address(0)) {
-                require(
-                    payable(emergencyReturn).send(address(this).balance),
-                    "Transfer failed"
-                );
+                (bool success, ) = payable(emergencyReturn).call{
+                    value: address(this).balance
+                }("");
+                require(success, "Transfer failed");
             } else {
-                require(
-                    IERC20(_token).transfer(
-                        emergencyReturn,
-                        IERC20(_token).balanceOf(address(this))
-                    ),
-                    "Transfer failed"
+                IERC20(_token).safeTransfer(
+                    emergencyReturn,
+                    IERC20(_token).balanceOf(address(this))
                 );
             }
 
@@ -663,17 +655,14 @@ contract FeeDistributor is ReentrancyGuard {
         require(tokenFlags[coin_], "Cannot recover this token");
 
         if (coin_ == address(0)) {
-            require(
-                payable(emergencyReturn).send(address(this).balance),
-                "Transfer failed"
-            );
+            (bool success, ) = payable(emergencyReturn).call{
+                value: address(this).balance
+            }("");
+            require(success, "Transfer failed");
         } else {
-            require(
-                IERC20(coin_).transfer(
-                    emergencyReturn,
-                    IERC20(coin_).balanceOf(address(this))
-                ),
-                "Transfer failed"
+            IERC20(coin_).safeTransfer(
+                emergencyReturn,
+                IERC20(coin_).balanceOf(address(this))
             );
         }
         return true;
