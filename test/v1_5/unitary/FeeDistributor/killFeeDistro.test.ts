@@ -9,9 +9,9 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { deploySampleSaleTemplate } from "../../../scenarioHelper";
 
-const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
-
 describe("FeeDistributor", () => {
+  const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
     charlie: SignerWithAddress,

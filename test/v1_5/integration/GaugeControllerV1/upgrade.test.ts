@@ -8,9 +8,6 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
-// 参考) brownie Stateful Tests
-// https://eth-brownie.readthedocs.io/en/stable/tests-hypothesis-stateful.html
-
 type GaugeInfo = {
   contract: Contract;
   type: number;

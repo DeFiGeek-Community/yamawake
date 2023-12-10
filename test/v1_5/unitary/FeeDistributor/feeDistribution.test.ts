@@ -9,11 +9,11 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
-const DAY = 86400;
-const WEEK = DAY * 7;
-const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
-
 describe("FeeDistributor", () => {
+  const DAY = 86400;
+  const WEEK = DAY * 7;
+  const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
     charlie: SignerWithAddress,

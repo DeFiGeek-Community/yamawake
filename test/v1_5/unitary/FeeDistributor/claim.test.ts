@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract, BigNumber } from "ethers";
+import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -9,10 +9,10 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { sendEther } from "../../../scenarioHelper";
 
-const DAY = 86400;
-const WEEK = DAY * 7;
-
 describe("FeeDistributor", () => {
+  const DAY = 86400;
+  const WEEK = DAY * 7;
+
   let admin: SignerWithAddress, alice: SignerWithAddress;
   let feeDistributor: Contract;
   let votingEscrow: Contract;

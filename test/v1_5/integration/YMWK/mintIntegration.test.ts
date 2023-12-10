@@ -3,20 +3,14 @@ import { expect } from "chai";
 import {
   takeSnapshot,
   SnapshotRestorer,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 
-// Assuming you have a helper function to increase blockchain time
-async function increaseTime(duration: number) {
-  await ethers.provider.send("evm_increaseTime", [duration]);
-  await ethers.provider.send("evm_mine", []);
-}
-
-const YEAR = 365 * 24 * 60 * 60; // seconds in a year
-
 describe("YMWK", function () {
+  const YEAR = 365 * 24 * 60 * 60; // seconds in a year
   let accounts: SignerWithAddress[];
   let token: Contract;
   let snapshot: SnapshotRestorer;
@@ -27,7 +21,7 @@ describe("YMWK", function () {
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
 
-    await increaseTime(YEAR + 1);
+    await time.increase(YEAR + 1);
     await token.updateMiningParameters();
   });
 
@@ -43,7 +37,7 @@ describe("YMWK", function () {
       const initialSupply = await token.totalSupply();
       const rate = await token.rate();
 
-      await increaseTime(duration);
+      await time.increase(duration);
 
       const currentTime = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -61,7 +55,7 @@ describe("YMWK", function () {
       const creationTime = await token.startEpochTime();
       const rate = await token.rate();
 
-      await increaseTime(duration);
+      await time.increase(duration);
 
       const currentTime = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -80,8 +74,8 @@ describe("YMWK", function () {
 
       const durations = [YEAR * 0.33, YEAR * 0.5, YEAR * 0.7]; // Replace with dynamic values as needed
 
-      for (const time of durations) {
-        await increaseTime(time);
+      for (const duration of durations) {
+        await time.increase(duration);
 
         if (
           (await ethers.provider.getBlock("latest")).timestamp - epochStart >

@@ -87,13 +87,6 @@ describe("Minter components", function () {
     const sum = value.add(target);
     const ratio = diff.mul(2).mul(SCALE).div(sum);
 
-    // console.log(
-    //   `Value: ${value.toString()}, Target: ${target.toString()}, Tol: ${tol.toString()}`
-    // );
-    // console.log(
-    //   `Diff: ${diff.toString()}, Sum: ${sum.toString()}, Ratio: ${ratio.toString()}`
-    // );
-
     return ratio.lte(tol);
   }
 

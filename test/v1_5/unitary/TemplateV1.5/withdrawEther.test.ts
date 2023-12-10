@@ -9,11 +9,9 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { deploySaleTemplateV1_5, sendEther } from "../../../scenarioHelper";
 
-const DAY = 86400;
-const WEEK = DAY * 7;
-const TEMPLATE_NAME = ethers.utils.formatBytes32String("TemplateV1.5");
-
 describe("Template V1.5", () => {
+  const DAY = 86400;
+
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
     charlie: SignerWithAddress,
@@ -65,69 +63,62 @@ describe("Template V1.5", () => {
     await snapshot.restore();
   });
 
-  describe("test_fee_distribution", () => {
+  /*
+  【手順】
+  テンプレートV1.5にてオークションを開催、入札、成功状態で完了し、オーナーが売上を回収する。
+
+  【確認事項】
+  a) 売上回収後にFeeDistributorに売上の1%から開発者取り分を引いた額が送金されていること
+  b) FeeDistributorのlastTokenTimeが引き出しトランザクションのブロックタイムと一致すること
+  */
+  it(`test_token_deposited_after`, async function () {
     /*
-    【手順】
-    テンプレートV1.5にてオークションを開催、入札、成功状態で完了し、オーナーが売上を回収する。
-
-    【確認事項】
-    a) 売上回収後にFeeDistributorに売上の1%から開発者取り分を引いた額が送金されていること
-    b) FeeDistributorのlastTokenTimeが引き出しトランザクションのブロックタイムと一致すること
-    */
-    it(`test_token_deposited_after`, async function () {
-      /*
       0) 必要なオークショントークンをAliceに付与すし、factoryに対して必要金額をApproveする
-      */
-      const auctionAmount = ethers.utils.parseEther("100");
-      await coinA._mintForTesting(alice.address, auctionAmount);
-      await coinA.approve(factory.address, auctionAmount);
+    */
+    const auctionAmount = ethers.utils.parseEther("100");
+    await coinA._mintForTesting(alice.address, auctionAmount);
+    await coinA.approve(factory.address, auctionAmount);
 
-      /*
+    /*
       1) テンプレートV1.5をデプロイし、factoryに登録後、オークションを開催する
-      */
-      let { auction, feePool, distributor } = await deploySaleTemplateV1_5(
-        factory,
-        feeDistributor,
-        token,
-        coinA.address,
-        auctionAmount,
-        (await time.latest()) + DAY,
-        DAY,
-        "0",
-        alice
-      );
+    */
+    let { auction, feePool, distributor } = await deploySaleTemplateV1_5(
+      factory,
+      feeDistributor,
+      token,
+      coinA.address,
+      auctionAmount,
+      (await time.latest()) + DAY,
+      DAY,
+      "0",
+      alice
+    );
 
-      /*
+    /*
       2) オークション開始まで時間を進め、Bobが入札し、オークション終了まで時間を進める
-      */
-      await time.increase(DAY);
-      await sendEther(auction.address, "100", bob);
-      await time.increase(DAY);
+    */
+    await time.increase(DAY);
+    await sendEther(auction.address, "100", bob);
+    await time.increase(DAY);
 
-      /*
+    /*
       3) Aliceが売上を回収した後下記を確認
-        a) FeeDistributorに売上の1%が送金されていること
-        b) FeeDistributorのlastTokenTimeが引き出しトランザクションのブロックタイムと一致すること
-      */
-      await expect(
-        auction.connect(alice).withdrawRaisedETH()
-      ).to.changeEtherBalances(
-        [
-          alice.address,
-          auction.address,
-          feePool.address,
-          feeDistributor.address,
-        ],
-        [
-          ethers.utils.parseEther("99"),
-          ethers.utils.parseEther("-100"),
-          ethers.utils.parseEther("0"),
-          ethers.utils.parseEther("1"),
-        ]
-      );
-      expect(
-        await feeDistributor.lastTokenTime(ethers.constants.AddressZero)
-      ).to.be.eq(await time.latest());
-    });
+      a) FeeDistributorに売上の1%が送金されていること
+      b) FeeDistributorのlastTokenTimeが引き出しトランザクションのブロックタイムと一致すること
+    */
+    await expect(
+      auction.connect(alice).withdrawRaisedETH()
+    ).to.changeEtherBalances(
+      [alice.address, auction.address, feePool.address, feeDistributor.address],
+      [
+        ethers.utils.parseEther("99"),
+        ethers.utils.parseEther("-100"),
+        ethers.utils.parseEther("0"),
+        ethers.utils.parseEther("1"),
+      ]
+    );
+    expect(
+      await feeDistributor.lastTokenTime(ethers.constants.AddressZero)
+    ).to.be.eq(await time.latest());
   });
 });

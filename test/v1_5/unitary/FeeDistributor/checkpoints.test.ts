@@ -8,12 +8,12 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-const DAY = 86400;
-const WEEK = DAY * 7;
-const YEAR = DAY * 365;
-const MAX_COIN = 20;
-
 describe("FeeDistributor", () => {
+  const DAY = 86400;
+  const WEEK = DAY * 7;
+  const YEAR = DAY * 365;
+  const MAX_COIN = 20;
+
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
     charlie: SignerWithAddress;

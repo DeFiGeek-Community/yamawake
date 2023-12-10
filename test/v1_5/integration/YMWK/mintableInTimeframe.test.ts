@@ -4,24 +4,20 @@ import { BigNumber, Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import Constants from "../../Constants";
 
-async function increaseTime(duration: BigNumber) {
-  await ethers.provider.send("evm_increaseTime", [duration.toNumber()]);
-  await ethers.provider.send("evm_mine", []);
-}
-
-// Constants
-const YEAR = Constants.YEAR;
-const INITIAL_RATE = BigNumber.from(55_000_000);
-const YEAR_1_SUPPLY = INITIAL_RATE.mul(BigNumber.from(10).pow(18))
-  .div(YEAR)
-  .mul(YEAR);
-const INITIAL_SUPPLY = BigNumber.from(450_000_000);
-
 describe("YMWK", function () {
+  // Constants
+  const YEAR = Constants.YEAR;
+  const INITIAL_RATE = BigNumber.from(55_000_000);
+  const YEAR_1_SUPPLY = INITIAL_RATE.mul(BigNumber.from(10).pow(18))
+    .div(YEAR)
+    .mul(YEAR);
+  const INITIAL_SUPPLY = BigNumber.from(450_000_000);
+
   let accounts: SignerWithAddress[];
   let token: Contract;
   let snapshot: SnapshotRestorer;
@@ -33,7 +29,7 @@ describe("YMWK", function () {
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
 
-    await increaseTime(YEAR.add(1));
+    await time.increase(YEAR.add(1));
     await token.updateMiningParameters();
   });
 
@@ -71,10 +67,7 @@ describe("YMWK", function () {
       S = S.add(
         YEAR_1_SUPPLY.div(YEAR)
           .mul(q.pow(epoch))
-          .mul(
-            (await ethers.provider.getBlock("latest")).timestamp -
-              (await token.startEpochTime())
-          )
+          .mul((await time.latest()) - (await token.startEpochTime()))
       );
 
       return S;
@@ -85,13 +78,13 @@ describe("YMWK", function () {
 
       // Ensure the exponentiation stays within safe integer limits
       const exponent = BigNumber.from(10).pow(1); // Adjust the exponent as necessary
-      await increaseTime(exponent);
+      await time.increase(exponent);
 
-      let t1 = (await ethers.provider.getBlock("latest")).timestamp;
+      let t1 = await time.latest();
       if (t1 - t0 >= year) {
         await token.updateMiningParameters();
       }
-      t1 = (await ethers.provider.getBlock("latest")).timestamp;
+      t1 = await time.latest();
 
       const availableSupply = await token.availableSupply();
       const mintable = await token.mintableInTimeframe(t0, t1);
@@ -150,7 +143,7 @@ describe("YMWK", function () {
       );
 
       for (let i = startEpoch.toNumber(); i < endEpoch.toNumber(); i++) {
-        await increaseTime(YEAR);
+        await time.increase(YEAR);
         await token.updateMiningParameters();
       }
 
@@ -170,11 +163,9 @@ describe("YMWK", function () {
       const initialSupply = await token.totalSupply();
       const rate = await token.rate();
 
-      await increaseTime(duration);
+      await time.increase(duration);
 
-      const now = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
+      const now = BigNumber.from(await time.latest());
       const expected = initialSupply.add(now.sub(creationTime).mul(rate));
       expect(await token.availableSupply()).to.equal(expected);
     });

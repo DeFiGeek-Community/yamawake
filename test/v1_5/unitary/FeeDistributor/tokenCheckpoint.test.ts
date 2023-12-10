@@ -9,10 +9,10 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { sendEther } from "../../../scenarioHelper";
 
-const DAY = 86400;
-const WEEK = DAY * 7;
-
 describe("FeeDistributor", () => {
+  const DAY = 86400;
+  const WEEK = DAY * 7;
+
   let admin: SignerWithAddress, alice: SignerWithAddress;
   let feeDistributor: Contract;
   let votingEscrow: Contract;
@@ -139,10 +139,6 @@ describe("FeeDistributor", () => {
           expect(fee).to.be.eq(0);
         }
         fees.push(fee);
-        // console.log(
-        //   `WEEK ${i} ${Math.floor((latestWeekTimestamp - WEEK * i) / WEEK)}`,
-        //   fee.toString()
-        // );
       }
 
       await localSnapshot.restore();
@@ -160,10 +156,6 @@ describe("FeeDistributor", () => {
           latestWeekTimestamp - WEEK * i
         );
         expect(fee).to.be.eq(fees[i]);
-        // console.log(
-        //   `WEEK ${i} ${Math.floor((latestWeekTimestamp - WEEK * i) / WEEK)}`,
-        //   fee.toString()
-        // );
       }
     });
   });

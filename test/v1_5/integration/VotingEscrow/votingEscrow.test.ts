@@ -8,19 +8,6 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-type Stage = {
-  blockNumber: number;
-  timestamp: number;
-  bias?: string;
-};
-
-const H = 3600;
-const DAY = 86400;
-const WEEK = 7 * DAY;
-const MAXTIME = DAY * 365 * 4; // 126144000
-const SCALE = 1e20;
-const TOL = (120 / WEEK) * SCALE;
-
 describe("Voting Powers Test", function () {
   // Test voting power in the following scenario.
   // Alice:
@@ -47,6 +34,20 @@ describe("Voting Powers Test", function () {
   // Checking that totalSupply is appropriate.
 
   // After the test is done, check all over again with balanceOfAt / totalSupplyAt
+
+  type Stage = {
+    blockNumber: number;
+    timestamp: number;
+    bias?: string;
+  };
+
+  const H = 3600;
+  const DAY = 86400;
+  const WEEK = 7 * DAY;
+  const MAXTIME = DAY * 365 * 4; // 126144000
+  const SCALE = 1e20;
+  const TOL = (120 / WEEK) * SCALE;
+
   let alice: SignerWithAddress, bob: SignerWithAddress;
   let votingEscrow: Contract;
   let token: Contract;

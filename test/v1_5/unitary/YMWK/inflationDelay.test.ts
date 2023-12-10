@@ -27,55 +27,51 @@ describe("YMWK", function () {
     await snapshot.restore();
   });
 
-  describe("YMWK InflationDelay", function () {
-    it("test_rate", async function () {
-      expect(await token.rate()).to.equal(0);
+  it("test_rate", async function () {
+    expect(await token.rate()).to.equal(0);
 
-      await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
-      await ethers.provider.send("evm_mine", []);
+    await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
+    await ethers.provider.send("evm_mine", []);
 
-      await token.updateMiningParameters();
+    await token.updateMiningParameters();
 
-      expect(await token.rate()).to.be.gt(0);
-    });
+    expect(await token.rate()).to.be.gt(0);
+  });
 
-    it("test_startEpochTime", async function () {
-      const creationTime = await token.startEpochTime();
-      // const now = BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
-      // expect(creationTime).to.equal(now.add("86392").sub(YEAR));
+  it("test_startEpochTime", async function () {
+    const creationTime = await token.startEpochTime();
 
-      await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
-      await ethers.provider.send("evm_mine", []);
+    await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
+    await ethers.provider.send("evm_mine", []);
 
-      await token.updateMiningParameters();
+    await token.updateMiningParameters();
 
-      expect(await token.startEpochTime()).to.equal(creationTime.add(YEAR));
-    });
+    expect(await token.startEpochTime()).to.equal(creationTime.add(YEAR));
+  });
 
-    it("test_miningEpoch", async function () {
-      expect(await token.miningEpoch()).to.equal(-1);
+  it("test_miningEpoch", async function () {
+    expect(await token.miningEpoch()).to.equal(-1);
 
-      await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
-      await ethers.provider.send("evm_mine", []);
+    await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
+    await ethers.provider.send("evm_mine", []);
 
-      await token.updateMiningParameters();
+    await token.updateMiningParameters();
 
-      expect(await token.miningEpoch()).to.equal(0);
-    });
+    expect(await token.miningEpoch()).to.equal(0);
+  });
 
-    it("test_availableSupply", async function () {
-      expect(await token.availableSupply()).to.equal(
-        ethers.utils.parseEther("450000000")
-      );
+  it("test_availableSupply", async function () {
+    expect(await token.availableSupply()).to.equal(
+      ethers.utils.parseEther("450000000")
+    );
 
-      await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
-      await ethers.provider.send("evm_mine", []);
+    await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
+    await ethers.provider.send("evm_mine", []);
 
-      await token.updateMiningParameters();
+    await token.updateMiningParameters();
 
-      expect(await token.availableSupply()).to.be.gt(
-        ethers.utils.parseEther("450000000")
-      );
-    });
+    expect(await token.availableSupply()).to.be.gt(
+      ethers.utils.parseEther("450000000")
+    );
   });
 });

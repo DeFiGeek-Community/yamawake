@@ -9,11 +9,11 @@ import { Contract, BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import Constants from "../../Constants";
 
-const DAY = 86400;
-const WEEK = DAY * 7;
-const YEAR = DAY * 365;
-
 describe("Gauge checkpoint", function () {
+  const DAY = 86400;
+  const WEEK = DAY * 7;
+  const YEAR = DAY * 365;
+
   let accounts: SignerWithAddress[];
   let gauge: Contract;
   let token: Contract;

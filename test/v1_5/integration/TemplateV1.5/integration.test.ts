@@ -19,9 +19,6 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { deploySaleTemplateV1_5 } from "../../../scenarioHelper";
 
-// 参考) brownie Stateful Tests
-// https://eth-brownie.readthedocs.io/en/stable/tests-hypothesis-stateful.html
-
 const ACCOUNT_NUM = 5;
 const MAX_EXAMPLES = 30;
 const STATEFUL_STEP_COUNT = 30;

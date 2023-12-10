@@ -18,7 +18,6 @@ describe("Minter", function () {
 
   let snapshot: SnapshotRestorer;
 
-  const TYPE_WEIGHT = BigNumber.from(10).pow(18);
   const GAUGE_WEIGHT = BigNumber.from(10).pow(18);
   const GAUGE_TYPE = 0;
 
@@ -123,7 +122,6 @@ describe("Minter", function () {
       let expected = await gauge.integrateFraction(accounts[1].address);
 
       expect(expected).to.be.gt(0);
-      // console.log(expected.toString());
       expect(await token.balanceOf(accounts[1].address)).to.equal(expected);
       expect(await minter.minted(accounts[1].address, gauge.address)).to.equal(
         expected
@@ -195,8 +193,6 @@ describe("Minter", function () {
 
       await votingEscrow.connect(accounts[1]).withdraw();
       await minter.connect(accounts[1]).mint(gauge.address);
-
-      // console.log((await token.balanceOf(accounts[1].address)).toString());
 
       expect((await token.balanceOf(accounts[1].address)).gt(0)).to.equal(true);
     });
