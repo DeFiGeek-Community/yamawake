@@ -33,16 +33,11 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
     uint256 public totalRaised;
     mapping(address => uint256) public raised;
 
-    address public immutable feeDistributor;
-
     constructor(
         address factory_,
         address feePool_,
-        address distributor_,
-        address feeDistributor_
-    ) BaseTemplate(factory_, feePool_, distributor_) {
-        feeDistributor = feeDistributor_;
-    }
+        address distributor_
+    ) BaseTemplate(factory_, feePool_, distributor_) {}
 
     function initialize(
         address owner_,
@@ -197,11 +192,9 @@ contract TemplateV1_5 is BaseTemplate, ReentrancyGuard {
         uint256 gross = address(this).balance;
         uint256 fee = gross / FEE_DENOMINATOR; // 1% of sales
 
-        (bool feeDistributorSuccess, ) = payable(feeDistributor).call{
-            value: fee
-        }("");
+        (bool feeDistributorSuccess, ) = payable(feePool).call{value: fee}("");
         require(feeDistributorSuccess, "Transfer to FeeDistributor failed");
-        IFeeDistributor(feeDistributor).checkpointToken(address(0));
+        IFeeDistributor(feePool).checkpointToken(address(0));
 
         IDistributor(distributor).addScore(owner, gross * REWARD_SCORE_RATE);
         (bool success, ) = payable(owner).call{value: address(this).balance}(

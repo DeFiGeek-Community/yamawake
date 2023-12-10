@@ -82,7 +82,7 @@ describe("Template V1.5", () => {
     /*
       1) テンプレートV1.5をデプロイし、factoryに登録後、オークションを開催する
     */
-    let { auction, feePool, distributor } = await deploySaleTemplateV1_5(
+    let { auction, distributor } = await deploySaleTemplateV1_5(
       factory,
       feeDistributor,
       token,
@@ -109,11 +109,10 @@ describe("Template V1.5", () => {
     await expect(
       auction.connect(alice).withdrawRaisedETH()
     ).to.changeEtherBalances(
-      [alice.address, auction.address, feePool.address, feeDistributor.address],
+      [alice.address, auction.address, feeDistributor.address],
       [
         ethers.utils.parseEther("99"),
         ethers.utils.parseEther("-100"),
-        ethers.utils.parseEther("0"),
         ethers.utils.parseEther("1"),
       ]
     );

@@ -217,24 +217,19 @@ export async function deploySaleTemplateV1_5(
 ): Promise<{
   auction: Contract;
   templateName: string;
-  feePool: Contract;
+  feeDistributor: Contract;
   distributor: Contract;
 }> {
   const Distributor = await ethers.getContractFactory("Distributor");
   const Template = await ethers.getContractFactory("TemplateV1_5");
-  const FeePool = await ethers.getContractFactory("FeePool");
-
-  const feePool = await FeePool.deploy();
-  await feePool.deployed();
 
   const distributor = await Distributor.deploy(factory.address, ymwk.address);
   await distributor.deployed();
 
   const template = await Template.deploy(
     factory.address,
-    feePool.address,
-    distributor.address,
-    feeDistributor.address
+    feeDistributor.address,
+    distributor.address
   );
   await template.deployed();
 
@@ -264,7 +259,7 @@ export async function deploySaleTemplateV1_5(
   return {
     auction: Template.attach(templateAddr),
     templateName,
-    feePool,
+    feeDistributor,
     distributor,
   };
 }
