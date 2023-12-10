@@ -25,7 +25,7 @@ contract FeeDistributor is ReentrancyGuard {
     mapping(address => mapping(address => uint256)) public userEpochOf; // user -> token -> epoch
 
     mapping(address => uint256) public lastTokenTime;
-    mapping(address => uint256[1000000000000000]) public tokensPerWeek; // token -> week(timestamp) -> amount
+    mapping(address => mapping(uint256 => uint256)) public tokensPerWeek; // token -> week(timestamp) -> amount
 
     address public votingEscrow;
     address[] public tokens;

@@ -54,7 +54,7 @@ contract Gauge is ReentrancyGuard {
     uint256 public tokenTimeCursor;
     // uint256 public tokenLastBalance;
 
-    uint256[1000000000000000] public tokensPerWeek;
+    mapping(uint256 => uint256) public tokensPerWeek;
 
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
     // ∫(balance * rate(t) / totalSupply(t) dt) from 0 till checkpoint
@@ -63,7 +63,6 @@ contract Gauge is ReentrancyGuard {
     // The goal is to be able to calculate ∫(rate * balance / totalSupply dt) from 0 till checkpoint
     uint128 public period;
 
-    // Using dynamic array instead of fixed 100000000000000000000000000000 array to avoid warning about collisions
     mapping(uint128 => uint256) public periodTimestamp;
     mapping(uint128 => uint256) public integrateInvSupply;
 
@@ -302,13 +301,13 @@ contract Gauge is ReentrancyGuard {
 
     function _checkpoint(address addr_) internal {
         if (block.timestamp >= timeCursor) {
-            _checkpointTotalSupply(); // Update max 50 weeks
+            _checkpointTotalSupply(); // Update max 20 weeks
         }
         uint256 _timeCursor = timeCursor - WEEK; // totalSupplyの同期が完了している最新のタイムスタンプ
         uint256 _tokenTimeCursor = tokenTimeCursor;
 
         if (block.timestamp > _tokenTimeCursor + TOKEN_CHECKPOINT_DEADLINE) {
-            _checkpointToken(); // Update max 50 weeks
+            _checkpointToken(); // Update max 20 weeks
             _tokenTimeCursor = tokenTimeCursor;
         }
 
