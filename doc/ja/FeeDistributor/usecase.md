@@ -15,13 +15,15 @@
   - FeeDistributorを立ち上げる
   - 管理者を変更する
   - 緊急時トークン送金先にトークンを送金する
-  - FeeDistributorを非アクティブにする
+  - FeeDistributorをkill状態にする
 - FeeDistributor
-  - Feeとして徴収した入札トークンをveYMWKホルダーに対して分配する
-  - 最大50エポック分のユーザve履歴を取得・保存する
+
   - 入金された手数料を週ごとに配分して保持する
-  - 全体のポイント履歴を取得
-  - ユーザのポイント履歴を取得
+  - 週ごとに配分された報酬をveYMWKホルダーに対して各週のveYMWK残高に応じて分配する
+  - 最大50エポック分のユーザve履歴を取得し、エポック数を保持する
+  - 最大20週間分のveYMWK総残高を取得
+  - 各週初め時点でのveYMWK総残高を保持する
+
 - [VotingEscrow](./index.md)
   - veYMWKの残高を管理をする
 
@@ -44,11 +46,11 @@ graph LR
     claimable_token[報酬額を取得する]
     user_point_history[ユーザのポイント履歴を取得]
     point_history[全体のポイント履歴を取得]
-    sync_ve[最大20週分のve履歴を取得・保存]
-    sync_user_ve[最大50エポック分のユーザve履歴を取得・保存]
+    sync_ve[最大20週間分のveYMWK総残高を取得・保存]
+    sync_user_ve[最大50エポック分のユーザve履歴を取得し、エポック数を保持]
     checkpoint_token[入金された手数料を週ごとに配分]
     set_admin[管理者を変更する]
-    kill[FeeDistributorを非アクティブにする]
+    kill[FeeDistributorをkill状態にする]
     evacuate[緊急時トークン送金先にトークンを送金する]
 
     owner --- deploy
@@ -77,7 +79,7 @@ graph LR
     claim_many -.->|include| claimable_token
     claim_multiple_tokens -.->|include| claimable_token
     claimable_token -.->|include| sync_ve
-    claimable_token -.->|include| checkpoint_token
+
     claimable_token -.->|include| sync_user_ve
 
     sync_user_ve -.->|include| user_point_history

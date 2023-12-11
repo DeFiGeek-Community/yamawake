@@ -12,7 +12,6 @@ contract FeeDistributor is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     uint256 public constant WEEK = 7 * 86400;
-    uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400;
 
     address public immutable factory;
     uint256 public startTime;
@@ -27,9 +26,7 @@ contract FeeDistributor is ReentrancyGuard {
     address[] public tokens;
     mapping(address => bool) public tokenFlags;
 
-    // uint256 public totalReceived;
     mapping(address => uint256) public tokenLastBalance; // token -> balance
-
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
 
     address public admin;

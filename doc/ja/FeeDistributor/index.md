@@ -6,85 +6,87 @@
 
 ## 機能
 
-### Struct
-
-#### Point
-
-veYMWK のある時点での状態を格納するための構造体
-
-- bias(int128)
-  - veYMWK の残高
-- slope(int128)
-  - veYMWK の減り方を表す傾き。ロック額 / 最大ロック期間
-- ts(uint256)
-  - タイムスタンプ
-- blk(uint256)
-  - ブロック高
-
 ### 定数
 
 - WEEK: constant(uint256) = 7 \* 86400
-
   - 一週間の秒数
-
-- TOKEN_CHECKPOINT_DEADLINE: constant(uint256) = 86400
-  - 次回のトークンチェックポイント作成までの最低期間（要検討）
 
 ### プロパティ
 
-- factory: public(address)
+- address public immutable factory
 
   - Factoryのアドレスを保持する
 
-- startTime: public(uint256)
+- uint256 public startTime
   - 報酬の分配を開始するタイムスタンプを保持する
-- timeCursor: public(uint256)
+- uint256 public timeCursor
   - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- timeCursorOf: public(mapping(address => mapping(address => uint256)))
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のタイムスタンプをトークンごとに保持する
-- userEpochOf: public(mapping(address => mapping(address => uint256))
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数をトークンごとに保持する
-- lastTokenTime: public(address => uint256)
+- mapping(address => mapping(address => uint256)) public timeCursorOf
+  - ユーザごと、トークンごとに報酬のクレームが完了している週の次週頭（WEEKの倍数）のタイムスタンプを保持する
+- mapping(address => mapping(address => uint256)) public userEpochOf
+  - ユーザごと、トークンごとにVotingEscrowのuserPointHistoryと同期が完了しているエポック数を保持する
+- mapping(address => uint256) public lastTokenTime
   - チェックポイント時点のタイムスタンプをトークンごとに保持する
-- tokensPerWeek: public(address => uint256[1000000000000000])
+- mapping(address => mapping(uint256 => uint256)) public tokensPerWeek
+
   - 報酬額を週ごと、トークン種別ごとに保持する
-- tokenLastBalance: public(address => uint256)
+
+- address public votingEscrow
+  - VotingEscrowのアドレスを保持する
+- address[] public tokens
+  - 報酬トークンのアドレスを保持する
+  - 0x0はeth
+- mapping(address => bool) public tokenFlags
+
+  - トークンのアドレスが報酬トークンとして登録されているかのフラグを保持する
+  - 0x0はeth
+
+- mapping(address => uint256) public tokenLastBalance
 
   - チェックポイント時点の残高をトークンごとに保持する
 
-- votingEscrow: public(address)
-  - VotingEscrowのアドレスを保持する
-- tokenFlags: public(address => bool)
-  - トークンのアドレスが報酬トークンとして登録されているかのフラグを保持する
-  - 0x0はeth
-- tokens: public(address[])
-  - 報酬トークンのアドレスを保持する
-  - 0x0はeth
-- veSupply: public(uint256[1000000000000000])
-  - veYMWK残高を週ごとに保持する
-- admin: public(address)
+- mapping(uint256 => uint256) public veSupply
+  - veYMWK総残高を週ごとに保持する
+- address public admin
   - 管理者のアドレスを保持する
-- futureAdmin: public(address)
+- address public futureAdmin
   - 次期管理者のアドレスを保持する
-- emergencyReturn: public(address)
+- address public emergencyReturn
   - 緊急時のトークン送金先を保持する
-- isKilled: public(bool)
+- bool public isKilled
   - killed / not killed の状態を保持する
 
 ### 関数
 
-#### 初期化
+#### constructor(address votingEscrow\_, address factory\_, uint256 startTime\_, address admin\_, address emergencyReturn\_)
 
-- factoryを設定する
-- voting_escrowを設定する
-- start_timeを設定する
-- tokensにethアドレス（0x0）を設定する
-- adminを設定する
-- emergency_returnを設定する
+- 処理概要
+  - startTimeを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
+  - ethのlastTokenTimeを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
+  - timeCursorを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
+  - tokensにethアドレス（0x0）を追加する
+  - tokenFlagsのethアドレス（0x0）をtrueに設定する
+  - votingEscrowを設定する
+  - factoryを設定する
+  - adminを設定する
+  - emergencyReturnを設定する
+- 引数
+  - votingEscrow\_,
+    - VotingEscrowのアドレス
+  - factory\_,
+    - Factoryのアドレス
+  - startTime\_,
+    - 報酬の分配を開始するタイムスタンプ
+  - admin\_,
+    - 管理者アドレス
+  - emergencyReturn\_
+    - killMe、recoverBalance実行時にコントラクトの残高を送信するアドレス
 
 #### \_checkpointToken(address address\_)
 
-デポジットされたトークンを週ごとに分類する
+実行された時点の指定トークン残高と前回チェックポイント時の残高の差額を前回チェックポイントからの経過時間で割り、各週ごとに分配する。
+前回チェックポイントから週を跨ぐ場合は前回チェックポイントの翌週分から分配を開始する。
+前回チェックポイントから20週間以上が経過している場合は、今回チェックポイント週を含め過去20週間に対して分配する。
 
 - internal
 - 引数
@@ -93,18 +95,19 @@ veYMWK のある時点での状態を格納するための構造体
 
 #### checkpointToken(address address\_)
 
-\_checkpointTokenを呼ぶ
+\_checkpointTokenを実行する
 
 - external
 - 引数
   - address\_
     - 報酬トークンのアドレス
 - 条件
+  - address\_がFeeDistributorに登録されていること
   - 管理者またはオークション
 
 #### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
 
-タイムスタンプからエポックをバイナリサーチ
+タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いエポック数を返却する
 
 - internal
 - 引数
@@ -112,10 +115,12 @@ veYMWK のある時点での状態を格納するための構造体
     - VotingEsctowのアドレス
   - timestamp\_
     - 検索対象のタイムスタンプ
+- 戻り値
+  - 指定タイムスタンプ直前のエポック数
 
 #### \_findTimestampUserEpoch(address ve\_, address user\_, uint256 timestamp\_, uint256 maxUserEpoch\_) returns uint256
 
-タイムスタンプからユーザエポックをバイナリサーチ
+タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いユーザエポック数を返却する
 
 - internal
 - 引数
@@ -125,6 +130,8 @@ veYMWK のある時点での状態を格納するための構造体
     - 検索対象のユーザ
   - timestamp\_
     - 検索対象のタイムスタンプ
+- 戻り値
+  - 指定タイムスタンプ直前のユーザエポック数
 
 #### veForAt(address user\_ , uint256 timestamp\_) returns uint256
 
@@ -136,22 +143,24 @@ veYMWK のある時点での状態を格納するための構造体
     - 検索対象のユーザ
   - timestamp\_
     - 検索対象のタイムスタンプ
+- 戻り値
+  - 指定タイムスタンプ時点でのユーザveYMWK残高
 
 #### \_checkpointTotalSupply()
 
-ve履歴を同期する
+VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週初め時点でのveYMWK残高履歴を記録する
 
 - internal
 
 #### checkpointTotalSupply()
 
-\_checkpointTotalSupplyを呼ぶ
+\_checkpointTotalSupplyを実行する
 
 - external
 
 #### \_claim(address addr\_, address token\_, address ve\_, uint256 last_token_time\_) returns uint256
 
-指定ユーザの指定トークン報酬額を計算する
+指定ユーザの指定トークン報酬額を、実行時点の前週分まで計算する。以前の実行からのユーザエポック数 + 経過週が50以上の場合は前週分までの計算のために複数回の呼び出しが必要
 
 - internal
 - 引数
@@ -169,7 +178,7 @@ ve履歴を同期する
 
 #### claim(address addr\_, address token\_) returns uint256
 
-報酬をクレームする。View関数として実行することで報酬額を取得する
+報酬をクレームする。View関数として実行することでクレーム可能は報酬額を取得する
 
 - external
 - 引数
