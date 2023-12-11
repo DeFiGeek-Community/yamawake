@@ -140,10 +140,6 @@ typechain-types
 # Hardhat files
 cache
 /artifacts/*
-!/artifacts/contracts/
-/artifacts/contracts/*
-!/artifacts/contracts/**
-/artifacts/contracts/**/*.dbg.json
 
 .embeddedMode
 .saleTemplateName

@@ -3,10 +3,7 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-interface IFactory {
-    function auctions(address _address) external view returns (bool);
-}
+import "./interfaces/IFactory.sol";
 
 contract Distributor {
     using SafeERC20 for IERC20;
