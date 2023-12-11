@@ -12,7 +12,7 @@ import "./interfaces/IFeeDistributor.sol";
  * @title TemplateV1WithCreationFee
  * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
  */
-contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
+contract TemplateV1_5WithCreationFee is BaseTemplate, ReentrancyGuard {
     using SafeERC20 for IERC20;
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
     uint256 private constant TOKEN_BOTTOM_BOUND = 1e6;
