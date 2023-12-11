@@ -5,12 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
 import "./interfaces/IVotingEscrow.sol";
-
-interface IFactory {
-    function auctions(address _address) external view returns (bool);
-}
+import "./interfaces/IFactory.sol";
 
 contract FeeDistributor is ReentrancyGuard {
     using SafeERC20 for IERC20;
