@@ -12,6 +12,10 @@ const DAY = 86400;
 const WEEK = DAY * 7;
 const MAX_EXAMPLES = 10;
 
+/*
+  ランダムな時間経過後にcheckpointTotalSupplyを数回呼ぶことで
+  VotingEscrowのveYMWK残高と同期できることを確認
+*/
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
   let token: Contract;

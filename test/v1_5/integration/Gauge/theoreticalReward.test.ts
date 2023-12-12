@@ -9,6 +9,13 @@ import {
 import Constants from "../../Constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
+/*
+  報酬理論値の検証
+  https://www.desmos.com/calculator/9qm15hlyjq
+  以下の条件で1年後のYMWK報酬が理論値と一致することを確認する
+  Alice: locks 4 YMWK for 4 years
+  Bob: locks 5 YMWK for 2 years
+*/
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
@@ -63,13 +70,6 @@ describe("Gauge", function () {
     await snapshot.restore();
   });
 
-  /*
-    下記理論値の検証
-    https://www.desmos.com/calculator/9qm15hlyjq
-    以下の条件で1年後のYMWK報酬が理論値と一致することを確認する
-    Alice: locks 4 YMWK for 4 years
-    Bob: locks 5 YMWK for 2 years
-  */
   it("should match theoretical value", async function () {
     /* 
       0. 前提条件の設定 

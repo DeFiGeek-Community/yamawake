@@ -16,6 +16,10 @@ const MONTH = DAY * 30;
 const YEAR = DAY * 365;
 const INFLATION_DELAY = YEAR;
 
+/*
+複数のアカウントがランダムな額で同期間YMWKをロックし、ロック期間完了後にミントする。
+各アカウントのYMWKの残高がロック額の全体に対する割合と対応することを確認
+*/
 describe("Minter components", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
@@ -132,10 +136,6 @@ describe("Minter components", function () {
 
   for (let i = 0; i < NUMBER_OF_ATTEMPTS; i++) {
     it(`tests amounts ${i}`, async function () {
-      /*
-      複数のアカウントがランダムな額で同期間YMWKをロックし、ロック期間完了後にミントする。
-      各アカウントのYMWKの残高がロック額と対応することを確認
-      */
       let stAmounts: BigNumber[] = []; //generateUniqueRandomNumbers(3, 1e17, 1e18);
       const depositTime: number[] = [];
 

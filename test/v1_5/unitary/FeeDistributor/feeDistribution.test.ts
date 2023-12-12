@@ -137,12 +137,6 @@ describe("FeeDistributor", () => {
           await coinA
             .connect(bob)
             .transfer(feeDistributor.address, ethers.utils.parseEther("1"));
-          // await fundFeeDistributor({
-          //   feeDistributor,
-          //   token: coinA,
-          //   auction,
-          //   amount: "1",
-          // });
           await feeDistributor.checkpointToken(coinA.address);
           await feeDistributor.checkpointTotalSupply();
           await time.increase(DAY);

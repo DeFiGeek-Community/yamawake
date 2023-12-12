@@ -8,6 +8,12 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
+/* 
+Gauge, Minter, VotingEscrowのインテグレーションテスト
+以下をランダムな順序で繰り返し、報酬額の整合性が合っていることを確認する
+- ランダムな額をlock, extendLock, increaseAmount、withdraw
+- ランダムなタイミングでMinterで報酬をclaim
+*/
 describe("Gauge", function () {
   const ACCOUNT_NUM = 5;
   const MAX_EXAMPLES = 50;
@@ -56,6 +62,7 @@ describe("Gauge", function () {
 
   let lockedUntil: { [key: string]: number } = {};
   let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
+  let claimableTokens: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
   let initialTokenBalance: { [key: string]: BigNumber };
   let tokenLockByUser: { [key: string]: BigNumber };
 
@@ -69,6 +76,7 @@ describe("Gauge", function () {
 
     lockedUntil = {};
     userClaims = {};
+    claimableTokens = {};
     initialTokenBalance = {};
     tokenLockByUser = {};
 
@@ -116,6 +124,7 @@ describe("Gauge", function () {
         .approve(votingEscrow.address, two_to_the_256_minus_1);
 
       userClaims[accounts[i].address] = [];
+      claimableTokens[accounts[i].address] = [];
     }
 
     // accounts[0] locks 10,000,000 tokens for 2 years - longer than the maximum duration of the test
@@ -132,21 +141,21 @@ describe("Gauge", function () {
       ).toNumber(),
     };
 
-    // YMWKインフレーション開始週頭まで時間を進める
+    // Advance time to when YMWK inflation starts
     const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
       INFLATION_DELAY
     );
     await time.increaseTo(tokenInflationStarts);
     await token.updateMiningParameters();
 
-    // Gaugeの追加
+    // Add Gauge
     await gaugeController.addGauge(
       gauge.address,
       1,
       BigNumber.from(10).pow(18)
     );
 
-    // 初期値設定
+    // Initialize stats variables
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       initialTokenBalance[accounts[i].address] = await token.balanceOf(
         accounts[i].address
@@ -344,11 +353,18 @@ describe("Gauge", function () {
 
     claimed = await token.balanceOf(stAcct.address);
 
+    const claimableToken = await gauge.callStatic.claimableTokens(
+      stAcct.address
+    );
     tx = await minter.connect(stAcct).mint(gauge.address);
 
     newClaimed = (await token.balanceOf(stAcct.address)).sub(claimed);
     userClaims[stAcct.address][tx.blockNumber] = [
       newClaimed,
+      await gauge.timeCursorOf(stAcct.address),
+    ];
+    claimableTokens[stAcct.address][tx.blockNumber] = [
+      claimableToken,
       await gauge.timeCursorOf(stAcct.address),
     ];
   }
@@ -362,7 +378,26 @@ describe("Gauge", function () {
     await time.increase(WEEK * 2);
 
     for (const acct of accounts) {
-      await minter.connect(acct).mint(gauge.address);
+      // Finally, claiming by each account and save the stats for verification later.
+      let claimed;
+      let tx;
+      let newClaimed;
+
+      claimed = await token.balanceOf(acct.address);
+      const claimableToken = await gauge.callStatic.claimableTokens(
+        acct.address
+      );
+      tx = await minter.connect(acct).mint(gauge.address);
+
+      newClaimed = (await token.balanceOf(acct.address)).sub(claimed);
+      userClaims[acct.address][tx.blockNumber] = [
+        newClaimed,
+        await gauge.timeCursorOf(acct.address),
+      ];
+      claimableTokens[acct.address][tx.blockNumber] = [
+        claimableToken,
+        await gauge.timeCursorOf(acct.address),
+      ];
     }
 
     const t0: number = (await gauge.startTime()).toNumber();
@@ -411,21 +446,36 @@ describe("Gauge", function () {
     //   console.log(``);
     // });
     // console.log(``);
+    // console.log(`[User claimable tokens]`);
+    // Object.entries(claimableTokens).forEach(([key, val]) => {
+    //   console.log(`${key}:`);
+    //   Object.entries(val).forEach(([k, v]) => {
+    //     console.log(`${k}: ${v}`);
+    //   });
+    //   console.log(``);
+    // });
+    // console.log(``);
     // -------------------------------------------
 
     for (const acct of accounts) {
       const integrateFraction = await gauge.integrateFraction(acct.address);
+      // Balances should match integrateFraction
       expect(await token.balanceOf(acct.address)).to.equal(
         integrateFraction
           .add(initialTokenBalance[acct.address])
           .sub(tokenLockByUser[acct.address])
       );
+      // Balances should match tokensPerUserPerWeek (derived from tokenPerWeek)
       expect(await token.balanceOf(acct.address)).to.equal(
         tokensPerUserPerWeek[acct.address]
           .reduce((a: BigNumber, b: BigNumber) => a.add(b), BigNumber.from("0"))
           .add(initialTokenBalance[acct.address])
           .sub(tokenLockByUser[acct.address])
       );
+      Object.entries(userClaims[acct.address]).forEach(([k, v]) => {
+        // claimableTokens which is saved just before claimimg and actually claimed amount should be identical
+        expect(v[0]).to.be.eq(claimableTokens[acct.address][parseInt(k)][0]);
+      });
     }
   }
 

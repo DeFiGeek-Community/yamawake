@@ -9,6 +9,10 @@ import {
 import Constants from "../../Constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
+/*
+  checkpointTotalSupply, checkpointToken, userCheckpointの
+  順序、頻度によって整合性が崩れないことを確認
+*/
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;

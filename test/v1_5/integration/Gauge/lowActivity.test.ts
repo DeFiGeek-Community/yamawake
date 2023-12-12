@@ -9,6 +9,9 @@ import {
 import Constants from "../../Constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
+/*
+  長期間アクティビティがない状態からのリカバリーをテスト
+*/
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: Contract;
@@ -67,7 +70,7 @@ describe("Gauge", function () {
     /*
     250週放置されても複数回checkpointを実行すれば同期完了できることを確認
     */
-    it("should recover from passing more than 500 weeks where no one was active", async function () {
+    it("should recover from passing more than 250 weeks where no one was active", async function () {
       // Gaugeの追加
       await gaugeController.addGauge(
         gauge.address,
@@ -138,7 +141,8 @@ describe("Gauge", function () {
       const timeCursor2 = await gauge.timeCursor();
       const tokenTimeCursor2 = await gauge.tokenTimeCursor();
 
-      // 各種ステータスが一致することを確認。rewardは複数のepochを跨ぐため、まとめて最新のrateで計算されるreward2の方が少なくなる
+      // 各種ステータスが一致することを確認。
+      // rewardは複数のepochを跨ぐため、まとめて最新のrateにて計算されるreward2の方が少なくなる
       expect(reward2).to.be.above(reward1);
       expect(timeCursorOf1).to.be.eq(timeCursorOf2);
       expect(timeCursor1).to.be.eq(timeCursor2);

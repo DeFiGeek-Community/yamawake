@@ -18,17 +18,6 @@ const MAX_EXAMPLES = 5;
 const STATEFUL_STEP_COUNT = 10;
 const WEEK = 86400 * 7;
 
-// Validate gauge weights and gauge weight sum.
-
-// Strategies
-// ----------
-// st_type : Decimal
-//     Gauge type, multiplied by `len(self.gauges)` to choose a value
-// st_gauge_weight : int
-//     Gauge weight
-// st_type_wiehgt : int
-//     Type weight
-
 // Helper functions to generate random variables ----->
 function randomBigValue(min: number, max: number): BigNumber {
   return BigNumber.from(
@@ -47,7 +36,12 @@ function getRandomWeight(): BigNumber {
   return randomBigValue(10 ** 17, 10 ** 19);
 }
 // ------------------------------------------------
-
+/* 
+FeeDistributorV1のアップグレードテスト
+Curveのフォーク版GaugeControllerを仮想のGaugeControllerV2としてアップグレードし、
+アップグレードされたGaugeControllerがV1のデータを保持していることを確認。
+Curve版のIntegration testを実行しアップグレードされたGaugeControllerがV1のデータを保持しつつテストをパスすることを確認する
+*/
 describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
   let votingEscrow: Contract;
@@ -242,10 +236,7 @@ describe("GaugeControllerV1", function () {
   let func = [ruleAddType, ruleAddGauge];
 
   describe("Upgrade to GaugeControllerV2", function () {
-    /* 
-    Curveのフォーク版GaugeControllerを仮想のGaugeControllerV2としてアップグレードし、
-    アップグレードされたGaugeControllerがV1のデータを保持していることを確認する
-    */
+    // アップグレードされたGaugeControllerがV1のデータを保持していることを確認する
     it(`should upgrade successfully and keep variables`, async () => {
       // Gaugeの追加
       const LiquidityGauge = await ethers.getContractFactory("Gauge");
@@ -283,8 +274,7 @@ describe("GaugeControllerV1", function () {
     });
 
     /* 
-    Curveのフォーク版GaugeControllerを仮想のGaugeControllerV2としてアップグレードし、Curve版のIntegration testを実行する。
-    アップグレードされたGaugeControllerがV1のデータを保持しつつテストをパスすることを確認する
+    GaugeControllerV2に対し、Curve版のIntegration testを実行
     */
     for (let i = 0; i < MAX_EXAMPLES; i++) {
       it(`should upgrade successfully and pass tests for V2 ${i}`, async () => {

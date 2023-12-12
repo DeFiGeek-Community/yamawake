@@ -12,6 +12,10 @@ import { sendEther } from "../../../scenarioHelper";
 const DAY = 86400;
 const WEEK = DAY * 7;
 
+/* 
+同じ週にtokenCheckpoint, claim, tokenCheckpoint, claimし、
+2回目のclaimでは報酬は獲得できないが、翌週以降にクレームできることを確認
+*/
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
   let token: Contract;
@@ -62,9 +66,6 @@ describe("FeeDistributor", function () {
     await snapshot.restore();
   });
 
-  // 同じ週に
-  // tokenCheckpoint, claim, tokenCheckpoint, claim
-  // 2回目のclaimでは報酬は獲得できないが、翌週以降にクレームできることを確認
   it("should not increase balance by claiming multiple times but can claim the next week", async function () {
     await token.transfer(accounts[1].address, ethers.utils.parseEther("1"));
     await token

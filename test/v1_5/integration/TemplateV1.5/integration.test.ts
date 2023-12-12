@@ -1,13 +1,3 @@
-/* 
-Template v1.5, FeeDistributor, VotingEscrowのインテグレーションテスト
-以下をランダムな順序で繰り返し、FeeDistributorに記録される週ごとの報酬額の合計とそれぞれアカウントの最終的な残高の変化が一致していることを確認する
-- ランダムな開催期間、トークン額にてオークションを開催
-- ランダムな額をlock, extendLock, increaseAmount、withdraw
-- ランダムな額を入札
-- 終了したオークションの売上回収orトークン回収
-- 報酬のクレーム
-*/
-
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Contract } from "ethers";
@@ -62,7 +52,15 @@ function getRandomAuctionDuration(): number {
   return randomValue(DAY, DAY * 3);
 }
 // ------------------------------------------------
-
+/* 
+Template v1.5, FeeDistributor, VotingEscrowのインテグレーションテスト
+以下をランダムな順序で繰り返し、FeeDistributorに記録される週ごとの報酬額の合計とそれぞれアカウントの最終的な残高の変化が一致していることを確認する
+- ランダムな開催期間、トークン額にてオークションを開催
+- ランダムな額をlock, extendLock, increaseAmount、withdraw
+- ランダムな額を入札
+- 終了したオークションの売上回収orトークン回収
+- 報酬のクレーム
+*/
 describe("TemplateV1.5", function () {
   let accounts: SignerWithAddress[];
   let admin: SignerWithAddress; // FeeDistributor Admin
@@ -760,7 +758,7 @@ describe("TemplateV1.5", function () {
   describe("test_deposit_withdraw_voting", function () {
     for (let i = 0; i < MAX_EXAMPLES; i++) {
       it(`should distributes fee. Try: ${i}`, async () => {
-        // 確率的に始めにオークション開催、YMWKロックをしておく
+        // Lock YMWK initially at a certain probability
         const initializerSeed = Math.random();
         if (initializerSeed < 0.2) {
           await ruleNewLock();

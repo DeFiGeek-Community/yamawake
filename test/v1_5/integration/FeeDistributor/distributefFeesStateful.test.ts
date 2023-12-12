@@ -47,7 +47,16 @@ function getRandomsTime(): BigNumber {
   return randomBigValue(0, 86400 * 3);
 }
 // ------------------------------------------------
-
+/* 
+FeeDistributor, VotingEscrowのインテグレーションテスト。
+以下をランダムな順序で繰り返し、
+FeeDistributorに記録される週ごとの報酬額の合計とそれぞれアカウントの最終的な残高の変化が一致していること、
+FeeDistributorが全ての残高を報酬として送金完了していることを確認する
+- ランダムな額をlock, extendLock, increaseAmount、withdraw
+- ランダムな額をFeeDistributorに送金
+- ランダムな額をFeeDistributorに送金し、tokenCheckpoint
+- 報酬のクレーム
+*/
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
   let admin: SignerWithAddress; // FeeDistributor Admin
