@@ -14,36 +14,25 @@ contract Gauge is ReentrancyGuard {
     event CommitOwnership(address indexed admin);
     event ApplyOwnership(address indexed admin);
 
-    // Constants
     uint256 public constant WEEK = 604800;
-
-    // Gauge
+    uint256 public immutable startTime;
+    address public immutable token;
+    address public immutable votingEscrow;
+    address public immutable minter;
+    address public immutable gaugeController;
     address public admin;
-    address public token;
-    address public votingEscrow;
-    address public minter;
-    address public gaugeController;
-
-    bool public isKilled;
-
     uint256 public futureEpochTime;
     uint256 public inflationRate;
     uint256 public timeCursor;
-
-    // user -> timestamp
-    mapping(address => uint256) public timeCursorOf;
-
-    // user -> user epoch
-    mapping(address => uint256) public userEpochOf;
-
     uint256 public tokenTimeCursor;
 
-    mapping(uint256 => uint256) public tokensPerWeek;
+    bool public isKilled;
 
+    mapping(address => uint256) public timeCursorOf; // user -> timestamp
+    mapping(address => uint256) public userEpochOf; // user -> user epoch
+    mapping(uint256 => uint256) public tokensPerWeek;
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
     mapping(address => uint256) public integrateFraction;
-
-    uint256 public immutable startTime;
 
     /***
      * @notice Constructor

@@ -8,63 +8,71 @@
 
 ### 定数
 
-uint256 public constant WEEK = 604800
-uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 86400
-string public constant VERSION = "v1.0.0";
+- uint256 public constant WEEK = 604800
+
+  - 1週間の秒数
 
 ### プロパティ
 
-- admin(address public)
+- uint256 public immutable startTime
 
-  - 管理者アドレスを保持する
+  - トークンの配布を開始する週頭のタイムスタンプ
 
-- token(address public immutable)
+- address public immutable token
 
   - YMWKトークンのアドレスを保持する
 
-- votingEscrow(address public immutable)
+- address public immutable votingEscrow
 
   - VotingEscrowのアドレスを保持する
 
-- minter(address public immutable)
+- address public immutable minter
 
   - ミンターのアドレスを保持する
 
-- gaugeController(address public immutable)
+- address public immutable gaugeController
 
   - ゲージコントローラーのアドレスを保持する
 
-- isKilled(bool public)
+- address public admin
 
-  - kill状態フラグ
+  - 管理者アドレスを保持する
 
-- futureEpochTime(uint256 public)
+- uint256 public futureEpochTime
 
   - 次回のインフレーションレート変更タイムスタンプを保持する
 
-- inflationRate
+- uint256 public inflationRate
 
   - YMWKのインフレーションレートを保持する
 
-- timeCursor: public(uint256)
-  - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- timeCursorOf: public(mapping(address => uint256))
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- userEpochOf: public(mapping(address => uint256))
-  - ユーザごとの、ve同期が完了している最後（最新）の履歴のエポック数を保持する
-- lastTokenTime: public(uint256)
-  - チェックポイント時点のタイムスタンプを保持する
-- tokenLastBalance: public(uint256)
-  - 前回チェックポイント時のトークン残高を保持する
-- tokensPerWeek: public(uint256[1000000000000000])
+- bool public isKilled
 
-  - 報酬額を週ごとに保持する
+  - kill状態フラグ
 
-- veSupply: public(uint256[1000000000000000])
-  - veYMWK残高を週ごとに保持する
-- integrateFraction(address => uint256 public)
+- uint256 public timeCursor
 
-  - ユーザごとのYMWK報酬の累計を保持する
+  - 次回checkpointTotalSupplyでve同期を開始する週頭のタイムスタンプを保持する
+
+- mapping(address => uint256) public timeCursorOf
+
+  - ユーザごとの、次回のuserCheckpoint時に報酬の計算を開始する週頭のタイムスタンプを保持する
+
+- mapping(address => uint256) public userEpochOf
+
+  - ユーザごとの、ve同期が完了している最新のエポック数を保持する
+
+- mapping(uint256 => uint256) public tokensPerWeek
+
+  - 報酬額（このGaugeに割当てられるYMWKのMint権利）を週ごとに保持する
+
+- mapping(uint256 => uint256) public veSupply
+
+  - veYMWK総残高を週ごとに保持する
+
+- mapping(address => uint256) public integrateFraction
+
+  - ユーザごとに割当てられるYMWK報酬額の累計を保持する
 
     - Weight × 各週のYMWK新規発行量 × 各週頭時点でのユーザve残高 / 各週頭時点での累計ve残高
 
@@ -94,49 +102,38 @@ string public constant VERSION = "v1.0.0";
     t_0:
     $ 報酬分配を開始するタイムスタンプ
 
-- periodTimestamp(uint256[100000000000000000000000000000] public)
-  - チェックポイントごとのタイムスタンプを保持する
-- period(uint256 public)
-  - チェックポイントの履歴数を保持する
-- startTime(uint256 public immutable)
-  - トークンの配布を開始するタイムスタンプ。YMWKインフレーションの開始週頭の時間。
-
 ### 関数
 
-#### 初期化
+#### constructor(address minter\_)
 
 - minterを設定する
 - tokenを設定する
-- votingEscrowを設定する
 - gaugeControllerを設定する
-- periodTimestampを設定する
+- votingEscrowを設定する
 - adminを設定する
 - inflationRateをtokenから取得し、設定する
 - futureEpochTimeをtokenから取得し、設定する
-
-#### veYMWK残高に対するYMWKインフレーション量の割合の履歴を更新する
-
-- 最後に同期された時点から20週分に渡りveYMWK残高をVoting Escrowから情報を取得する
-- Gauge ControllerからWeightを取得する
-- YMWKトークンのインフレーションレートの更新タイムスタンプを跨ぐ場合はYMWKトークンのインフレーションレートと次回のインフレーションレート更新タイムスタンプを更新する
-- それぞれの週について、veYMWK残高に対するYMWKインフレーション量の割合を計算し履歴を更新する
-- 履歴のタイムスタンプを更新する
+- startTimeにfutureEpochTimeの週の頭のタイムスタンプを設定する。次回のYMWKインフレーションレートの変更がある週から開始になるので、GaugeはYMWKのインフレーションがスタートする前にデプロイされることが前提
+- tokenTimeCursorにfutureEpochTimeの週の頭のタイムスタンプを設定する
+- timeCursorにfutureEpochTimeの週の頭のタイムスタンプを設定する
 
 #### \_checkpointToken()
 
-期間中のYMWK新規発行額を週ごとに分配する
+tokenTimeCursor時点から、実行された時点の前週分までの、このGaugeに割り振られるYMWK報酬額を、各週ごとに最大20週間分計算し、分配する。
 
 - internal
 
 #### checkpointToken()
 
-\_checkpointTokenを呼ぶ
+\_checkpointTokenを実行する
 
 - external
+- 条件
+  - 管理者、または実行時の週がtokenTimeCursorの週を過ぎていること
 
 #### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
 
-タイムスタンプからエポックをバイナリサーチ
+タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いエポック数を返却する
 
 - internal
 - 引数
@@ -144,10 +141,12 @@ string public constant VERSION = "v1.0.0";
     - VotingEsctowのアドレス
   - timestamp\_
     - 検索対象のタイムスタンプ
+- 戻り値
+  - 指定タイムスタンプ直前のエポック数
 
 #### \_findTimestampUserEpoch(address ve\_, address user\_, uint256 timestamp\_, uint256 maxUserEpoch\_) returns uint256
 
-タイムスタンプからユーザエポックをバイナリサーチ
+タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いユーザエポック数を返却する
 
 - internal
 - 引数
@@ -157,6 +156,8 @@ string public constant VERSION = "v1.0.0";
     - 検索対象のユーザ
   - timestamp\_
     - 検索対象のタイムスタンプ
+- 戻り値
+  - 指定タイムスタンプ直前のユーザエポック数
 
 #### veForAt(address user\_ , uint256 timestamp\_) returns uint256
 
@@ -168,48 +169,49 @@ string public constant VERSION = "v1.0.0";
     - 検索対象のユーザ
   - timestamp\_
     - 検索対象のタイムスタンプ
+- 戻り値
+  - 指定タイムスタンプ時点でのユーザveYMWK残高
 
 #### \_checkpointTotalSupply()
 
-- ve履歴を同期する
-
-  - 最後に同期された時点から20週分に渡りveYMWK残高をVoting Escrowから情報を取得する
-  - Gauge ControllerからWeightを取得する
-  - YMWKトークンのインフレーションレートの更新タイムスタンプを跨ぐ場合はYMWKトークンのインフレーションレートと次回のインフレーションレート更新タイムスタンプを更新する
-  - それぞれの週について、veYMWK残高に対するYMWKインフレーション量の割合を計算し履歴を更新する
-  - 履歴のタイムスタンプを更新する
+VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週初め時点でのveYMWK残高履歴を記録する
 
 - internal
 
 #### checkpointTotalSupply()
 
-\_checkpointTotalSupplyを呼ぶ
+\_checkpointTotalSupplyを実行する
 
 - external
 
-#### \_claim(address addr\_, address ve\_, uint256 lastTokenTime\_) returns uint256
+#### \_checkpoint(address addr\_)
 
-- 指定ユーザの報酬額を計算する
+指定ユーザの報酬額を計算する
 
-  - 最後に同期されたユーザの履歴から最大50回分の履歴を取得する
-  - 各週についてYMWK報酬を計算し、記録する
-  - 履歴のタイムスタンプ、エポック数を更新する
+- 実行時点が、前回のveYMWK総残高更新から週を跨いでいる場合
+
+  - \_checkpointTotalSupplyを呼んでveYMWK総残高の履歴を更新
+
+- 実行時点が、報酬の計算が完了している最後の週から週を跨いでいる場合
+
+  - \_checkpointTokenを呼んで、計算が完了していない週の報酬を計算
+
+- ユーザにveの履歴がない場合
+
+  - 終了
+
+- timeCursorOfの週からveYMWK総残高の同期とYMWK報酬の計算が完了している週まで週ごとにユーザに割当てられる報酬額を計算する
+- ユーザエポックを記録する
+- 報酬額の累計を更新する
 
 - internal
 - 引数
   - addr\_
     - 対象ユーザのアドレス
-  - ve\_
-    - VotingEscrowのアドレス
-  - last_token_time\_
-    - トークンの最後のチェックポイントのタイムスタンプ
-- 戻り値
-  - \_amount
-    - 指定トークンの報酬額
 
-#### claim(address addr\_) returns uint256
+#### userCheckpoint(address addr\_) returns (bool)
 
-報酬をクレームする。View関数として実行することで報酬額を取得する
+\_checkpointを実行する
 
 - external
 - 引数
@@ -217,22 +219,10 @@ string public constant VERSION = "v1.0.0";
     - 対象ユーザのアドレス
 - 戻り値
 
-  - \_amount
-    - 指定トークンの報酬額
+  - true
 
 - 条件
-  - kill状態でない
-
-#### claimMany(address[] receivers\_)
-
-複数のアドレスの報酬をまとめてクレームする
-
-- external
-- 引数
-  - receivers\_
-    - 対象ユーザのアドレス配列
-- 条件
-  - kill状態でない
+  - addr\_本人またはminter
 
 #### setKilled(bool isKilled\_)
 
@@ -245,7 +235,7 @@ string public constant VERSION = "v1.0.0";
 - 条件
   - 管理者のみ
 
-#### claimableTokens(address addr\_) returns uint256
+#### claimableTokens(address addr\_) returns (uint256)
 
 指定ユーザが現在クレーム可能なYMWK報酬額を返す
 
@@ -253,12 +243,8 @@ string public constant VERSION = "v1.0.0";
 - 引数
   - addr\_
     - 対象ユーザのアドレス
-
-#### integrateCheckpoint() returns uint256
-
-最新のチェックポイントのタイムスタンプを返す
-
-- external view
+- 戻り値
+  - クレーム可能な報酬額
 
 ## 参考
 
