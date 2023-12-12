@@ -218,10 +218,10 @@ describe("Gauge", function () {
       await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
       await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
 
-      // userTimeCursorがtimeCursorの1週間前であることを確認
+      // userTimeCursorがtimeCursorと同じであることを確認
       const userTimeCursor = await gauge.timeCursorOf(accounts[1].address);
       const timeCursor2 = await gauge.timeCursor();
-      expect(userTimeCursor).to.be.eq(timeCursor2.sub(WEEK));
+      expect(userTimeCursor).to.be.eq(timeCursor2);
     });
   });
 });

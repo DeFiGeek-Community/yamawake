@@ -14,23 +14,8 @@ contract Gauge is ReentrancyGuard {
     event CommitOwnership(address indexed admin);
     event ApplyOwnership(address indexed admin);
 
-    // to avoid "stack too deep"
-    struct CheckPointParameters {
-        uint128 period;
-        uint256 periodTime;
-        uint256 integrateInvSupply;
-        uint256 inflationParams;
-        uint256 rate;
-        uint256 newRate;
-        uint256 prevFutureEpoch;
-        uint256 workingBalance;
-        uint256 workingSupply;
-    }
-
     // Constants
     uint256 public constant WEEK = 604800;
-    uint256 public constant TOKEN_CHECKPOINT_DEADLINE = 1 days;
-    string public constant VERSION = "v1.0.0";
 
     // Gauge
     address public admin;
@@ -52,19 +37,11 @@ contract Gauge is ReentrancyGuard {
     mapping(address => uint256) public userEpochOf;
 
     uint256 public tokenTimeCursor;
-    // uint256 public tokenLastBalance;
 
     mapping(uint256 => uint256) public tokensPerWeek;
 
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
-    // ∫(balance * rate(t) / totalSupply(t) dt) from 0 till checkpoint
     mapping(address => uint256) public integrateFraction;
-
-    // The goal is to be able to calculate ∫(rate * balance / totalSupply dt) from 0 till checkpoint
-    uint128 public period;
-
-    mapping(uint128 => uint256) public periodTimestamp;
-    mapping(uint128 => uint256) public integrateInvSupply;
 
     uint256 public immutable startTime;
 
@@ -78,21 +55,22 @@ contract Gauge is ReentrancyGuard {
         gaugeController = IMinter(minter).controller();
         votingEscrow = IGaugeController(gaugeController).votingEscrow();
 
-        periodTimestamp[0] = block.timestamp;
         admin = msg.sender;
 
         inflationRate = IYMWK(token).rate();
         futureEpochTime = IYMWK(token).futureEpochTimeWrite();
 
+        // Assuming deployment before the start of YMWK's inflation
         uint _t = (futureEpochTime / WEEK) * WEEK;
-        startTime = _t; // Distribution starts when YMWK inflation starts
+        startTime = _t;
         tokenTimeCursor = _t;
         timeCursor = _t;
     }
 
     /***
      * @notice
-     * @dev tokenTimeCursorから、最大50週間までのYMWKトークン分配を計算し、各週に分配する。
+     * @dev Calculate the distribution of YMWK tokens for up to a maximum of 20 weeks from the tokenTimeCursor,
+     *      and allocate them for each week.
      */
     function _checkpointToken() internal {
         uint256 _toDistribute;
@@ -101,14 +79,15 @@ contract Gauge is ReentrancyGuard {
         uint256 _prevFutureEpoch = futureEpochTime;
         uint256 _newRate = _rate;
 
-        uint256 _t = tokenTimeCursor;
-        uint256 _thisWeek = (_t / WEEK) * WEEK;
+        uint256 _t = tokenTimeCursor; // timestamp for the start of the week when the calculation of tokensPerWeek starts this time
+        uint256 _thisWeek = (_t / WEEK) * WEEK; // (=tokenTimeCursor)
         uint256 _nextWeek = 0;
-        uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
+        uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK; // timestamp for the start of the current week.
 
-        // 現在Gaugeに設定されているYMWKの次回インフレ率更新時間が、直近のトークンチェックポイントより未来の場合
-        // 今回のチェックポイントでYMWKエポックを跨ぐ可能性があるので更新を掛けておく
-        if (_prevFutureEpoch >= _t) {
+        // If the next YMWK inflation rate update time set in the current Gauge is
+        // in the future compared to the most recent token checkpoint and less than the start of this week,
+        // apply an update at this checkpoint as it spans a YMWK epoch.
+        if (_prevFutureEpoch >= _t && _prevFutureEpoch < _roundedTimestamp) {
             futureEpochTime = IYMWK(token).futureEpochTimeWrite();
             _newRate = IYMWK(token).rate();
             inflationRate = _newRate;
@@ -119,15 +98,16 @@ contract Gauge is ReentrancyGuard {
             _newRate = 0; // Stop distributing inflation as soon as killed
         }
 
-        // Gaugeの状態を更新
+        // Update Gauge state
         IGaugeController(gaugeController).checkpointGauge(address(this));
 
         for (uint256 i; i < 20; ) {
             if (_thisWeek >= _roundedTimestamp) {
-                // 2週目頭のトークン報酬額は3週目に入るまで計算しない
+                // If it is currently in the middle of the second week,
+                // calculate the rewards for the first week only,
+                // and do not calculate the rewards for the second week until entering the third week.
                 // |---|-x-|
                 // 1   2   3
-                // この場合は1週目の報酬まで計算
                 break;
             }
             _nextWeek = _thisWeek + WEEK;
@@ -136,7 +116,7 @@ contract Gauge is ReentrancyGuard {
                 _thisWeek
             );
 
-            // 次週頭までの報酬額を計算し、今週分のトークン配分に加算する。
+            // Calculate the reward amount for this week and add it to this week's token distribution
             if (_prevFutureEpoch >= _t && _prevFutureEpoch < _nextWeek) {
                 // If we went across one or multiple epochs, apply the rate
                 // of the first epoch until it ends, and then the rate of
@@ -159,6 +139,7 @@ contract Gauge is ReentrancyGuard {
                 ++i;
             }
         }
+        // Store the week when the next update of tokensPerWeek will begin.
         tokenTimeCursor = _t;
         emit CheckpointToken(block.timestamp, _toDistribute);
     }
@@ -171,9 +152,10 @@ contract Gauge is ReentrancyGuard {
          to call.
      */
     function checkpointToken() external {
+        uint256 _thisWeek = (block.timestamp / WEEK) * WEEK;
+        // Do not calculate the tokenCheckpoint until the week following the tokenTimeCursor (the week when the next reward calculation will start)
         require(
-            msg.sender == admin ||
-                block.timestamp > tokenTimeCursor + TOKEN_CHECKPOINT_DEADLINE,
+            msg.sender == admin || _thisWeek > tokenTimeCursor,
             "Unauthorized"
         );
         _checkpointToken();
@@ -303,10 +285,13 @@ contract Gauge is ReentrancyGuard {
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply(); // Update max 20 weeks
         }
-        uint256 _timeCursor = timeCursor - WEEK; // totalSupplyの同期が完了している最新のタイムスタンプ
+        uint256 _timeCursor = timeCursor;
         uint256 _tokenTimeCursor = tokenTimeCursor;
+        uint256 _thisWeek = (block.timestamp / WEEK) * WEEK;
 
-        if (block.timestamp > _tokenTimeCursor + TOKEN_CHECKPOINT_DEADLINE) {
+        if (_thisWeek > tokenTimeCursor) {
+            // If the current time is in the week following the tokenTimeCursor (the week when the next reward calculation starts) or later,
+            // calculate the rewards.
             _checkpointToken(); // Update max 20 weeks
             _tokenTimeCursor = tokenTimeCursor;
         }
@@ -349,8 +334,8 @@ contract Gauge is ReentrancyGuard {
         }
 
         if (_weekCursor >= _timeCursor || _weekCursor >= _tokenTimeCursor) {
-            // _weekCursor >= _timeCursor の場合はveのtotalSupply同期が完了していないのでここで終了
-            // _weekCursor >= _tokenTimeCursor の場合は週に分配されるtokenの計算が完了していないのでここで終了
+            // Stop here if _weekCursor >= _timeCursor as the sync of ve totalSupply is not complete.
+            // Stop here if _weekCursor >= _tokenTimeCursor as the calculation of tokens to be distributed per week is not complete
             return;
         }
 
@@ -368,8 +353,8 @@ contract Gauge is ReentrancyGuard {
         // Iterate over weeks
         for (uint256 i; i < 50; ) {
             if (_weekCursor >= _timeCursor || _weekCursor >= _tokenTimeCursor) {
-                // _weekCursor >= _timeCursor の場合はveのtotalSupply同期が完了していないのでここで終了
-                // _weekCursor >= _tokenTimeCursor の場合は週に分配されるtokenの計算が完了していないのでここで終了
+                // Stop here if _weekCursor >= _timeCursor as the sync of ve totalSupply is not complete.
+                // Stop here if _weekCursor >= _tokenTimeCursor as the calculation of tokens to be distributed per week is not complete
                 break;
             } else if (
                 _weekCursor >= _userPoint.ts && _userEpoch <= _maxUserEpoch
@@ -404,7 +389,7 @@ contract Gauge is ReentrancyGuard {
                 }
 
                 if (_balanceOf == 0 && _userEpoch > _maxUserEpoch) {
-                    // ve残高0でこれ以上ve履歴がない場合はここで同期を終了
+                    // If the ve balance is zero and there are no further ve histories, end the sync here.
                     break;
                 }
                 if (_balanceOf > 0) {
@@ -444,14 +429,6 @@ contract Gauge is ReentrancyGuard {
         return
             integrateFraction[addr_] -
             IMinter(minter).minted(addr_, address(this));
-    }
-
-    function integrateCheckpoint() external view returns (uint256) {
-        return periodTimestamp[period];
-    }
-
-    function version() external pure returns (string memory) {
-        return VERSION;
     }
 
     function min(uint256 a, uint256 b) internal pure returns (uint256) {

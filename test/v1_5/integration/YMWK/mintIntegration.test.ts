@@ -39,9 +39,7 @@ describe("YMWK", function () {
 
       await time.increase(duration);
 
-      const currentTime = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
+      const currentTime = BigNumber.from(await time.latest());
       const amount = currentTime.sub(creationTime).mul(rate);
       await token.mint(accounts[1].address, amount);
 
@@ -57,9 +55,7 @@ describe("YMWK", function () {
 
       await time.increase(duration);
 
-      const currentTime = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
+      const currentTime = BigNumber.from(await time.latest());
       const amount = currentTime.sub(creationTime).add(2).mul(rate);
       await expect(token.mint(accounts[1].address, amount)).to.be.revertedWith(
         "dev: exceeds allowable mint amount"
@@ -77,10 +73,7 @@ describe("YMWK", function () {
       for (const duration of durations) {
         await time.increase(duration);
 
-        if (
-          (await ethers.provider.getBlock("latest")).timestamp - epochStart >
-          YEAR
-        ) {
+        if ((await time.latest()) - epochStart > YEAR) {
           await token.updateMiningParameters();
           epochStart = await token.startEpochTime();
         }
