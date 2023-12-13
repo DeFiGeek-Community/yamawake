@@ -55,7 +55,7 @@ describe("FeeDistributor", () => {
     await snapshot.restore();
   });
 
-  describe("test_kill_fee_distro", () => {
+  describe("test_recover_balance", () => {
     let accounts: SignerWithAddress[];
     beforeEach(async () => {
       const Distributor = await ethers.getContractFactory("FeeDistributor");
@@ -75,18 +75,7 @@ describe("FeeDistributor", () => {
       expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
     });
 
-    it("test_kill", async function () {
-      await feeDistributor.connect(alice).killMe();
-      expect(await feeDistributor.isKilled()).to.be.true;
-    });
-
-    it("test_multi_kill", async function () {
-      await feeDistributor.connect(alice).killMe();
-      await feeDistributor.connect(alice).killMe();
-      expect(await feeDistributor.isKilled()).to.be.true;
-    });
-
-    it("test_killing_transfers_tokens", async function () {
+    it("test_recover_balance", async function () {
       auction = await deploySampleSaleTemplate(
         factory,
         feeDistributor,
@@ -100,18 +89,21 @@ describe("FeeDistributor", () => {
       await coinA._mintForTesting(feeDistributor.address, 31337);
       // Calling the mock function to add coinA to the reward list
       await auction.withdrawRaisedToken(coinA.address);
-      await feeDistributor.connect(alice).killMe();
 
       expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
-      // Bob should receive 1 Ether
+
+      await feeDistributor
+        .connect(alice)
+        .recoverBalance(ethers.constants.AddressZero);
       expect(await ethers.provider.getBalance(bob.address)).to.eq(
         initialEthBob.add(ethers.utils.parseEther("1"))
       );
-      // Tokens other than Ether should not be transfered by killing contract
-      expect(await coinA.balanceOf(bob.address)).to.equal(0);
+
+      await feeDistributor.connect(alice).recoverBalance(coinA.address);
+      expect(await coinA.balanceOf(bob.address)).to.equal(31337);
     });
 
-    it("test_multi_kill_token_transfer", async function () {
+    it("test_recover_balance_after_kill", async function () {
       auction = await deploySampleSaleTemplate(
         factory,
         feeDistributor,
@@ -120,58 +112,17 @@ describe("FeeDistributor", () => {
         TEMPLATE_NAME,
         dan
       );
-      const initialEthBob = await ethers.provider.getBalance(bob.address);
-
+      await coinA._mintForTesting(feeDistributor.address, 31337);
       // Calling the mock function to add coinA to the reward list
       await auction.withdrawRaisedToken(coinA.address);
 
-      await sendEther(feeDistributor.address, "1", alice);
-      await coinA._mintForTesting(feeDistributor.address, 10000);
-      await feeDistributor.connect(alice).killMe();
-
-      await sendEther(feeDistributor.address, "1", alice);
-      await coinA._mintForTesting(feeDistributor.address, 30000);
       await feeDistributor.connect(alice).killMe();
 
       expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
-      // Bob should receive 1 Ether
-      expect(await ethers.provider.getBalance(bob.address)).to.eq(
-        initialEthBob.add(ethers.utils.parseEther("2"))
-      );
-      // Tokens other than Ether should not be transfered by killing contract
+
       expect(await coinA.balanceOf(bob.address)).to.equal(0);
+      await feeDistributor.connect(alice).recoverBalance(coinA.address);
+      expect(await coinA.balanceOf(bob.address)).to.equal(31337);
     });
-
-    for (let idx = 1; idx <= 2; idx++) {
-      it(`test_only_admin_for_account_index_${idx}`, async function () {
-        await expect(feeDistributor.connect(accounts[idx]).killMe()).to.be
-          .reverted;
-      });
-
-      it(`test_cannot_claim_after_killed_for_account_index_${idx}`, async function () {
-        await feeDistributor.connect(alice).killMe();
-        await expect(
-          feeDistributor.connect(accounts[idx])["claim(address)"](coinA.address)
-        ).to.be.reverted;
-      });
-
-      it(`test_cannot_claim_for_after_killed_for_account_index_${idx}`, async function () {
-        await feeDistributor.connect(alice).killMe();
-        await expect(
-          feeDistributor
-            .connect(accounts[idx])
-            ["claim(address,address)"](alice.address, coinA.address)
-        ).to.be.reverted;
-      });
-
-      it(`test_cannot_claim_many_after_killed_for_account_index_${idx}`, async function () {
-        await feeDistributor.connect(alice).killMe();
-        await expect(
-          feeDistributor
-            .connect(accounts[idx])
-            .claimMany(new Array(20).fill(alice.address), coinA.address)
-        ).to.be.reverted;
-      });
-    }
   });
 });

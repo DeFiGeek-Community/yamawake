@@ -103,13 +103,35 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _currentWeek = block.timestamp / WEEK;
         uint256 _sinceLastInWeeks = _currentWeek - _t / WEEK;
 
-        // 前回のチェックポイントから週をまたいでいる場合は_tを前回のチェックポイントの翌週頭に設定する
+        /* 
+        If current timestamp crosses a week since the last checkpoint,
+        set _t to the beginning of the week following the last checkpoint.
+
+        |-x-|---|-●-|
+        0   1   2   3
+        x: Last checkpoint 
+        ●: New checkpoint
+
+        In this case, we start the calculation from (the beginning of) week 1. 
+        No more fee will be allocated to week 0.
+        */
         if (_sinceLastInWeeks > 0) {
             _t = ((_t + WEEK) / WEEK) * WEEK;
             _sinceLast = block.timestamp - _t;
             _sinceLastInWeeks = _currentWeek - _t / WEEK;
         }
-        // _sinceLastが20週間以上経過している場合は_tを現在のブロックタイムから19週間前に設定
+        /*
+        If _sinceLast has exceeded 20 weeks,
+        set _t to 19 weeks prior to the current block time.
+
+        |-x-|-0-|-0-|-0-|-0-|-0-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|0.5●-|-
+        0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+        x: Last checkpoint 
+        ●: New checkpoint
+
+        In this case, we start the calculation from (the beginning of) week 6. 
+        No fee will be allocated to the weeks prior to week 5.
+        */
         if (_sinceLastInWeeks >= 20) {
             _t = ((block.timestamp - (WEEK * 19)) / WEEK) * WEEK;
             _sinceLast = block.timestamp - _t;
@@ -612,30 +634,17 @@ contract FeeDistributor is ReentrancyGuard {
 
     /***
      * @notice Kill the contract
-     * @dev Killing transfers the entire token balance to the emergency return address
-         and blocks the ability to claim or burn. The contract cannot be unkilled.
+     * @dev Killing transfers the entire Ether balance to the emergency return address
+         and blocks the ability to claim. The contract cannot be unkilled.
+         Tokens other than Ether should be transferred using recoverBalance() 
+         to avoid failing killing the contract due to unexpected behavior of third party ERC20 tokens
      */
     function killMe() external onlyAdmin {
         isKilled = true;
-        uint256 _length = tokens.length;
-        for (uint256 i; i < _length; ) {
-            address _token = tokens[i];
-            if (_token == address(0)) {
-                (bool success, ) = payable(emergencyReturn).call{
-                    value: address(this).balance
-                }("");
-                require(success, "Transfer failed");
-            } else {
-                IERC20(_token).safeTransfer(
-                    emergencyReturn,
-                    IERC20(_token).balanceOf(address(this))
-                );
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
+        (bool success, ) = payable(emergencyReturn).call{
+            value: address(this).balance
+        }("");
+        require(success, "Transfer failed");
     }
 
     /***
