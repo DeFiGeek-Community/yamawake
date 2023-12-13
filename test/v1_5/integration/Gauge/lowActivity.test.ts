@@ -197,7 +197,7 @@ describe("Gauge", function () {
 
       /*
         1. 合計500週間時間を進め、合間にBobがuserCheckpointを実行している場合、
-        Aliceがcheckpointを2回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
+        Aliceがcheckpointを複数回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
       */
       for (let i = 0; i < 25; i++) {
         await time.increase(WEEK.mul(20));
