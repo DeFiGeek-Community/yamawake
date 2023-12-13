@@ -245,7 +245,7 @@ VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週
 
 #### kill_me()
 
-kill状態をTrueに変更し、トークン残高を全て緊急時のトークン送金先に送金する
+kill状態をTrueに変更し、Ether残高を緊急時のトークン送金先に送金する
 
 - 条件
 
