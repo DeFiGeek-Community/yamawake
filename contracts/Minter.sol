@@ -5,10 +5,10 @@ pragma solidity ^0.8.18;
  * SPDX-License-Identifier: MIT
  */
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IYMWK.sol";
 import "./interfaces/ILiquidityGauge.sol";
 import "./interfaces/IGaugeController.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract Minter is ReentrancyGuard {
     event Minted(address indexed recipient, address gauge, uint256 minted);
@@ -19,12 +19,12 @@ contract Minter is ReentrancyGuard {
     // user -> gauge -> value
     mapping(address => mapping(address => uint256)) public minted; // minted amount of user from specific gauge.
 
-    // minter -> user -> can mint?
+    // minter -> user -> can mint
     mapping(address => mapping(address => bool)) public allowedToMintFor; // A can mint for B if [A => B => true].
 
-    constructor(address _token, address _controller) {
-        token = _token;
-        controller = _controller;
+    constructor(address token_, address controller_) {
+        token = token_;
+        controller = controller_;
     }
 
     function _mintFor(address gaugeAddr_, address for_) internal {
