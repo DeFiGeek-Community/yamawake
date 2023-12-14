@@ -26,7 +26,7 @@ contract Gauge is ReentrancyGuard {
     uint256 public timeCursor;
     uint256 public tokenTimeCursor;
 
-    bool public isKilled;
+    uint256 public isKilled;
 
     mapping(address => uint256) public timeCursorOf; // user -> timestamp
     mapping(address => uint256) public userEpochOf; // user -> user epoch
@@ -82,7 +82,7 @@ contract Gauge is ReentrancyGuard {
             inflationRate = _newRate;
         }
 
-        if (isKilled) {
+        if (isKilled == 1) {
             _rate = 0;
             _newRate = 0; // Stop distributing inflation as soon as killed
         }
@@ -410,7 +410,7 @@ contract Gauge is ReentrancyGuard {
     }
 
     function setKilled(bool isKilled_) external onlyAdmin {
-        isKilled = isKilled_;
+        isKilled = isKilled_ ? 1 : 0;
     }
 
     function claimableTokens(address addr_) external returns (uint256) {

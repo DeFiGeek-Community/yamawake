@@ -46,9 +46,9 @@
 
   - YMWKのインフレーションレートを保持する
 
-- bool public isKilled
+- uint256 public isKilled
 
-  - kill状態フラグ
+  - kill状態フラグ。 0 -> 通常状態, 1 -> kill状態
 
 - uint256 public timeCursor
 

@@ -26,30 +26,6 @@ describe("FeeDistributor", () => {
   let coinA: Contract;
   let snapshot: SnapshotRestorer;
 
-  type FundParams = {
-    feeDistributor: Contract;
-    auction?: Contract;
-    token?: Contract;
-    sender?: SignerWithAddress;
-    amount?: string;
-  };
-  async function fundFeeDistributor(params: FundParams) {
-    if (!params.auction || !params.token) {
-      if (!params.sender) throw new Error("Sender required");
-      await sendEther(
-        feeDistributor.address,
-        params.amount ? params.amount : "10",
-        params.sender
-      );
-    } else {
-      await coinA._mintForTesting(
-        auction.address,
-        ethers.utils.parseEther(params.amount ? params.amount : "10")
-      );
-      await auction.withdrawRaisedToken(params.token.address);
-    }
-  }
-
   beforeEach(async function () {
     snapshot = await takeSnapshot();
     [alice, bob, charlie, dan] = await ethers.getSigners();

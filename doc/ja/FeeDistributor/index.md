@@ -36,10 +36,11 @@
 - address[] public tokens
   - 報酬トークンのアドレスを保持する
   - 0x0はeth
-- mapping(address => bool) public tokenFlags
+- mapping(address => uint256) public tokenFlags
 
   - トークンのアドレスが報酬トークンとして登録されているかのフラグを保持する
-  - 0x0はeth
+  - 0 -> 未登録, 1 -> 登録済み
+  - address 0x0はeth
 
 - mapping(address => uint256) public tokenLastBalance
 
@@ -176,9 +177,26 @@ VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週
   - \_amount
     - 指定トークンの報酬額
 
+#### claim(address token\_) returns uint256
+
+msg.senderに対して報酬をクレームする。View関数として実行することでクレーム可能は報酬額を取得する
+
+- external
+- 引数
+  - token\_
+    - 報酬トークンのアドレス
+- 戻り値
+
+  - \_amount
+    - 指定トークンの報酬額
+
+- 条件
+  - kill状態でない
+  - 対象トークンがtokensに登録済みであること
+
 #### claim(address addr\_, address token\_) returns uint256
 
-報酬をクレームする。View関数として実行することでクレーム可能は報酬額を取得する
+指定のアドレスの報酬をクレームする。View関数として実行することでクレーム可能は報酬額を取得する
 
 - external
 - 引数
@@ -193,6 +211,7 @@ VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週
 
 - 条件
   - kill状態でない
+  - 対象トークンがtokensに登録済みであること
 
 #### claimMany(address[] receivers\_, address token\_)
 
@@ -206,6 +225,7 @@ VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週
     - 報酬トークンのアドレス
 - 条件
   - kill状態でない
+  - 対象トークンがtokensに登録済みであること
 
 #### claimMultipleTokens(address addr\_, address[20] tokens\_)
 
@@ -220,6 +240,7 @@ VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週
     - 最大20トークンまで（要検討）
 - 条件
   - kill状態でない
+  - 対象トークンがtokensに登録済みであること
 
 #### commitAdmin(address addr\_)
 

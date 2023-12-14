@@ -24,7 +24,7 @@ contract FeeDistributor is ReentrancyGuard {
 
     address public votingEscrow;
     address[] public tokens;
-    mapping(address => bool) public tokenFlags;
+    mapping(address => uint256) public tokenFlags; // token -> (0 -> Not registered, 1 -> Registered)
 
     mapping(address => uint256) public tokenLastBalance; // token -> balance
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
@@ -32,7 +32,7 @@ contract FeeDistributor is ReentrancyGuard {
     address public admin;
     address public futureAdmin;
     address public emergencyReturn;
-    bool public isKilled;
+    uint256 public isKilled; // 0 -> Not killed, 1 -> killed
 
     struct ClaimParams {
         uint256 userEpoch;
@@ -81,7 +81,7 @@ contract FeeDistributor is ReentrancyGuard {
         lastTokenTime[address(0)] = t;
         timeCursor = t;
         tokens.push(address(0));
-        tokenFlags[address(0)] = true;
+        tokenFlags[address(0)] = 1;
         votingEscrow = votingEscrow_;
         factory = factory_;
         admin = admin_;
@@ -101,7 +101,7 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _t = lastTokenTime[token_];
         uint256 _sinceLast = block.timestamp - _t;
         uint256 _currentWeek = block.timestamp / WEEK;
-        uint256 _sinceLastInWeeks = _currentWeek - _t / WEEK;
+        uint256 _sinceLastInWeeks = _currentWeek - (_t / WEEK);
 
         /* 
         If current timestamp crosses a week since the last checkpoint,
@@ -122,10 +122,10 @@ contract FeeDistributor is ReentrancyGuard {
         }
         /*
         If _sinceLast has exceeded 20 weeks,
-        set _t to 19 weeks prior to the current block time.
+        set _t to the beginning of the week that is 19 weeks prior to the current block time.
 
         |-x-|-0-|-0-|-0-|-0-|-0-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|-1-|0.5●-|-
-        0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+        0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25    26
         x: Last checkpoint 
         ●: New checkpoint
 
@@ -177,7 +177,7 @@ contract FeeDistributor is ReentrancyGuard {
          This function is only callable by auctions or the contract owner.
      */
     function checkpointToken(address token_) external {
-        require(tokenFlags[token_], "Token not registered");
+        require(tokenFlags[token_] == 1, "Token not registered");
         require(
             msg.sender == admin || IFactory(factory).auctions(msg.sender),
             "Unauthorized"
@@ -448,7 +448,8 @@ contract FeeDistributor is ReentrancyGuard {
      * @return uint256 Amount of fees claimed in the call
      */
     function claim(address token_) external nonReentrant returns (uint256) {
-        require(!isKilled, "Contract is killed");
+        require(isKilled == 0, "Contract is killed");
+        require(tokenFlags[token_] == 1, "Token not registered");
         address _addr = msg.sender;
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply();
@@ -488,7 +489,8 @@ contract FeeDistributor is ReentrancyGuard {
         address addr_,
         address token_
     ) external nonReentrant returns (uint256) {
-        require(!isKilled, "Contract is killed");
+        require(isKilled == 0, "Contract is killed");
+        require(tokenFlags[token_] == 1, "Token not registered");
 
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply();
@@ -527,7 +529,8 @@ contract FeeDistributor is ReentrancyGuard {
         address[20] memory receivers_,
         address token_
     ) external nonReentrant returns (bool) {
-        require(!isKilled, "Contract is killed");
+        require(isKilled == 0, "Contract is killed");
+        require(tokenFlags[token_] == 1, "Token not registered");
 
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply();
@@ -578,7 +581,7 @@ contract FeeDistributor is ReentrancyGuard {
         address addr_,
         address[20] memory tokens_
     ) external nonReentrant returns (bool) {
-        require(!isKilled, "Contract is killed");
+        require(isKilled == 0, "Contract is killed");
         require(addr_ != address(0), "Address should not zero");
 
         if (block.timestamp >= timeCursor) {
@@ -587,6 +590,8 @@ contract FeeDistributor is ReentrancyGuard {
 
         uint256 _l = tokens_.length;
         for (uint256 i; i < _l; ) {
+            require(tokenFlags[tokens_[i]] == 1, "Token not registered");
+
             address _token = tokens_[i];
             uint256 _lastTokenTime = lastTokenTime[_token];
 
@@ -640,7 +645,7 @@ contract FeeDistributor is ReentrancyGuard {
          to avoid failing killing the contract due to unexpected behavior of third party ERC20 tokens
      */
     function killMe() external onlyAdmin {
-        isKilled = true;
+        isKilled = 1;
         (bool success, ) = payable(emergencyReturn).call{
             value: address(this).balance
         }("");
@@ -654,7 +659,7 @@ contract FeeDistributor is ReentrancyGuard {
      * @return bool success
      */
     function recoverBalance(address coin_) external onlyAdmin returns (bool) {
-        require(tokenFlags[coin_], "Cannot recover this token");
+        require(tokenFlags[coin_] == 1, "Cannot recover this token");
 
         if (coin_ == address(0)) {
             (bool success, ) = payable(emergencyReturn).call{
@@ -672,11 +677,11 @@ contract FeeDistributor is ReentrancyGuard {
 
     function addRewardToken(address coin_) external onlyAuction returns (bool) {
         require(coin_ != address(0), "ETH is already registered");
-        require(!tokenFlags[coin_], "Token is already registered");
+        require(tokenFlags[coin_] == 0, "Token is already registered");
 
         uint256 _t = (block.timestamp / WEEK) * WEEK;
         lastTokenTime[coin_] = _t;
-        tokenFlags[coin_] = true;
+        tokenFlags[coin_] = 1;
         tokens.push(coin_);
 
         emit AddedToken(coin_);
