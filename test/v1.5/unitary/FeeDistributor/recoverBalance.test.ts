@@ -71,7 +71,7 @@ describe("FeeDistributor", () => {
     });
 
     it("test_assumptions", async function () {
-      expect(await feeDistributor.isKilled()).to.be.false;
+      expect(await feeDistributor.isKilled()).to.be.eq(0);
       expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
     });
 

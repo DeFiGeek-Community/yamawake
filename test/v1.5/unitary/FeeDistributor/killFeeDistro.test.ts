@@ -71,19 +71,19 @@ describe("FeeDistributor", () => {
     });
 
     it("test_assumptions", async function () {
-      expect(await feeDistributor.isKilled()).to.be.false;
+      expect(await feeDistributor.isKilled()).to.be.eq(0);
       expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
     });
 
     it("test_kill", async function () {
       await feeDistributor.connect(alice).killMe();
-      expect(await feeDistributor.isKilled()).to.be.true;
+      expect(await feeDistributor.isKilled()).to.be.eq(1);
     });
 
     it("test_multi_kill", async function () {
       await feeDistributor.connect(alice).killMe();
       await feeDistributor.connect(alice).killMe();
-      expect(await feeDistributor.isKilled()).to.be.true;
+      expect(await feeDistributor.isKilled()).to.be.eq(1);
     });
 
     it("test_killing_transfers_tokens", async function () {
