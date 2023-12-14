@@ -13,8 +13,8 @@ import "./interfaces/IGaugeController.sol";
 contract Minter is ReentrancyGuard {
     event Minted(address indexed recipient, address gauge, uint256 minted);
 
-    address public token;
-    address public controller;
+    address public immutable token;
+    address public immutable controller;
 
     // user -> gauge -> value
     mapping(address => mapping(address => uint256)) public minted; // minted amount of user from specific gauge.

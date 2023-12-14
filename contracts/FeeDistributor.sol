@@ -679,8 +679,7 @@ contract FeeDistributor is ReentrancyGuard {
         require(coin_ != address(0), "ETH is already registered");
         require(tokenFlags[coin_] == 0, "Token is already registered");
 
-        uint256 _t = (block.timestamp / WEEK) * WEEK;
-        lastTokenTime[coin_] = _t;
+        lastTokenTime[coin_] = block.timestamp;
         tokenFlags[coin_] = 1;
         tokens.push(coin_);
 
