@@ -1,7 +1,11 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { deploy, getFoundation, getContractAddress } from "../src/deployUtil";
-import { addTemplate } from "../src/addTemplate";
+import {
+  deploy,
+  getFoundation,
+  getContractAddress,
+} from "../../src/deployUtil";
+import { addTemplate } from "../../src/addTemplate";
 
 const codename = "TemplateV1";
 
@@ -13,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const feePoolAddress = getContractAddress(hre.network.name, "FeePool");
   const distributorAddress = getContractAddress(
     hre.network.name,
-    "Distributor",
+    "Distributor"
   );
   if (
     factoryAddress === null ||
@@ -36,11 +40,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       hre.network.name,
       codename,
       factoryAddress,
-      TemplateV1.address,
+      TemplateV1.address
     );
   } catch (e: any) {
     console.trace(e.message);
   }
 };
 export default func;
-func.tags = [codename];
+func.tags = [codename, "V1"];

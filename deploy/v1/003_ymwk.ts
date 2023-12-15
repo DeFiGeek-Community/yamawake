@@ -1,13 +1,13 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { deploy, getFoundation } from "../src/deployUtil";
+import { deploy, getFoundation } from "../../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
 
-  await deploy("FeePool", {
+  await deploy("YMWK", {
     from: foundation,
     args: [],
     log: true,
@@ -15,4 +15,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 export default func;
-func.tags = ["FeePool"];
+func.tags = ["YMWK", "V1"];

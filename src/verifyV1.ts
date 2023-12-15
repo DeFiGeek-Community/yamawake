@@ -3,7 +3,6 @@ import { readFileSync } from "fs";
 import { getFoundation } from "./deployUtil";
 async function main() {
   const basePath = `deployments/${network.name}/`;
-  const foundation = await getFoundation();
 
   // Factory
   const factoryAddress = readFileSync(basePath + "Factory").toString();

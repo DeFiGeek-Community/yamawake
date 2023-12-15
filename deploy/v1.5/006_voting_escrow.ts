@@ -1,20 +1,29 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { deploy, getFoundation, getContractAddress } from "../src/deployUtil";
+import {
+  deploy,
+  getFoundation,
+  getContractAddress,
+} from "../../src/deployUtil";
+
+const codename = "VotingEscrow";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
-  const factoryAddress = getContractAddress(hre.network.name, "Factory");
   const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
+  if (ymwkAddress === null) {
+    throw new Error("YMWK address is null");
+  }
+  console.log(`${codename} is deploying with YMWK=${ymwkAddress}...`);
 
-  await deploy("Distributor", {
+  await deploy(codename, {
     from: foundation,
-    args: [factoryAddress, ymwkAddress],
+    args: [ymwkAddress, "Voting-escrowed Yamawake", "veYMWK", "v1"],
     log: true,
     getContractFactory,
   });
 };
 export default func;
-func.tags = ["Distributor"];
+func.tags = [codename, "V1.5"];
