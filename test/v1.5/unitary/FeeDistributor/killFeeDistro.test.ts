@@ -58,13 +58,14 @@ describe("FeeDistributor", () => {
   describe("test_kill_fee_distro", () => {
     let accounts: SignerWithAddress[];
     beforeEach(async () => {
-      const Distributor = await ethers.getContractFactory("FeeDistributor");
-      feeDistributor = await Distributor.deploy(
+      const FeeDistributor = await ethers.getContractFactory(
+        "FeeDistributor",
+        alice
+      );
+      feeDistributor = await FeeDistributor.deploy(
         votingEscrow.address,
         factory.address,
-        await time.latest(),
-        alice.address,
-        bob.address
+        await time.latest()
       );
       await feeDistributor.deployed();
       accounts = await ethers.getSigners();
@@ -72,7 +73,7 @@ describe("FeeDistributor", () => {
 
     it("test_assumptions", async function () {
       expect(await feeDistributor.isKilled()).to.be.eq(0);
-      expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
+      expect(await feeDistributor.admin()).to.equal(alice.address);
     });
 
     it("test_kill", async function () {
@@ -95,20 +96,25 @@ describe("FeeDistributor", () => {
         TEMPLATE_NAME,
         dan
       );
-      const initialEthBob = await ethers.provider.getBalance(bob.address);
-      await sendEther(feeDistributor.address, "1", alice);
-      await coinA._mintForTesting(feeDistributor.address, 31337);
+
+      await sendEther(feeDistributor.address, "1", bob);
+      await coinA.connect(dan)._mintForTesting(feeDistributor.address, 31337);
       // Calling the mock function to add coinA to the reward list
       await auction.withdrawRaisedToken(coinA.address);
-      await feeDistributor.connect(alice).killMe();
 
-      expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
-      // Bob should receive 1 Ether
-      expect(await ethers.provider.getBalance(bob.address)).to.eq(
-        initialEthBob.add(ethers.utils.parseEther("1"))
+      const initialEthAlice = await ethers.provider.getBalance(alice.address);
+      const tx = await feeDistributor.connect(alice).killMe();
+      const receipt = await tx.wait();
+
+      expect(await feeDistributor.admin()).to.equal(alice.address);
+      // Alice should receive 1 Ether
+      expect(await ethers.provider.getBalance(alice.address)).to.eq(
+        initialEthAlice
+          .add(ethers.utils.parseEther("1"))
+          .sub(receipt.effectiveGasPrice.mul(receipt.gasUsed))
       );
       // Tokens other than Ether should not be transfered by killing contract
-      expect(await coinA.balanceOf(bob.address)).to.equal(0);
+      expect(await coinA.balanceOf(alice.address)).to.equal(0);
     });
 
     it("test_multi_kill_token_transfer", async function () {
@@ -120,26 +126,32 @@ describe("FeeDistributor", () => {
         TEMPLATE_NAME,
         dan
       );
-      const initialEthBob = await ethers.provider.getBalance(bob.address);
 
       // Calling the mock function to add coinA to the reward list
       await auction.withdrawRaisedToken(coinA.address);
 
-      await sendEther(feeDistributor.address, "1", alice);
-      await coinA._mintForTesting(feeDistributor.address, 10000);
-      await feeDistributor.connect(alice).killMe();
+      const initialEthAlice = await ethers.provider.getBalance(alice.address);
+      await sendEther(feeDistributor.address, "1", bob);
+      await coinA.connect(dan)._mintForTesting(feeDistributor.address, 10000);
+      const tx1 = await feeDistributor.connect(alice).killMe();
+      const receipt1 = await tx1.wait();
 
-      await sendEther(feeDistributor.address, "1", alice);
-      await coinA._mintForTesting(feeDistributor.address, 30000);
-      await feeDistributor.connect(alice).killMe();
+      await sendEther(feeDistributor.address, "1", bob);
+      await coinA.connect(dan)._mintForTesting(feeDistributor.address, 30000);
 
-      expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
-      // Bob should receive 1 Ether
-      expect(await ethers.provider.getBalance(bob.address)).to.eq(
-        initialEthBob.add(ethers.utils.parseEther("2"))
+      const tx2 = await feeDistributor.connect(alice).killMe();
+      const receipt2 = await tx2.wait();
+
+      expect(await feeDistributor.admin()).to.equal(alice.address);
+      // Alice should receive 1 Ether
+      expect(await ethers.provider.getBalance(alice.address)).to.eq(
+        initialEthAlice
+          .add(ethers.utils.parseEther("2"))
+          .sub(receipt1.effectiveGasPrice.mul(receipt1.gasUsed))
+          .sub(receipt2.effectiveGasPrice.mul(receipt2.gasUsed))
       );
       // Tokens other than Ether should not be transfered by killing contract
-      expect(await coinA.balanceOf(bob.address)).to.equal(0);
+      expect(await coinA.balanceOf(alice.address)).to.equal(0);
     });
 
     for (let idx = 1; idx <= 2; idx++) {

@@ -31,7 +31,10 @@ describe("FeeDistributor", () => {
     snapshot = await takeSnapshot();
     [alice, bob, charlie, dan] = await ethers.getSigners();
 
-    const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+    const FeeDistributor = await ethers.getContractFactory(
+      "FeeDistributor",
+      alice
+    );
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -57,9 +60,7 @@ describe("FeeDistributor", () => {
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
-      await time.latest(),
-      alice.address,
-      alice.address
+      await time.latest()
     );
     await feeDistributor.deployed();
 
@@ -88,13 +89,14 @@ describe("FeeDistributor", () => {
       await time.increase(WEEK);
       let startTime = await time.latest();
       await time.increase(WEEK * 5);
-      const Distributor = await ethers.getContractFactory("FeeDistributor");
-      feeDistributor = await Distributor.deploy(
+      const FeeDistributor = await ethers.getContractFactory(
+        "FeeDistributor",
+        alice
+      );
+      feeDistributor = await FeeDistributor.deploy(
         votingEscrow.address,
         factory.address,
-        startTime,
-        alice.address,
-        alice.address
+        startTime
       );
       await feeDistributor.deployed();
 
@@ -168,13 +170,14 @@ describe("FeeDistributor", () => {
       await time.increase(WEEK);
       let startTime = await time.latest();
       await time.increase(WEEK * 5);
-      const Distributor = await ethers.getContractFactory("FeeDistributor");
-      feeDistributor = await Distributor.deploy(
+      const FeeDistributor = await ethers.getContractFactory(
+        "FeeDistributor",
+        alice
+      );
+      feeDistributor = await FeeDistributor.deploy(
         votingEscrow.address,
         factory.address,
-        startTime,
-        alice.address,
-        alice.address
+        startTime
       );
       await feeDistributor.deployed();
 

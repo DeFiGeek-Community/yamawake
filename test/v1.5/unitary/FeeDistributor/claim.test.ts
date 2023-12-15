@@ -26,7 +26,10 @@ describe("FeeDistributor", () => {
 
     [admin, alice] = await ethers.getSigners();
 
-    const Distributor = await ethers.getContractFactory("FeeDistributor");
+    const FeeDistributor = await ethers.getContractFactory(
+      "FeeDistributor",
+      alice
+    );
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -49,12 +52,10 @@ describe("FeeDistributor", () => {
     factory = await Factory.deploy();
     await factory.deployed();
 
-    feeDistributor = await Distributor.deploy(
+    feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
-      await time.latest(),
-      alice.address,
-      alice.address
+      await time.latest()
     );
     await feeDistributor.deployed();
   });
@@ -86,13 +87,14 @@ describe("FeeDistributor", () => {
       await time.increase(WEEK);
       const startTime = await time.latest();
 
-      const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+      const FeeDistributor = await ethers.getContractFactory(
+        "FeeDistributor",
+        admin
+      );
       feeDistributor = await FeeDistributor.deploy(
         votingEscrow.address,
         factory.address,
-        startTime,
-        admin.address,
-        admin.address
+        startTime
       );
       await feeDistributor.deployed();
 

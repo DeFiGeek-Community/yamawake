@@ -52,14 +52,12 @@
   - 管理者のアドレスを保持する
 - address public futureAdmin
   - 次期管理者のアドレスを保持する
-- address public emergencyReturn
-  - 緊急時のトークン送金先を保持する
 - bool public isKilled
   - killed / not killed の状態を保持する
 
 ### 関数
 
-#### constructor(address votingEscrow\_, address factory\_, uint256 startTime\_, address admin\_, address emergencyReturn\_)
+#### constructor(address votingEscrow\_, address factory\_, uint256 startTime\_)
 
 - 処理概要
   - startTimeを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
@@ -69,8 +67,7 @@
   - tokenFlagsのethアドレス（0x0）をtrueに設定する
   - votingEscrowを設定する
   - factoryを設定する
-  - adminを設定する
-  - emergencyReturnを設定する
+  - adminをmsg.senderに設定する
 - 引数
   - votingEscrow\_,
     - VotingEscrowのアドレス
@@ -78,10 +75,6 @@
     - Factoryのアドレス
   - startTime\_,
     - 報酬の分配を開始するタイムスタンプ
-  - admin\_,
-    - 管理者アドレス
-  - emergencyReturn\_
-    - killMe、recoverBalance実行時にコントラクトの残高を送信するアドレス
 
 #### \_checkpointToken(address address\_)
 
@@ -266,7 +259,7 @@ msg.senderに対して報酬をクレームする。View関数として実行す
 
 #### kill_me()
 
-kill状態をTrueに変更し、Ether残高を緊急時のトークン送金先に送金する
+kill状態をTrueに変更し、Ether残高をAdminに送金する
 
 - 条件
 
@@ -274,7 +267,7 @@ kill状態をTrueに変更し、Ether残高を緊急時のトークン送金先�
 
 #### recoverBalance(address coin\_) returns bool
 
-指定トークンを全額緊急時のトークン送金先に送金する
+指定トークンを全額Adminに送金する
 
 - 条件
 

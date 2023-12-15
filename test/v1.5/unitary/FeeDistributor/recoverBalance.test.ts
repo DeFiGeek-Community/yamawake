@@ -58,13 +58,14 @@ describe("FeeDistributor", () => {
   describe("test_recover_balance", () => {
     let accounts: SignerWithAddress[];
     beforeEach(async () => {
-      const Distributor = await ethers.getContractFactory("FeeDistributor");
-      feeDistributor = await Distributor.deploy(
+      const FeeDistributor = await ethers.getContractFactory(
+        "FeeDistributor",
+        alice
+      );
+      feeDistributor = await FeeDistributor.deploy(
         votingEscrow.address,
         factory.address,
-        await time.latest(),
-        alice.address,
-        bob.address
+        await time.latest()
       );
       await feeDistributor.deployed();
       accounts = await ethers.getSigners();
@@ -72,7 +73,7 @@ describe("FeeDistributor", () => {
 
     it("test_assumptions", async function () {
       expect(await feeDistributor.isKilled()).to.be.eq(0);
-      expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
+      expect(await feeDistributor.admin()).to.equal(alice.address);
     });
 
     it("test_recover_balance", async function () {
@@ -84,23 +85,28 @@ describe("FeeDistributor", () => {
         TEMPLATE_NAME,
         dan
       );
-      const initialEthBob = await ethers.provider.getBalance(bob.address);
-      await sendEther(feeDistributor.address, "1", alice);
-      await coinA._mintForTesting(feeDistributor.address, 31337);
+
+      await sendEther(feeDistributor.address, "1", bob);
+      await coinA.connect(dan)._mintForTesting(feeDistributor.address, 31337);
       // Calling the mock function to add coinA to the reward list
       await auction.withdrawRaisedToken(coinA.address);
 
-      expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
+      expect(await feeDistributor.admin()).to.equal(alice.address);
 
-      await feeDistributor
+      const initialEthAlice = await ethers.provider.getBalance(alice.address);
+      const tx = await feeDistributor
         .connect(alice)
         .recoverBalance(ethers.constants.AddressZero);
-      expect(await ethers.provider.getBalance(bob.address)).to.eq(
-        initialEthBob.add(ethers.utils.parseEther("1"))
+      const receipt = await tx.wait();
+
+      expect(await ethers.provider.getBalance(alice.address)).to.eq(
+        initialEthAlice
+          .add(ethers.utils.parseEther("1"))
+          .sub(receipt.effectiveGasPrice.mul(receipt.gasUsed))
       );
 
       await feeDistributor.connect(alice).recoverBalance(coinA.address);
-      expect(await coinA.balanceOf(bob.address)).to.equal(31337);
+      expect(await coinA.balanceOf(alice.address)).to.equal(31337);
     });
 
     it("test_recover_balance_after_kill", async function () {
@@ -118,11 +124,11 @@ describe("FeeDistributor", () => {
 
       await feeDistributor.connect(alice).killMe();
 
-      expect(await feeDistributor.emergencyReturn()).to.equal(bob.address);
+      expect(await feeDistributor.admin()).to.equal(alice.address);
 
-      expect(await coinA.balanceOf(bob.address)).to.equal(0);
+      expect(await coinA.balanceOf(alice.address)).to.equal(0);
       await feeDistributor.connect(alice).recoverBalance(coinA.address);
-      expect(await coinA.balanceOf(bob.address)).to.equal(31337);
+      expect(await coinA.balanceOf(alice.address)).to.equal(31337);
     });
   });
 });

@@ -29,7 +29,10 @@ describe("FeeDistributor", () => {
     snapshot = await takeSnapshot();
     [alice, bob, charlie] = await ethers.getSigners();
 
-    const Distributor = await ethers.getContractFactory("FeeDistributor");
+    const FeeDistributor = await ethers.getContractFactory(
+      "FeeDistributor",
+      alice
+    );
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -55,12 +58,10 @@ describe("FeeDistributor", () => {
     factory = await Factory.deploy();
     await factory.deployed();
 
-    distributor = await Distributor.deploy(
+    distributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
-      await time.latest(),
-      alice.address,
-      alice.address
+      await time.latest()
     );
     await distributor.deployed();
   });

@@ -31,7 +31,6 @@ contract FeeDistributor is ReentrancyGuard {
 
     address public admin;
     address public futureAdmin;
-    address public emergencyReturn;
     uint256 public isKilled; // 0 -> Not killed, 1 -> killed
 
     struct ClaimParams {
@@ -66,16 +65,8 @@ contract FeeDistributor is ReentrancyGuard {
      * @param votingEscrow_ VotingEscrow contract address
      * @param factory_ Auction Factory contract address
      * @param startTime_ Epoch time for fee distribution to start
-     * @param admin_ Admin address
-     * @param emergencyReturn_ Address to transfer `_token` balance to if this contract is killed
      */
-    constructor(
-        address votingEscrow_,
-        address factory_,
-        uint256 startTime_,
-        address admin_,
-        address emergencyReturn_
-    ) {
+    constructor(address votingEscrow_, address factory_, uint256 startTime_) {
         uint256 t = (startTime_ / WEEK) * WEEK;
         startTime = t;
         lastTokenTime[address(0)] = t;
@@ -84,8 +75,7 @@ contract FeeDistributor is ReentrancyGuard {
         tokenFlags[address(0)] = 1;
         votingEscrow = votingEscrow_;
         factory = factory_;
-        admin = admin_;
-        emergencyReturn = emergencyReturn_;
+        admin = msg.sender;
     }
 
     function _checkpointToken(address token_) internal {
@@ -645,22 +635,22 @@ contract FeeDistributor is ReentrancyGuard {
 
     /***
      * @notice Kill the contract
-     * @dev Killing transfers the entire Ether balance to the emergency return address
+     * @dev Killing transfers the entire Ether balance to admin address
          and blocks the ability to claim. The contract cannot be unkilled.
          Tokens other than Ether should be transferred using recoverBalance() 
          to avoid failing killing the contract due to unexpected behavior of third party ERC20 tokens
      */
     function killMe() external onlyAdmin {
         isKilled = 1;
-        (bool success, ) = payable(emergencyReturn).call{
-            value: address(this).balance
-        }("");
+        (bool success, ) = payable(admin).call{value: address(this).balance}(
+            ""
+        );
         require(success, "Transfer failed");
     }
 
     /***
      * @notice Recover ERC20 tokens from this contract
-     * @dev Tokens are sent to the emergency return address.
+     * @dev Tokens are sent to admin address.
      * @param coin_ Token address
      * @return bool success
      */
@@ -668,13 +658,13 @@ contract FeeDistributor is ReentrancyGuard {
         require(tokenFlags[coin_] == 1, "Cannot recover this token");
 
         if (coin_ == address(0)) {
-            (bool success, ) = payable(emergencyReturn).call{
+            (bool success, ) = payable(admin).call{
                 value: address(this).balance
             }("");
             require(success, "Transfer failed");
         } else {
             IERC20(coin_).safeTransfer(
-                emergencyReturn,
+                admin,
                 IERC20(coin_).balanceOf(address(this))
             );
         }

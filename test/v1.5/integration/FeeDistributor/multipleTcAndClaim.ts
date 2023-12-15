@@ -55,9 +55,7 @@ describe("FeeDistributor", function () {
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
-      await time.latest(),
-      accounts[0].address,
-      accounts[0].address
+      await time.latest()
     );
     await feeDistributor.deployed();
   });
