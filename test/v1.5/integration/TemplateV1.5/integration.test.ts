@@ -10,7 +10,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { deploySaleTemplateV1_5 } from "../../../scenarioHelper";
 
 const ACCOUNT_NUM = 5;
-const MAX_EXAMPLES = 30;
+const MAX_EXAMPLES = 50;
 const STATEFUL_STEP_COUNT = 30;
 const DAY = 86400;
 const WEEK = DAY * 7;
@@ -444,10 +444,33 @@ describe("TemplateV1.5", function () {
     //     `);
     // ---
 
-    const claimed = await ethers.provider.getBalance(stAcct.address);
-    const tx = await distributor
-      .connect(stAcct)
-      ["claim(address)"](ethers.constants.AddressZero);
+    let claimed = await ethers.provider.getBalance(stAcct.address);
+    let tx;
+    try {
+      // veSupplyの同期が20週間以上遅れているとzero divisionエラーでrevert
+      tx = await distributor
+        .connect(stAcct)
+        ["claim(address)"](ethers.constants.AddressZero);
+    } catch (e: any) {
+      // RevertしたTXのガスコストを考慮
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const latestTXHash = latestBlock.transactions.at(-1);
+      const revertedTxReceipt = await ethers.provider.getTransactionReceipt(
+        latestTXHash as string
+      );
+      const revertedTxGasUsage = revertedTxReceipt.gasUsed;
+      const revertedTxGasPrice = revertedTxReceipt.effectiveGasPrice;
+      const revertedTxGasCosts = revertedTxGasUsage.mul(revertedTxGasPrice);
+      userGases[stAcct.address] =
+        userGases[stAcct.address].add(revertedTxGasCosts);
+
+      // revertは仕様とし、checkpointTotalSupplyを呼び、再度claimする
+      await distributor.connect(admin).checkpointTotalSupply();
+      claimed = await ethers.provider.getBalance(stAcct.address);
+      tx = await distributor
+        .connect(stAcct)
+        ["claim(address)"](ethers.constants.AddressZero);
+    }
     const receipt = await tx.wait();
     const gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
     userGases[stAcct.address] = userGases[stAcct.address].add(gas);
@@ -594,31 +617,7 @@ describe("TemplateV1.5", function () {
       //     Point: ${up}
       //     `);
       // <----
-      try {
-        // veSupplyの同期が20週間以上遅れていると0 divisionエラーでrevert
-        await ruleClaimFees(acct, BigNumber.from("0"));
-        // console.log(
-        //   (await distributor.timeCursor()).div(WEEK).toString(),
-        //   Math.floor((await time.latest()) / WEEK)
-        // );
-      } catch (e: any) {
-        // RevertしたTXのガスコストを考慮
-        const latestBlock = await ethers.provider.getBlock("latest");
-        const latestTXHash = latestBlock.transactions.at(-1);
-        const revertedTxReceipt = await ethers.provider.getTransactionReceipt(
-          latestTXHash as string
-        );
-        const revertedTxGasUsage = revertedTxReceipt.gasUsed;
-        const revertedTxGasPrice = revertedTxReceipt.effectiveGasPrice;
-        const revertedTxGasCosts = revertedTxGasUsage.mul(revertedTxGasPrice);
-        userGases[acct.address] =
-          userGases[acct.address].add(revertedTxGasCosts);
-
-        // revertは仕様とし、checkpointTotalSupplyを呼び、再度claimする
-        await distributor.connect(admin).checkpointTotalSupply();
-        await ruleClaimFees(acct, BigNumber.from("0"));
-        // throw e;
-      }
+      await ruleClaimFees(acct, BigNumber.from("0"));
       const thisWeek = Math.floor((await time.latest()) / WEEK) * WEEK;
       let userTimeCursor = await distributor.timeCursorOf(
         acct.address,
