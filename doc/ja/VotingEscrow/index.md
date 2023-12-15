@@ -125,19 +125,6 @@ ve トークンバージョン
 
 ve トークンデシマル
 
-### future_smart_wallet_checker: public(address)
-
-Checker for whitelisted (smart contract) wallets which are allowed to deposit
-The goal is to prevent tokenizing the escrow
-
-### smart_wallet_checker: public(address)
-
-Checker for whitelisted (smart contract) wallets which are allowed to deposit
-The goal is to prevent tokenizing the escrow
-
-CurveのVotingEscrowでは現在下記コントラクトが登録されている
-https://etherscan.io/address/0xca719728Ef172d0961768581fdF35CB116e0B7a4#readContract
-
 ### admin: public(address)
 
 管理者アドレス
@@ -172,20 +159,6 @@ https://etherscan.io/address/0xca719728Ef172d0961768581fdF35CB116e0B7a4#readCont
 
 - 管理者アドレスに次期管理者アドレスを設定
 - 管理者のみ
-
-### commit_smart_wallet_checker(addr: address) external
-
-- 次期スマートウォレットチェッカーを設定
-- 管理者のみ
-
-### apply_smart_wallet_checker() external
-
-- スマートウォレットチェッカーに次期スマートウォレットチェッカーを設定
-- 管理者のみ
-
-### assert_not_contract(addr: address) internal
-
-- スマートウォレットチェッカーを使用して対象アドレスがホワイトリストされたスマコンかどうかチェックする
 
 ### get_last_user_slope(addr: address) -> int128 external view
 

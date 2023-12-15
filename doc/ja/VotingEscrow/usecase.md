@@ -4,9 +4,8 @@
   - 任意のユーザ、またはコントラクト
 - YMWKホルダー
   - YMWKトークンのホルダー
-  - EOAとsmart_wallet_checkerでwhitelistされたコントラクトウォレットを想定（コントラクトを弾く理由はveYMWKのトークン化を防ぐため）
+  - EOA、コントラクトを想定
     - 参考
-      - [smart_wallet_checker](./index.md#smart_wallet_checker-publicaddress)
       - [VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy#L109)
 - [VotingEscrow](./index.md)
   - YMWKトークンをロックすることで移転不可のveYMWKを発行する
@@ -41,7 +40,6 @@
 - VotingEscrowオーナー
   - VotingEscrowを立ち上げる
   - 管理者を変更する
-  - スマートウォレットチェッカーを変更する
 
 ## ユースケース図
 
@@ -81,7 +79,6 @@ graph LR
 
     deploy[VotingEscrowを立ち上げる]
     change_admin[管理者を変更する]
-    change_smchecker[スマートウォレットチェッカーを変更する]
 
 
     claimable_tokens[
@@ -122,7 +119,6 @@ graph LR
 
     owner --- deploy
     owner --- change_admin
-    owner --- change_smchecker
 
     subgraph Admin[ ]
       direction LR
@@ -148,7 +144,6 @@ graph LR
       uck
       ck
       change_admin
-      change_smchecker
     end
 
     subgraph YMWK

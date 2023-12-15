@@ -577,6 +577,12 @@ contract FeeDistributor is ReentrancyGuard {
         return true;
     }
 
+    /***
+     * @notice Claim multiple tokens in one go
+     * @param addr_ Receiver address
+     * @param tokens_ Token addresses
+     * @return bool success
+     */
     function claimMultipleTokens(
         address addr_,
         address[20] memory tokens_
@@ -675,6 +681,12 @@ contract FeeDistributor is ReentrancyGuard {
         return true;
     }
 
+    /***
+     * @notice Register ERC20 token address to reward tokens
+     * @dev This function is suppose to be called during auctions to withdraw sales
+     * @param coin_ Token address
+     * @return bool success
+     */
     function addRewardToken(address coin_) external onlyAuction returns (bool) {
         require(coin_ != address(0), "ETH is already registered");
         require(tokenFlags[coin_] == 0, "Token is already registered");
