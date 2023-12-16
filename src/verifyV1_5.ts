@@ -1,4 +1,4 @@
-import { network, run } from "hardhat";
+import { network, run, ethers } from "hardhat";
 import { readFileSync } from "fs";
 
 async function main() {
@@ -26,9 +26,12 @@ async function main() {
   const feeDistributorAddress = readFileSync(
     basePath + "FeeDistributor"
   ).toString();
+  const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+  const feeDistributor = FeeDistributor.attach(feeDistributorAddress);
+  const startTime = (await feeDistributor.startTime()).toNumber();
   await run(`verify:verify`, {
     address: feeDistributorAddress,
-    constructorArguments: [votingEscrowAddress, factoryAddress, 1702626160],
+    constructorArguments: [votingEscrowAddress, factoryAddress, startTime],
   });
 
   // GaugeControllerV1
