@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract } from "ethers";
 import { genABI } from "./genABI";
@@ -28,6 +28,14 @@ export async function getFoundation(): Promise<SignerWithAddress> {
 
 export function getContractAddress(_network: string, _name: string): string {
   return readFileSync(`deployments/${_network}/${_name}`).toString();
+}
+
+export function getDeploymentAddressPath(_network: string, _name: string) {
+  return `./deployments/${_network}/${_name}`;
+}
+
+export function existsDeployedContract(_network: string, _name: string) {
+  return existsSync(getDeploymentAddressPath(_network, _name));
 }
 
 export function setContractAddress(

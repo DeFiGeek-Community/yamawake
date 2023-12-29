@@ -4,11 +4,17 @@ import {
   deployProxy,
   getFoundation,
   getContractAddress,
+  existsDeployedContract,
 } from "../../src/deployUtil";
 
 const codename = "GaugeControllerV1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (existsDeployedContract(hre.network.name, codename)) {
+    console.log(`${codename} is already deployed. skipping deploy...`);
+    return;
+  }
+
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
