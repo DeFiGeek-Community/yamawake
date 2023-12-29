@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract } from "ethers";
 import { genABI } from "./genABI";
@@ -30,10 +30,18 @@ export function getContractAddress(_network: string, _name: string): string {
   return readFileSync(`deployments/${_network}/${_name}`).toString();
 }
 
+export function getDeploymentAddressPath(_network: string, _name: string) {
+  return `./deployments/${_network}/${_name}`;
+}
+
+export function existsDeployedContract(_network: string, _name: string) {
+  return existsSync(getDeploymentAddressPath(_network, _name));
+}
+
 export function setContractAddress(
   _network: string,
   _name: string,
-  _address: string,
+  _address: string
 ) {
   writeFileSync(`deployments/${_network}/${_name}`, _address);
 }
@@ -45,7 +53,7 @@ export function getSaleTemplateKey(_network: string): string {
 export function setSaleTemplateKey(_network: string, _saleTemplateKey: string) {
   writeFileSync(
     `deployments/${_network}/${saleTemplateName}`,
-    _saleTemplateKey,
+    _saleTemplateKey
   );
 }
 
@@ -69,11 +77,11 @@ export async function deploy(contractName: string, opts: Options) {
     console.log(
       `${contractName} is deployed as ${
         _Contract.address
-      } by ${await opts.signer.getAddress()}`,
+      } by ${await opts.signer.getAddress()}`
     );
   writeFileSync(
     `deployments/${hre.network.name}/${contractName}`,
-    _Contract.address,
+    _Contract.address
   );
   return _Contract;
 }

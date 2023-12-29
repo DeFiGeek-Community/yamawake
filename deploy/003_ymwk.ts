@@ -1,9 +1,13 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { deploy, getContractAddress, getFoundation } from "../src/deployUtil";
+import {
+  deploy,
+  existsDeployedContract,
+  getFoundation,
+} from "../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (getContractAddress(hre.network.name, "YMWK")) {
+  if (existsDeployedContract(hre.network.name, "YMWK")) {
     console.log(`YMWK is already deployed. skipping deploy...`);
     return;
   }
