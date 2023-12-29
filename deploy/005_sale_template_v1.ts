@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { Contract } from "ethers";
 import { deploy, getFoundation, getContractAddress } from "../src/deployUtil";
 import { addTemplate } from "../src/addTemplate";
 
@@ -22,14 +23,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   ) {
     throw new Error("factory, feepool or distributorAddress address is null");
   }
-  console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
-  const TemplateV1 = await deploy(codename, {
-    from: foundation,
-    args: [factoryAddress, feePoolAddress, distributorAddress],
-    log: true,
-    getContractFactory,
-  });
+  let TemplateV1: Contract;
+  if (!getContractAddress(hre.network.name, "TemplateV1")) {
+    console.log(`${codename} is deploying with factory=${factoryAddress}...`);
+
+    TemplateV1 = await deploy(codename, {
+      from: foundation,
+      args: [factoryAddress, feePoolAddress, distributorAddress],
+      log: true,
+      getContractFactory,
+    });
+  } else {
+    TemplateV1 = (await getContractFactory(codename)).attach(
+      getContractAddress(hre.network.name, "TemplateV1"),
+    );
+    console.log(`${codename} is already deployed. skipping deploy...`);
+  }
 
   try {
     await addTemplate(

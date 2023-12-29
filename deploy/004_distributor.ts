@@ -3,6 +3,11 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { deploy, getFoundation, getContractAddress } from "../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (getContractAddress(hre.network.name, "Distributor")) {
+    console.log(`Distributor is already deployed. skipping deploy...`);
+    return;
+  }
+
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
