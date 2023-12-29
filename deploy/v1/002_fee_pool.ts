@@ -2,12 +2,12 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import {
   deploy,
-  getContractAddress,
+  existsDeployedContract,
   getFoundation,
 } from "../../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (getContractAddress(hre.network.name, "FeePool")) {
+  if (existsDeployedContract(hre.network.name, "FeePool")) {
     console.log(`FeePool is already deployed. skipping deploy...`);
     return;
   }

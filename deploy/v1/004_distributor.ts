@@ -4,10 +4,11 @@ import {
   deploy,
   getFoundation,
   getContractAddress,
+  existsDeployedContract,
 } from "../../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (getContractAddress(hre.network.name, "Distributor")) {
+  if (existsDeployedContract(hre.network.name, "Distributor")) {
     console.log(`Distributor is already deployed. skipping deploy...`);
     return;
   }

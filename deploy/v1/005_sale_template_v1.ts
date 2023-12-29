@@ -5,6 +5,7 @@ import {
   deploy,
   getFoundation,
   getContractAddress,
+  existsDeployedContract,
 } from "../../src/deployUtil";
 import { addTemplate } from "../../src/addTemplate";
 
@@ -29,7 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   let TemplateV1: Contract;
-  if (!getContractAddress(hre.network.name, "TemplateV1")) {
+  if (!existsDeployedContract(hre.network.name, "TemplateV1")) {
     console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
     TemplateV1 = await deploy(codename, {
