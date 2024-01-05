@@ -5,6 +5,7 @@
   - 報酬をクレームする
   - 複数アドレス（最大20アドレス）の報酬をまとめてクレームする
   - 複数トークン（最大20トークン）の報酬をまとめてクレームする
+  - 報酬トークンの一覧を取得する
 - オークションオーナー
   - トークンを引出す
   - ETHを引出す
@@ -44,6 +45,7 @@ graph LR
     claim_many[複数アドレス（最大20アドレス）の報酬をまとめてクレームする]
     claim_multiple_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
     claimable_token[報酬額を取得する]
+    get_tokens[報酬トークンの一覧を取得する]
     user_point_history[ユーザのポイント履歴を取得]
     point_history[全体のポイント履歴を取得]
     sync_ve[最大20週間分のveYMWK総残高を取得・保存]
@@ -74,6 +76,7 @@ graph LR
     user --- claim_many
     user --- claim_multiple_tokens
     user ---|View関数として実行| claimable_token
+    user --- get_tokens
 
     claim -.->|include| claimable_token
     claim_many -.->|include| claimable_token
@@ -108,6 +111,7 @@ graph LR
         sync_ve
         sync_user_ve
         checkpoint_token
+        get_tokens
     end
 
     subgraph VotinEscrow

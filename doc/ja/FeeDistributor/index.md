@@ -257,7 +257,7 @@ msg.senderに対して報酬をクレームする。View関数として実行す
 
   - adminのみ
 
-#### kill_me()
+#### killMe()
 
 kill状態をTrueに変更し、Ether残高をAdminに送金する
 
@@ -282,6 +282,13 @@ kill状態をTrueに変更し、Ether残高をAdminに送金する
   - address\_
     - address
     - トークンのアドレス
+
+#### getTokens() returns address[]
+
+- external
+- 戻り値
+  - address[]
+  - トークンのアドレス配列
 
 ## 参考
 

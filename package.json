@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "node": "npx hardhat node --no-deploy",
+    "node": "npx hardhat node --no-deploy --hostname 0.0.0.0",
     "deploy:v1:localhost": "npx hardhat deploy --tags V1 --network localhost",
     "deploy:v1:sepolia": "npx hardhat deploy --tags V1 --network sepolia",
     "deploy:v1:goerli": "npx hardhat deploy --tags V1 --network goerli",

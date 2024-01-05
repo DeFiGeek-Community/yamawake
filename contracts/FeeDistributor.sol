@@ -690,6 +690,10 @@ contract FeeDistributor is ReentrancyGuard {
         return true;
     }
 
+    function getTokens() external view returns (address[] memory) {
+        return tokens;
+    }
+
     modifier onlyAdmin() {
         require(admin == msg.sender, "Access denied");
         _;
