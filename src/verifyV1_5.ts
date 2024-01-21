@@ -58,10 +58,15 @@ async function main() {
   });
 
   // Gauge
+  const INFLATION_DELAY = 86400 * 365;
+  const ymwk = (await ethers.getContractFactory("YMWK")).attach(ymwkAddress);
+  const tokenInflationStarts = (await ymwk.startEpochTime()).add(
+    INFLATION_DELAY
+  );
   const gaugeAddress = readFileSync(basePath + "Gauge").toString();
   await run(`verify:verify`, {
     address: gaugeAddress,
-    constructorArguments: [minterAddress],
+    constructorArguments: [minterAddress, tokenInflationStarts],
   });
 
   // TemplateV1.5
