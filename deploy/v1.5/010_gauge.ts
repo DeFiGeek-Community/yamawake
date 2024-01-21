@@ -8,6 +8,7 @@ import {
 } from "../../src/deployUtil";
 
 const codename = "Gauge";
+const INFLATION_DELAY = 86400 * 365;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (existsDeployedContract(hre.network.name, codename)) {
@@ -18,26 +19,45 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
   const minterAddress = getContractAddress(hre.network.name, "Minter");
-  if (minterAddress === null) {
-    throw new Error("Minter address is null");
-  }
-  const INFLATION_DELAY = 86400 * 365;
-  const YMWK = (await getContractFactory("YMWK")).attach(
-    getContractAddress(hre.network.name, "YMWK")
+  const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
+  const controllerAddress = getContractAddress(
+    hre.network.name,
+    "GaugeControllerV1"
   );
-  const tokenInflationStarts = (await YMWK.startEpochTime()).add(
+  if (
+    minterAddress === null ||
+    ymwkAddress === null ||
+    controllerAddress === null
+  ) {
+    throw new Error("Minter, YMWK or GaugeController address is null");
+  }
+  const ymwk = (await getContractFactory("YMWK")).attach(ymwkAddress);
+  const tokenInflationStarts = (await ymwk.startEpochTime()).add(
     INFLATION_DELAY
   );
   console.log(
     `${codename} is deploying with Minter=${minterAddress},  startTime=${tokenInflationStarts}...`
   );
 
-  await deploy(codename, {
+  const gauge = await deploy(codename, {
     from: foundation,
     args: [minterAddress, tokenInflationStarts],
     log: true,
     getContractFactory,
   });
+
+  const gaugeController = (
+    await getContractFactory("GaugeControllerV1")
+  ).attach(controllerAddress);
+
+  console.log(
+    `Adding Gauge (${gauge.address}) to GaugeController (${gaugeController.address}) ...`
+  );
+  try {
+    await gaugeController.addGauge(gauge.address, 0, 1);
+  } catch (e: any) {
+    console.trace(e.message);
+  }
 };
 export default func;
 func.tags = [codename, "V1.5"];
