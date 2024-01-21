@@ -25,7 +25,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (votingEscrowAddress === null || factoryAddress === null) {
     throw new Error("VotingEscrow address or Factory address is null");
   }
-  const startTime = Math.floor(new Date().getTime() / 1000);
+  const WEEK = 3600 * 24 * 7;
+  const startTime = Math.floor(new Date().getTime() / 1000 / WEEK) * WEEK;
 
   console.log(
     `${codename} is deploying with startTime=${startTime} VotingEscrow=${votingEscrowAddress}, Factory=${factoryAddress} ...`

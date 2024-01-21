@@ -28,9 +28,9 @@ describe("Gauge checkpoint", function () {
     // Contract factories
     const Token = await ethers.getContractFactory("YMWK");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
-    const GaugeController = await ethers.getContractFactory(
-      "GaugeControllerV1"
-    );
+    const GaugeController =
+      await ethers.getContractFactory("GaugeControllerV1");
+    const Gauge = await ethers.getContractFactory("Gauge");
     const Minter = await ethers.getContractFactory("Minter");
 
     // Contract deployments
@@ -48,8 +48,10 @@ describe("Gauge checkpoint", function () {
 
     const minter = await Minter.deploy(token.address, gaugeController.address);
 
-    const Gauge = await ethers.getContractFactory("Gauge");
-    gauge = await Gauge.deploy(minter.address);
+    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
+      INFLATION_DELAY
+    );
+    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
   });
   afterEach(async () => {
     await snapshot.restore();

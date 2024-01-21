@@ -38,7 +38,7 @@ contract Gauge is ReentrancyGuard {
      * @notice Constructor
      * @param minter_
      */
-    constructor(address minter_) {
+    constructor(address minter_, uint256 startTime_) {
         minter = minter_;
         token = IMinter(minter).token();
         gaugeController = IMinter(minter).controller();
@@ -49,8 +49,8 @@ contract Gauge is ReentrancyGuard {
         inflationRate = IYMWK(token).rate();
         futureEpochTime = IYMWK(token).futureEpochTimeWrite();
 
-        // Assuming deployment before the start of YMWK's inflation
-        uint _t = (futureEpochTime / WEEK) * WEEK;
+        // Determine the start week of the rewards
+        uint256 _t = (startTime_ / WEEK) * WEEK;
         startTime = _t;
         tokenTimeCursor = _t;
         timeCursor = _t;

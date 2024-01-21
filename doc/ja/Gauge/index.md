@@ -46,13 +46,17 @@
 
   - YMWKのインフレーションレートを保持する
 
-- uint256 public isKilled
-
-  - kill状態フラグ。 0 -> 通常状態, 1 -> kill状態
-
 - uint256 public timeCursor
 
   - 次回checkpointTotalSupplyでve同期を開始する週頭のタイムスタンプを保持する
+
+- uint256 public tokenTimeCursor
+
+  - 次回checkpointTokenで週ごとのトークン報酬の集計を開始する週頭のタイムスタンプを保持する
+
+- uint256 public isKilled
+
+  - kill状態フラグ。 0 -> 通常状態, 1 -> kill状態
 
 - mapping(address => uint256) public timeCursorOf
 
@@ -112,7 +116,7 @@
 
 ### 関数
 
-#### constructor(address minter\_)
+#### constructor(address minter\_, uint256 startTime\_)
 
 - minterを設定する
 - tokenを設定する
@@ -121,9 +125,9 @@
 - adminを設定する
 - inflationRateをtokenから取得し、設定する
 - futureEpochTimeをtokenから取得し、設定する
-- startTimeにfutureEpochTimeの週の頭のタイムスタンプを設定する。次回のYMWKインフレーションレートの変更がある週から開始になるので、GaugeはYMWKのインフレーションがスタートする前にデプロイされることが前提
-- tokenTimeCursorにfutureEpochTimeの週の頭のタイムスタンプを設定する
-- timeCursorにfutureEpochTimeの週の頭のタイムスタンプを設定する
+- startTimeにstartTime\_で与えられたタイムスタンプの週の頭を計算し設定する
+- tokenTimeCursorにstartTime\_で与えられたタイムスタンプの週の頭を計算し設定する
+- timeCursorにstartTime\_で与えられたタイムスタンプの週の頭を計算し設定する
 
 #### \_checkpointToken()
 

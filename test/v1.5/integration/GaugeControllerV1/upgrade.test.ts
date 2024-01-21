@@ -16,7 +16,10 @@ type GaugeInfo = {
 const ACCOUNT_NUM = 5;
 const MAX_EXAMPLES = 5;
 const STATEFUL_STEP_COUNT = 10;
-const WEEK = 86400 * 7;
+const DAY = 86400;
+const WEEK = DAY * 7;
+const YEAR = DAY * 365;
+const INFLATION_DELAY = YEAR;
 
 // Helper functions to generate random variables ----->
 function randomBigValue(min: number, max: number): BigNumber {
@@ -60,9 +63,8 @@ describe("GaugeControllerV1", function () {
 
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("Minter");
-    const GaugeController = await ethers.getContractFactory(
-      "GaugeControllerV1"
-    );
+    const GaugeController =
+      await ethers.getContractFactory("GaugeControllerV1");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await Token.deploy();
@@ -139,8 +141,14 @@ describe("GaugeControllerV1", function () {
     console.log(
       `ruleAddGauge --- gaugeType: ${gaugeType}, stGaugeWeight: ${stGaugeWeight.toString()}`
     );
+    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
+      INFLATION_DELAY
+    );
     const LiquidityGauge = await ethers.getContractFactory("Gauge");
-    const gauge = await LiquidityGauge.deploy(minter.address);
+    const gauge = await LiquidityGauge.deploy(
+      minter.address,
+      tokenInflationStarts
+    );
     await gauge.deployed();
 
     await gaugeController
@@ -239,8 +247,14 @@ describe("GaugeControllerV1", function () {
     // アップグレードされたGaugeControllerがV1のデータを保持していることを確認する
     it(`should upgrade successfully and keep variables`, async () => {
       // Gaugeの追加
+      const tokenInflationStarts: BigNumber = (
+        await token.startEpochTime()
+      ).add(INFLATION_DELAY);
       const LiquidityGauge = await ethers.getContractFactory("Gauge");
-      const gauge = await LiquidityGauge.deploy(minter.address);
+      const gauge = await LiquidityGauge.deploy(
+        minter.address,
+        tokenInflationStarts
+      );
       await gauge.deployed();
       await gaugeController.addGauge(gauge.address, 0, 1);
 

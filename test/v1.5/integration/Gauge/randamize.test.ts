@@ -82,9 +82,8 @@ describe("Gauge", function () {
 
     const YMWK = await ethers.getContractFactory("YMWK");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
-    const GaugeController = await ethers.getContractFactory(
-      "GaugeControllerV1"
-    );
+    const GaugeController =
+      await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("Minter");
     const Gauge = await ethers.getContractFactory("Gauge");
 
@@ -111,7 +110,10 @@ describe("Gauge", function () {
     // Set minter for the token
     await token.setMinter(minter.address);
 
-    gauge = await Gauge.deploy(minter.address);
+    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
+      INFLATION_DELAY
+    );
+    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
     await gauge.deployed();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
@@ -142,9 +144,6 @@ describe("Gauge", function () {
     };
 
     // Advance time to when YMWK inflation starts
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
     await time.increaseTo(tokenInflationStarts);
     await token.updateMiningParameters();
 

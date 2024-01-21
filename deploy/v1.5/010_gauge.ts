@@ -21,11 +21,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (minterAddress === null) {
     throw new Error("Minter address is null");
   }
-  console.log(`${codename} is deploying with Minter=${minterAddress} ...`);
+  const INFLATION_DELAY = 86400 * 365;
+  const YMWK = (await getContractFactory("YMWK")).attach(
+    getContractAddress(hre.network.name, "YMWK")
+  );
+  const tokenInflationStarts = (await YMWK.startEpochTime()).add(
+    INFLATION_DELAY
+  );
+  console.log(
+    `${codename} is deploying with Minter=${minterAddress},  startTime=${tokenInflationStarts}...`
+  );
 
   await deploy(codename, {
     from: foundation,
-    args: [minterAddress],
+    args: [minterAddress, tokenInflationStarts],
     log: true,
     getContractFactory,
   });

@@ -16,6 +16,9 @@ describe("GaugeControllerV1", function () {
 
   const GAUGE_WEIGHTS = Constants.GAUGE_WEIGHTS;
   const WEIGHT = BigNumber.from(10).pow(18);
+  const DAY = 86400;
+  const YEAR = DAY * 365;
+  const INFLATION_DELAY = YEAR;
 
   beforeEach(async function () {
     snapshot = await takeSnapshot();
@@ -23,9 +26,8 @@ describe("GaugeControllerV1", function () {
     // Contract factories
     const Token = await ethers.getContractFactory("YMWK");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
-    const GaugeController = await ethers.getContractFactory(
-      "GaugeControllerV1"
-    );
+    const GaugeController =
+      await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("Minter");
 
     // Contract deployments
@@ -43,8 +45,14 @@ describe("GaugeControllerV1", function () {
 
     const minter = await Minter.deploy(token.address, gaugeController.address);
 
+    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
+      INFLATION_DELAY
+    );
     const LiquidityGauge = await ethers.getContractFactory("Gauge");
-    const lg1 = await LiquidityGauge.deploy(minter.address);
+    const lg1 = await LiquidityGauge.deploy(
+      minter.address,
+      tokenInflationStarts
+    );
     threeGauges = [lg1.address, lg1.address, lg1.address];
   });
 

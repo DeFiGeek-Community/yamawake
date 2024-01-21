@@ -35,9 +35,8 @@ describe("Minter components", function () {
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("Minter");
     const Gauge = await ethers.getContractFactory("Gauge");
-    const GaugeController = await ethers.getContractFactory(
-      "GaugeControllerV1"
-    );
+    const GaugeController =
+      await ethers.getContractFactory("GaugeControllerV1");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await Token.deploy();
@@ -60,7 +59,10 @@ describe("Minter components", function () {
     minter = await Minter.deploy(token.address, gaugeController.address);
     await minter.deployed();
 
-    gauge = await Gauge.deploy(minter.address);
+    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
+      INFLATION_DELAY
+    );
+    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
     await gauge.deployed();
 
     await token.setMinter(minter.address);
