@@ -1,6 +1,6 @@
 import { network, run } from "hardhat";
 import { readFileSync } from "fs";
-import { getFoundation } from "./deployUtil";
+
 async function main() {
   const basePath = `deployments/${network.name}/`;
 

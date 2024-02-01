@@ -16,15 +16,6 @@ contract YMWK is ERC20 {
     // General constants
     uint256 constant YEAR = 365 days;
 
-    // Allocation:
-    // =========
-    // * shareholders - ??%
-    // * emplyees - ?%
-    // * DAO-controlled reserve - ?%
-    // * Early users - 5%
-    // == 45% ==
-    // left for inflation: 55%
-
     // Supply parameters
     uint256 constant INITIAL_SUPPLY = 450_000_000;
     uint256 constant INITIAL_RATE = (55_000_000 * 10 ** 18) / YEAR; // leading to 45% premine

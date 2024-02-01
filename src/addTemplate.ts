@@ -1,4 +1,3 @@
-require("dotenv").config();
 import chalk from "chalk";
 import { Contract, utils } from "ethers";
 import { genABI } from "../src/genABI";
@@ -52,8 +51,7 @@ export async function addTemplate(
     name,
     Template.address,
     initializeSignature,
-    transferSignature,
-    { gasLimit: 10000000 }
+    transferSignature
   );
   await tx.wait();
 
