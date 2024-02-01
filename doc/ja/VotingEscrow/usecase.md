@@ -46,45 +46,34 @@
 ```mermaid
 graph LR
     classDef transparent fill:none,stroke:none;
-    owner{{VotingEscrowオーナー}}
-    holder{{YMWKホルダー}}
-    user{{ユーザ}}
+    owner{{"VotingEscrowオーナー"}}
+    holder{{"YMWKホルダー"}}
+    user{{"ユーザ"}}
 
-    create_lock[YMWK をロックする]
-    increase_amount[YMWK ロック量を増額する]
-    increase_unlock_time[YMWK ロック期間を延長する]
-    withdraw[YMWKを引き出す]
-    uck[ユーザのポイント履歴を更新]
-    ck[全体のポイント履歴を更新]
-    integral["
-    最大20週分の全体ve履歴を取得・保存
-    integrate_inv_supply
-    "]
-    integral_of[
-        最大50ユーザエポック分のve履歴を取得・保存
-        integrate_inv_supply_of
-        integrate_checkpoint_of
-        integrate_fraction
-    ]
-    ve_total_supply[全体のポイント履歴を取得]
-    ve_user_balance[ユーザのポイント履歴を取得]
+    create_lock["YMWKをロックする"]
+    increase_amount["YMWKロック量を増額する"]
+    increase_unlock_time["YMWKロック期間を延長する"]
+    withdraw["YMWKを引き出す"]
+    uck["ユーザのポイント履歴を更新"]
+    ck["全体のポイント履歴を更新"]
+    integral["最大20週分の全体ve履歴を取得・保存\nintegrate_inv_supply"]
+    integral_of["最大50ユーザエポック分のve履歴を取得・保存\nintegrate_inv_supply_of\nintegrate_checkpoint_of\nintegrate_fraction"]
+    ve_total_supply["全体のポイント履歴を取得"]
+    ve_user_balance["ユーザのポイント履歴を取得"]
 
-    mint[ミント]
-    rate[インフレーションレートの取得]
-    future_epoch_time_write[次回のインフレーションレート変更タイムスタンプ取得]
-    update_rate[インフレーションレート更新]
-    update_minted[ユーザのミント済みYMWKトークン額を更新]
-    minted[ユーザのミント済みYMWKトークン額を取得]
-    claim_ymwk[YMWK酬をクレーム]
+    mint["ミント"]
+    rate["インフレーションレートの取得"]
+    future_epoch_time_write["次回のインフレーションレート変更タイムスタンプ取得"]
+    update_rate["インフレーションレート更新"]
+    update_minted["ユーザのミント済みYMWKトークン額を更新"]
+    minted["ユーザのミント済みYMWKトークン額を取得"]
+    claim_ymwk["YMWK酬をクレーム"]
 
-    deploy[VotingEscrowを立ち上げる]
-    change_admin[管理者を変更する]
+    deploy["VotingEscrowを立ち上げる"]
+    change_admin["管理者を変更する"]
 
 
-    claimable_tokens[
-        YMWK酬額取得
-        integrate_fraction
-        ]
+    claimable_tokens["YMWK酬額取得\nintegrate_fraction"]
 
     create_lock -.->|include| uck
     increase_amount -.->|include| uck

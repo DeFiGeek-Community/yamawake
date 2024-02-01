@@ -28,22 +28,22 @@
 
 ```mermaid
 graph LR
-    user{{ユーザ}}
-    owner{{GaugeControllerオーナー}}
-    gauge_{{Gauge}}
-    minter{{Minter}}
+    user{{"ユーザ"}}
+    owner{{"GaugeControllerオーナー"}}
+    gauge_{{"Gauge"}}
+    minter{{"Minter"}}
 
-    admin[管理者を保持する]
-    token[トークンアドレスを保持する]
-    escrow[VotingEscrowアドレスを保持する]
-    gauge[Gauge情報を保持する]
+    admin["管理者を保持する"]
+    token["トークンアドレスを保持する"]
+    escrow["VotingEscrowアドレスを保持する"]
+    gauge["Gauge情報を保持する"]
 
-    deploy[GaugeControllerを立ち上げる]
-    change_admin[管理者を変更する]
-    add_gauge[Gaugeを追加する]
+    deploy["GaugeControllerを立ち上げる"]
+    change_admin["管理者を変更する"]
+    add_gauge["Gaugeを追加する"]
 
-    get_gauge_rel_weight[Gaugeの相対Weightを取得する]
-    get_gauge_type[GaugeのTypeを取得する]
+    get_gauge_rel_weight["Gaugeの相対Weightを取得する"]
+    get_gauge_type["GaugeのTypeを取得する"]
 
     owner --- deploy
     owner --- change_admin

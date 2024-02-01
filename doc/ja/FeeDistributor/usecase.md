@@ -32,28 +32,28 @@
 
 ```mermaid
 graph LR
-    auction_owner{{オークションオーナー}}
-    owner{{FeeDistributorオーナー}}
-    user{{ユーザ}}
-    deploy[FeeDistributorを立ち上げる]
-    withdraw_ether[ETHを引出す]
-    withdraw_erc20[トークンを引出す]
-    add_reward[トークンアドレスを追加する]
-    deposit_reward_ether[ETHを入金する]
-    deposit_reward_token[トークンを入金する]
-    claim[報酬をクレームする]
-    claim_many[複数アドレス（最大20アドレス）の報酬をまとめてクレームする]
-    claim_multiple_tokens[複数トークン（最大20トークン）の報酬をまとめてクレームする]
-    claimable_token[報酬額を取得する]
-    get_tokens[報酬トークンの一覧を取得する]
-    user_point_history[ユーザのポイント履歴を取得]
-    point_history[全体のポイント履歴を取得]
-    sync_ve[最大20週間分のveYMWK総残高を取得・保存]
-    sync_user_ve[最大50エポック分のユーザve履歴を取得し、エポック数を保持]
-    checkpoint_token[入金された手数料を週ごとに配分]
-    set_admin[管理者を変更する]
-    kill[FeeDistributorをkill状態にする]
-    evacuate[緊急時トークン送金先にトークンを送金する]
+    auction_owner{{"オークションオーナー"}}
+    owner{{"FeeDistributorオーナー"}}
+    user{{"ユーザ"}}
+    deploy["FeeDistributorを立ち上げる"]
+    withdraw_ether["ETHを引出す"]
+    withdraw_erc20["トークンを引出す"]
+    add_reward["トークンアドレスを追加する"]
+    deposit_reward_ether["ETHを入金する"]
+    deposit_reward_token["トークンを入金する"]
+    claim["報酬をクレームする"]
+    claim_many["複数アドレス（最大20アドレス）の報酬をまとめてクレームする"]
+    claim_multiple_tokens["複数トークン（最大20トークン）の報酬をまとめてクレームする"]
+    claimable_token["報酬額を取得する"]
+    get_tokens["報酬トークンの一覧を取得する"]
+    user_point_history["ユーザのポイント履歴を取得"]
+    point_history["全体のポイント履歴を取得"]
+    sync_ve["最大20週間分のveYMWK総残高を取得・保存"]
+    sync_user_ve["最大50エポック分のユーザve履歴を取得し、エポック数を保持"]
+    checkpoint_token["入金された手数料を週ごとに配分"]
+    set_admin["管理者を変更する"]
+    kill["FeeDistributorをkill状態にする"]
+    evacuate["緊急時トークン送金先にトークンを送金する"]
 
     owner --- deploy
     owner --- kill
