@@ -82,37 +82,21 @@
 
     N週目までのYMWK報酬額：
 
-    $$
-    \sum_{n=0}^{N-1}\left(\int_{t_n}^{t_{n+1}}r\left(t\right)dt\cdot w\left(t_n\right) \cdot \frac{b_{u}\left(t_n\right)}{S\left(t_n\right)}\right)
-    $$
+    $$\sum_{n=0}^{N-1}\left(\int_{t_n}^{t_{n+1}}r\left(t\right)dt\cdot w\left(t_n\right) \cdot \frac{b_{u}\left(t_n\right)}{S\left(t_n\right)}\right)$$
 
-    $
-    W: 604800（=60*60*24*7）
-    $
+    $W: 604800（=60\cdot60\cdot24\cdot7）$
 
-    $
-    r(t): 
-    $ YMWKの単位時間あたりの新規発行量
+    $r(t): \text{YMWKの単位時間あたりの新規発行量}$
 
-    $
-    w(t): 
-    $ t時点でのWeight
+    $w(t): \text{t時点でのWeight}$
 
-    $
-    S(t): 
-    $ t時点でのve残高
+    $S(t): \text{t時点でのve残高}$
 
-    $
-    b_u(t): 
-    $ t時点でのユーザve残高
+    $b_u(t): \text{t時点でのユーザve残高}$
 
-    $
-    t_0:
-    $ 報酬分配を開始するタイムスタンプ
+    $t_0: \text{報酬分配を開始するタイムスタンプ}$
 
-    $
-    t_n: n週目頭のタイムスタンプ（t_0 + W \cdot n）
-    $
+    $t_n: \text{n週目頭のタイムスタンプ}（t_0 + W \cdot n）$
 
 ### 関数
 
