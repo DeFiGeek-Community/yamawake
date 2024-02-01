@@ -1,11 +1,8 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract } from "ethers";
 import { genABI } from "./genABI";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-const hre: HardhatRuntimeEnvironment = require("hardhat");
-const saleTemplateName = ".saleTemplateName";
 
 type Options = {
   from?: SignerWithAddress | undefined;
@@ -16,10 +13,6 @@ type Options = {
   log?: boolean | undefined;
   getContractFactory: any;
 };
-
-export function getLocalFactoryAddress() {
-  return process.env.LOCAL_FACTORY_ADDERSS;
-}
 
 export async function getFoundation(): Promise<SignerWithAddress> {
   const accounts = await ethers.getSigners();
@@ -46,17 +39,6 @@ export function setContractAddress(
   writeFileSync(`deployments/${_network}/${_name}`, _address);
 }
 
-export function getSaleTemplateKey(_network: string): string {
-  return readFileSync(`deployments/${_network}/${saleTemplateName}`).toString();
-}
-
-export function setSaleTemplateKey(_network: string, _saleTemplateKey: string) {
-  writeFileSync(
-    `deployments/${_network}/${saleTemplateName}`,
-    _saleTemplateKey
-  );
-}
-
 export async function deploy(contractName: string, opts: Options) {
   const foundation: SignerWithAddress = await getFoundation();
 
@@ -80,7 +62,7 @@ export async function deploy(contractName: string, opts: Options) {
       } by ${await opts.signer.getAddress()}`
     );
   writeFileSync(
-    `deployments/${hre.network.name}/${contractName}`,
+    `deployments/${network.name}/${contractName}`,
     _Contract.address
   );
   return _Contract;
