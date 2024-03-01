@@ -4,11 +4,11 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Factory is Ownable {
-    /// @param implemention implemention address
+    /// @param implementation implementation address
     /// @param initializeSignature function signature of initialize auction
     /// @param transferSignature function signature of transfer token
     struct TemplateInfo {
-        address implemention;
+        address implementation;
         bytes4 initializeSignature;
         bytes4 transferSignature;
     }
@@ -20,11 +20,11 @@ contract Factory is Ownable {
     event Deployed(bytes32 templateName, address deployedAddress);
     event TemplateAdded(
         bytes32 indexed templateName,
-        address indexed implementionAddr
+        address indexed implementationAddr
     );
     event TemplateRemoved(
         bytes32 indexed templateName,
-        address indexed implementionAddr
+        address indexed implementationAddr
     );
 
     function deployAuction(
@@ -33,7 +33,7 @@ contract Factory is Ownable {
     ) external payable returns (address deployedAddr) {
         /* 1. Args must be non-empty and allowance is enough. */
         TemplateInfo memory templateInfo = templates[templateName_];
-        address templateAddr = templateInfo.implemention;
+        address templateAddr = templateInfo.implementation;
         require(templateAddr != address(0), "No such template in the list.");
 
         /* 2. Make a clone. */
@@ -74,32 +74,32 @@ contract Factory is Ownable {
 
     function addTemplate(
         bytes32 templateName_,
-        address implementionAddr_,
+        address implementationAddr_,
         bytes4 initializeSignature_,
         bytes4 transferSignature_
     ) external onlyOwner {
         require(
-            templates[templateName_].implemention == address(0),
+            templates[templateName_].implementation == address(0),
             "This template name is already taken."
         );
 
         templates[templateName_] = TemplateInfo(
-            implementionAddr_,
+            implementationAddr_,
             initializeSignature_,
             transferSignature_
         );
 
-        emit TemplateAdded(templateName_, implementionAddr_);
+        emit TemplateAdded(templateName_, implementationAddr_);
     }
 
     function removeTemplate(bytes32 templateName_) external onlyOwner {
         TemplateInfo memory templateInfo = templates[templateName_];
         delete templates[templateName_];
 
-        emit TemplateRemoved(templateName_, templateInfo.implemention);
+        emit TemplateRemoved(templateName_, templateInfo.implementation);
     }
 
-    /// @dev Deploy implemention's minimal proxy by create2
+    /// @dev Deploy implementation's minimal proxy by create2
     function _createClone(
         address implementation_
     ) internal returns (address result) {
