@@ -152,6 +152,10 @@ contract TemplateV1 is BaseTemplate, ReentrancyGuard {
         }
     }
 
+    /// @param us usershare
+    /// @param tr totalraised
+    /// @param aa allocatedamount
+    /// @return al allocation
     function _calculateAllocation(
         uint256 us,
         uint256 tr,
