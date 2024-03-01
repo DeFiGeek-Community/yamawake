@@ -15,7 +15,6 @@ contract Factory is Ownable {
 
     mapping(bytes32 => TemplateInfo) public templates;
     mapping(address => bool) public auctions;
-    uint256 nonce = 0;
 
     event Deployed(bytes32 templateName, address deployedAddress);
     event TemplateAdded(
@@ -99,27 +98,19 @@ contract Factory is Ownable {
         emit TemplateRemoved(templateName_, templateInfo.implementation);
     }
 
-    /// @dev Deploy implementation's minimal proxy by create2
+    /// @dev Deploy implementation's minimal proxy by create
     function _createClone(
         address implementation_
-    ) internal returns (address result) {
-        nonce += 1;
-        bytes32 salt = keccak256(abi.encodePacked(implementation_, nonce));
-        // OpenZeppelin Contracts (last updated v4.8.0) (proxy/Clones.sol)
+    ) internal returns (address instance) {
+        /// @solidity memory-safe-assembly
         assembly {
-            mstore(
-                0x00,
-                or(
-                    shr(0xe8, shl(0x60, implementation_)),
-                    0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000
-                )
-            )
-            mstore(
-                0x20,
-                or(shl(0x78, implementation_), 0x5af43d82803e903d91602b57fd5bf3)
-            )
-            result := create2(0, 0x09, 0x37, salt)
+            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes
+            // of the `implementation` address with the bytecode before the address.
+            mstore(0x00, or(shr(0xe8, shl(0x60, implementation_)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))
+            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.
+            mstore(0x20, or(shl(0x78, implementation_), 0x5af43d82803e903d91602b57fd5bf3))
+            instance := create(0, 0x09, 0x37)
         }
-        require(result != address(0), "ERC1167: create2 failed");
+        require(instance != address(0), "ERC1167: create failed");
     }
 }
