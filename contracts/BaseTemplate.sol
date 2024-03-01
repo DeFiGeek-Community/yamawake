@@ -3,6 +3,10 @@ pragma solidity 0.8.18;
 
 import "./interfaces/IDistributor.sol";
 
+/// @title BaseTemplate
+/// @author DeFiGeek Community Japan
+/// @notice Base template for each auction template
+/// @dev Extend this contract for each auction template
 contract BaseTemplate {
     /// Flags that manage instance initialization
     bool initialized;
@@ -16,8 +20,13 @@ contract BaseTemplate {
 
     /// @notice Record deployed parameters
     /// @dev Use primitives for important information, bytes type compression for other information.
-    /// @param raisedTokens Concatenate address with the number of auction tokens
-    /// @param args Concatenate template-specific parameters to bytes
+    /// @param deployedAddress Deployed address of an auction
+    /// @param owner The address of auction owner
+    /// @param startingAt  The timestamp when the auction starts
+    /// @param closingAt The timestamp when the auction ends
+    /// @param auctionToken The address of the token being auctioned
+    /// @param raisedTokens Concatenated addresses of the raised tokens
+    /// @param args Concatenated template-specific parameters in bytes
     event Deployed(
         address deployedAddress,
         address owner,
@@ -28,6 +37,12 @@ contract BaseTemplate {
         bytes args
     );
 
+    /// @notice Record claim parameters
+    /// @dev Emit this event to track claim information when participants claim
+    /// @param participant The address of the user who contributed
+    /// @param recipient The address of the user who received the token allocation
+    /// @param userShare  The amount of the participant's contribution
+    /// @param allocation The amount of the participant's token allocation
     event Claimed(
         address indexed participant,
         address indexed recipient,
@@ -35,6 +50,11 @@ contract BaseTemplate {
         uint256 allocation
     );
 
+    /// @notice Record raised parameters
+    /// @dev Emit this event when the auction receives funds from participants to track raised information
+    /// @param participant The address of the user who contributed
+    /// @param token The address of the raised token
+    /// @param amount  The amount of the raised token
     event Raised(address indexed participant, address token, uint256 amount);
 
     constructor(address factory_, address feePool_, address distributor_) {

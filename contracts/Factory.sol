@@ -3,6 +3,9 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title Factory
+/// @author DeFiGeek Community Japan
+/// @notice Manage auction templates. Clone and deploy auction contracts from templates
 contract Factory is Ownable {
     /// @param implementation implementation address
     /// @param initializeSignature function signature of initialize auction
@@ -16,16 +19,30 @@ contract Factory is Ownable {
     mapping(bytes32 => TemplateInfo) public templates;
     mapping(address => bool) public auctions;
 
+    /// @notice Record deployed parameters
+    /// @param templateName Template name of the deployed auction
+    /// @param deployedAddress Deployed address of the auction
     event Deployed(bytes32 templateName, address deployedAddress);
+
+    /// @notice Record information of the added template
+    /// @param templateName The name of the template
+    /// @param implementationAddr The mplementation address of the template (auction contract)
     event TemplateAdded(
         bytes32 indexed templateName,
         address indexed implementationAddr
     );
+
+    /// @notice Record information of the removed template
+    /// @param templateName The name of the template
+    /// @param implementationAddr The implementation address of the template (auction contract)
     event TemplateRemoved(
         bytes32 indexed templateName,
         address indexed implementationAddr
     );
 
+    /// @notice Deploy clone auction
+    /// @param templateName_ The name of the template
+    /// @param args_ Template-specific parameters concatenated with abi.encode to bytes
     function deployAuction(
         bytes32 templateName_,
         bytes calldata args_
@@ -71,6 +88,11 @@ contract Factory is Ownable {
         auctions[deployedAddr] = true;
     }
 
+    /// @notice Add template with required information
+    /// @param templateName_ The name of the template
+    /// @param implementationAddr_ implementation address
+    /// @param initializeSignature_ function signature of initialize auction
+    /// @param transferSignature_ function signature of transfer token
     function addTemplate(
         bytes32 templateName_,
         address implementationAddr_,
@@ -91,6 +113,8 @@ contract Factory is Ownable {
         emit TemplateAdded(templateName_, implementationAddr_);
     }
 
+    /// @notice Remove template
+    /// @param templateName_ The name of the template
     function removeTemplate(bytes32 templateName_) external onlyOwner {
         TemplateInfo memory templateInfo = templates[templateName_];
         delete templates[templateName_];
@@ -99,6 +123,8 @@ contract Factory is Ownable {
     }
 
     /// @dev Deploy implementation's minimal proxy by create
+    /// @param implementation_ Template address
+    /// @return instance Deployed address
     function _createClone(
         address implementation_
     ) internal returns (address instance) {
