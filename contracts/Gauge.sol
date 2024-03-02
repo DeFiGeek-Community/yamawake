@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -9,6 +9,9 @@ import "./interfaces/IYMWK.sol";
 import "./interfaces/IMinter.sol";
 import "./interfaces/IVotingEscrow.sol";
 
+/// @title Gauge
+/// @author DeFiGeek Community Japan
+/// @notice Calculate YMWK token rewards for veYMWK holders
 contract Gauge is ReentrancyGuard {
     event CheckpointToken(uint256 time, uint256 tokens);
     event CommitOwnership(address indexed admin);

@@ -1,13 +1,11 @@
-pragma solidity ^0.8.18;
-
-/***
- *@title Gauge Controller
- * SPDX-License-Identifier: MIT
- *@notice Controls liquidity gauges and the issuance of token through the gauges
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+/// @title GaugeControllerV1
+/// @author DeFiGeek Community Japan
+/// @notice Controls liquidity gauges and the issuance of token through the gauges
 contract GaugeControllerV1 is UUPSUpgradeable {
     event CommitOwnership(address admin);
     event ApplyOwnership(address admin);

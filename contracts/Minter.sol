@@ -1,15 +1,14 @@
-pragma solidity ^0.8.18;
-
-/***
- *@title Token Minter
- * SPDX-License-Identifier: MIT
- */
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IYMWK.sol";
 import "./interfaces/ILiquidityGauge.sol";
 import "./interfaces/IGaugeController.sol";
 
+/// @title Token Minter
+/// @author DeFiGeek Community Japan
+/// @notice Controls liquidity gauges and the issuance of token through the gauges
 contract Minter is ReentrancyGuard {
     event Minted(address indexed recipient, address gauge, uint256 minted);
 

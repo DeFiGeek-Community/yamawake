@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+pragma solidity 0.8.18;
 
 // Voting escrow to have time-weighted votes
 // Votes have a weight depending on time, so that users are committed

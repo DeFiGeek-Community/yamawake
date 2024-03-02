@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.18;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -7,11 +7,9 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./BaseTemplate.sol";
 import "./interfaces/IFeeDistributor.sol";
 
-/**
- * @author 0xMotoko
- * @title TemplateV1WithCreationFee
- * @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
- */
+/// @author DeFiGeek Community Japan
+/// @title TemplateV1
+/// @notice Minimal Proxy Platform-ish fork of the HegicInitialOffering.sol
 contract TemplateV1_5WithCreationFee is BaseTemplate, ReentrancyGuard {
     using SafeERC20 for IERC20;
     uint256 private constant TOKEN_UPPER_BOUND = 1e50;
