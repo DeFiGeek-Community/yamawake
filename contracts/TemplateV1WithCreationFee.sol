@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.18;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -38,6 +38,14 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         address distributor_
     ) BaseTemplate(factory_, feePool_, distributor_) {}
 
+    /// @notice Initialize an auction
+    /// @dev Expected to be called by the factory's deployAuction function
+    /// @param owner_ Auction owner
+    /// @param startingAt_ Timestamp when the auction starts
+    /// @param eventDuration_ The duration of the auction in seconds
+    /// @param token_ The token address to be auctioned
+    /// @param allocatedAmount_ The amount of tokens to be auctioned
+    /// @param minRaisedAmount_ The minimum amount of tokens to be raised for the auction to be regarded as a success
     function initialize(
         address owner_,
         uint256 startingAt_,
@@ -115,6 +123,9 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         emit Raised(msg.sender, address(0), msg.value);
     }
 
+    /// @notice Claim allocated tokens
+    /// @param participant The address of the user who contributed
+    /// @param recipient The address of the user who received the token allocation
     function claim(
         address participant,
         address recipient
@@ -154,6 +165,10 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         }
     }
 
+    /// @param us usershare
+    /// @param tr totalraised
+    /// @param aa allocatedamount
+    /// @return al allocation
     function _calculateAllocation(
         uint256 us,
         uint256 tr,
@@ -162,12 +177,8 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         al = (((us * SCALE_FACTOR) / tr) * aa) / SCALE_FACTOR;
     }
 
-    /*
-        Finished, and enough Ether raised.
-        
-        Owner: Withdraws Ether
-        Contributors: Can claim and get their own ERC-20
-    */
+    /// @notice Send raised Ether to the owner
+    /// @dev The auction is finished, and enough Ether has been raised. The owner withdraws Ether, and contributors claim and receive their ERC-20 tokens.
     function withdrawRaisedETH() external nonReentrant {
         require(closingAt < block.timestamp, "Withdrawal unavailable yet.");
         require(
@@ -201,12 +212,8 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         require(success, "Withdraw failed");
     }
 
-    /*
-        Finished, but the privided token is not enough. (Failed sale)
-        
-        Owner: Withdraws ERC-20
-        Contributors: Claim and get back Ether
-    */
+    /// @notice Send auction tokens back to the owner
+    /// @dev The auction is finished, but the amount raised is not enough (Failed sale). The owner withdraws tokens, and contributors can get refunded.
     function withdrawERC20Onsale() external {
         require(closingAt < block.timestamp, "The offering must be completed");
         require(
@@ -216,6 +223,11 @@ contract TemplateV1WithCreationFee is BaseTemplate, ReentrancyGuard {
         erc20onsale.safeTransfer(owner, allocatedAmount);
     }
 
+    /// @notice Send tokens to the specified address
+    /// @dev Expected to be used for funding the auction contract, to be delegate-called by the factory's deployAuction function
+    /// @param token_ Auction token address
+    /// @param amount_ Auction token amount
+    /// @param to_ Receiver
     function initializeTransfer(
         address token_,
         uint256 amount_,
