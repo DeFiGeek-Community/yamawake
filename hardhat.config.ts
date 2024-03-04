@@ -6,8 +6,10 @@ import "@nomiclabs/hardhat-etherscan";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
+import "@openzeppelin/hardhat-upgrades";
 
-const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, FOUNDATION_PRIVATE_KEY } = process.env;
+const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, FOUNDATION_PRIVATE_KEY } =
+  process.env;
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -35,30 +37,26 @@ const config: HardhatUserConfig = {
       accounts: [`${FOUNDATION_PRIVATE_KEY}`],
       saveDeployments: true,
     },
-    localhost: {
-      url: "http://127.0.0.1:8545",
-      accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"],
-    },
     hardhat: {
-      // forking: {
-      //   url: `https://mainnet.infura.io/v3/${INFURA_API_TOKEN}`,
-      // },
       accounts: {
         count: 110,
         initialIndex: 0,
-        accountsBalance: "2000000000000000000000"
-      }
+        accountsBalance: "200000000000000000000000",
+      },
     },
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
   },
   paths: {
-    deployments: 'hardhat-deployments',
+    deployments: "hardhat-deployments",
   },
   gasReporter: {
-    enabled: true
-  }
+    enabled: true,
+  },
+  mocha: {
+    timeout: 100000,
+  },
 };
 
 export default config;

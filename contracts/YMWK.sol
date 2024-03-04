@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.18;
+pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /// @title Yamawake DAO Token
+/// @author DeFiGeek Community Japan
 /// @notice ERC20 with piecewise-linear mining supply.
 contract YMWK is ERC20 {
     event UpdateMiningParameters(uint256 time, uint256 rate, uint256 supply);
@@ -15,15 +16,6 @@ contract YMWK is ERC20 {
 
     // General constants
     uint256 constant YEAR = 365 days;
-
-    // Allocation:
-    // =========
-    // * shareholders - ??%
-    // * emplyees - ?%
-    // * DAO-controlled reserve - ?%
-    // * Early users - 5%
-    // == 45% ==
-    // left for inflation: 55%
 
     // Supply parameters
     uint256 constant INITIAL_SUPPLY = 450_000_000;

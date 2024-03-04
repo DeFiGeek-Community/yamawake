@@ -1,0 +1,199 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x53063773F270324ba151eCb5881577df5A4A3393",
+      "txHash": "0x74dbd0c83dfd1f06f15d45952c77f9ddfbaf17dd20896549a6adeea26c04c558",
+      "kind": "uups"
+    },
+    {
+      "address": "0xf7AE5818C82Cc8a03ABFb87AAddf5b1245abE173",
+      "txHash": "0x397cbe66c63023888f2929c6ef9250b1b6e5ba66b299bb8cc00c9f6205970fd2",
+      "kind": "uups"
+    },
+    {
+      "address": "0x1187ccE20870465DC5331eA8137D737216F4B122",
+      "txHash": "0xe9748e1650ff2981677a5a89eba2e4c06338508fea2e48b2db488c1fc4e7b0ca",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3CcAF06281661fECBaDED1a6108eC613AC9b90b9",
+      "txHash": "0x9667193ecaf94e5be9652bbaae337201fff1864d8c8118181862b4e95dc224b6",
+      "kind": "uups"
+    },
+    {
+      "address": "0xeDA36Af38e0ba669adEa11b287dA4E375563D157",
+      "txHash": "0xa816c1a3097350a3170a6adb85a0834f54c80f1762f9afabcd996bd5604282b4",
+      "kind": "uups"
+    },
+    {
+      "address": "0x0FD01A0dd396E748793340A740A947f956805e09",
+      "txHash": "0x1280106a36e7d89cd8a5bf41341d8942817748514fc649f5f3b6ed11b38de1c2",
+      "kind": "uups"
+    },
+    {
+      "address": "0xFFc4aa8681a988247A38D02a97b0fe0DAC2d29f1",
+      "txHash": "0x033eb049fb7ec6e5195eeaa57b808dce186ef28da004c324ba66b11f55f6b744",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "4beeab8161c64beb71e3cbe865a6fa835f820c885a5e3a4cc983e2da938e82df": {
+      "address": "0x059f60F087fFD62c747989Ef266BC89c00515454",
+      "txHash": "0x1d8516715ade248dfe0119f88660c75d02c9ee509ff353b86e4141cd434dbbaa",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "admin",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:18"
+          },
+          {
+            "label": "futureAdmin",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:20"
+          },
+          {
+            "label": "token",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:22"
+          },
+          {
+            "label": "votingEscrow",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:24"
+          },
+          {
+            "label": "nGaugeTypes",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_int128",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:26"
+          },
+          {
+            "label": "nGauges",
+            "offset": 16,
+            "slot": "105",
+            "type": "t_int128",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:27"
+          },
+          {
+            "label": "gaugeTypeNames",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_int128,t_string_storage)",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:28"
+          },
+          {
+            "label": "gauges",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_array(t_address)1000000000_storage",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:31"
+          },
+          {
+            "label": "gaugeTypes_",
+            "offset": 0,
+            "slot": "1000000107",
+            "type": "t_mapping(t_address,t_int128)",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:35"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_address)1000000000_storage": {
+            "label": "address[1000000000]",
+            "numberOfBytes": "32000000000"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_int128": {
+            "label": "int128",
+            "numberOfBytes": "16"
+          },
+          "t_mapping(t_address,t_int128)": {
+            "label": "mapping(address => int128)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_int128,t_string_storage)": {
+            "label": "mapping(int128 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    }
+  }
+}
