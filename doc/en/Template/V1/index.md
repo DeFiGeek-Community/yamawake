@@ -21,7 +21,7 @@ Higher bid amounts lead to higher token prices (lower allocation), and lower bid
 ### Fixed Parameters
 
 - Minimum bid amount:
-  - 0.01ETH
+  - 0.001ETH
 - Total bid cap:
   - 1e27
 - Sale token cap:
