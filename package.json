@@ -8,10 +8,10 @@
     "deploy:localhost": "npx hardhat deploy --network localhost",
     "deploy:sepolia": "npx hardhat deploy --network sepolia",
     "deploy:goerli": "npx hardhat deploy --network goerli",
-    "deploy:mainnnet": "npx hardhat deploy --network mainnnet",
+    "deploy:mainnet": "npx hardhat deploy --network mainnet",
     "verify:sepolia": "npx hardhat run ./src/verify.ts --network sepolia",
     "verify:goerli": "npx hardhat run ./src/verify.ts --network goerli",
-    "verify:mainnnet": "npx hardhat run ./src/verify.ts --network mainnnet",
+    "verify:mainnet": "npx hardhat run ./src/verify.ts --network mainnet",
     "test": "npx hardhat test",
     "format": "npx prettier --write --plugin=prettier-plugin-solidity contracts/**/*.sol deploy/**/*.ts src/**/*.ts test/**/*.ts"
   },
