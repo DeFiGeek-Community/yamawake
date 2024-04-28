@@ -26,8 +26,8 @@ const config: HardhatUserConfig = {
       accounts: [`${FOUNDATION_PRIVATE_KEY}`],
       saveDeployments: true,
     },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${INFURA_API_TOKEN}`,
+    holesky: {
+      url: `https://holesky.infura.io/v3/${INFURA_API_TOKEN}`,
       accounts: [`${FOUNDATION_PRIVATE_KEY}`],
       saveDeployments: true,
     },
