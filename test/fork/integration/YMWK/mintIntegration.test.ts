@@ -46,7 +46,7 @@ describe("YMWK", function () {
       await increaseTime(duration);
 
       const currentTime = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).mul(rate);
       await token.mint(accounts[1].address, amount);
@@ -64,11 +64,11 @@ describe("YMWK", function () {
       await increaseTime(duration);
 
       const currentTime = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).add(2).mul(rate);
       await expect(token.mint(accounts[1].address, amount)).to.be.revertedWith(
-        "dev: exceeds allowable mint amount"
+        "dev: exceeds allowable mint amount",
       );
     });
 

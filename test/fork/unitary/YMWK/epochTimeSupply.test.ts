@@ -50,7 +50,7 @@ describe("YMWK", function () {
     it("test_updateMiningParameters", async function () {
       const creationTime = await token.startEpochTime();
       const now = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const newEpoch = creationTime.add(YEAR).sub(now);
       await ethers.provider.send("evm_increaseTime", [newEpoch.toNumber()]);
@@ -60,21 +60,21 @@ describe("YMWK", function () {
     it("test_updateMiningParameters_same_epoch", async function () {
       const creationTime = await token.startEpochTime();
       const now = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const newEpoch = creationTime.add(YEAR).sub(now);
       await ethers.provider.send("evm_increaseTime", [
         newEpoch.sub(BigNumber.from("3")).toNumber(),
       ]);
       await expect(token.updateMiningParameters()).to.be.revertedWith(
-        "dev: too soon!"
+        "dev: too soon!",
       );
     });
 
     it("test_mintableInTimeframe_end_before_start", async function () {
       const creationTime = await token.startEpochTime();
       await expect(
-        token.mintableInTimeframe(creationTime.add(1), creationTime)
+        token.mintableInTimeframe(creationTime.add(1), creationTime),
       ).to.be.revertedWith("dev: start > end");
     });
 
@@ -87,7 +87,7 @@ describe("YMWK", function () {
         creationTime,
         creationTime
           .add(YEAR)
-          .mul(BigNumber.from("19").div(BigNumber.from("10")))
+          .mul(BigNumber.from("19").div(BigNumber.from("10"))),
       );
 
       // Three epochs should raise
@@ -96,8 +96,8 @@ describe("YMWK", function () {
           creationTime,
           creationTime
             .add(YEAR)
-            .mul(BigNumber.from("21").div(BigNumber.from("10")))
-        )
+            .mul(BigNumber.from("21").div(BigNumber.from("10"))),
+        ),
       ).to.be.revertedWith("dev: too far in future");
     });
 

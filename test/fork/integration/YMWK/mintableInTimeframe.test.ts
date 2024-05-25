@@ -64,7 +64,7 @@ describe("YMWK", function () {
         S = S.add(
           YEAR_1_SUPPLY.mul(BigNumber.from(10).pow(18))
             .mul(BigNumber.from(10).pow(18).sub(q.pow(epoch)))
-            .div(BigNumber.from(10).pow(18).sub(q))
+            .div(BigNumber.from(10).pow(18).sub(q)),
         );
       }
 
@@ -73,8 +73,8 @@ describe("YMWK", function () {
           .mul(q.pow(epoch))
           .mul(
             (await ethers.provider.getBlock("latest")).timestamp -
-              (await token.startEpochTime())
-          )
+              (await token.startEpochTime()),
+          ),
       );
 
       return S;
@@ -98,7 +98,7 @@ describe("YMWK", function () {
       expect(
         availableSupply
           .sub(INITIAL_SUPPLY.mul(Constants.ten_to_the_18))
-          .gte(mintable)
+          .gte(mintable),
       ).to.equal(true);
       if (t1 == t0) {
         expect(mintable).to.equal(BigNumber.from(0));
@@ -108,7 +108,7 @@ describe("YMWK", function () {
           availableSupply
             .sub(INITIAL_SUPPLY.mul(Constants.ten_to_the_18))
             .div(mintable)
-            .sub(1)
+            .sub(1),
         ).to.be.lt(tolerance);
       }
 
@@ -118,8 +118,8 @@ describe("YMWK", function () {
         approx(
           await theoreticalSupply(token),
           availableSupply,
-          Constants.ten_to_the_16
-        )
+          Constants.ten_to_the_16,
+        ),
       ).to.equal(true);
     });
 
@@ -132,7 +132,7 @@ describe("YMWK", function () {
       const rate = YEAR_1_SUPPLY.div(YEAR);
 
       expect(
-        await token.mintableInTimeframe(sortedTimes[0], sortedTimes[1])
+        await token.mintableInTimeframe(sortedTimes[0], sortedTimes[1]),
       ).to.equal(rate.mul(sortedTimes[1].sub(sortedTimes[0])));
     });
 
@@ -146,7 +146,7 @@ describe("YMWK", function () {
       const endEpoch = end.sub(creationTime).div(YEAR);
       const exponent = startEpoch.mul(25);
       const rate = YEAR_1_SUPPLY.div(YEAR).div(
-        BigNumber.from(2).pow(exponent.div(100))
+        BigNumber.from(2).pow(exponent.div(100)),
       );
 
       for (let i = startEpoch.toNumber(); i < endEpoch.toNumber(); i++) {
@@ -173,7 +173,7 @@ describe("YMWK", function () {
       await increaseTime(duration);
 
       const now = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const expected = initialSupply.add(now.sub(creationTime).mul(rate));
       expect(await token.availableSupply()).to.equal(expected);

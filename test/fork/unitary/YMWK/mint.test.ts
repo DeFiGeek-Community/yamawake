@@ -39,11 +39,11 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_mine", []);
 
       const currentBlock = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       // const currentBlock = await ethers.provider.getBlock('latest');
       const expected = initialSupply.add(
-        currentBlock.sub(creationTime).mul(rate)
+        currentBlock.sub(creationTime).mul(rate),
       );
       expect(await token.availableSupply()).to.equal(expected);
     });
@@ -57,7 +57,7 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_increaseTime", [week]);
 
       const currentTime = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).mul(rate);
       await token.mint(accounts[1].address, amount);
@@ -75,25 +75,25 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_mine", []);
 
       const currentTime = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
+        (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).add(2).mul(rate);
       await expect(token.mint(accounts[1].address, amount)).to.be.revertedWith(
-        "dev: exceeds allowable mint amount"
+        "dev: exceeds allowable mint amount",
       );
     });
 
     it("test_minter_only", async function () {
       await token.setMinter(accounts[0].address);
       await expect(
-        token.connect(accounts[1]).mint(accounts[1].address, 0)
+        token.connect(accounts[1]).mint(accounts[1].address, 0),
       ).to.be.revertedWith("dev: minter only");
     });
 
     it("test_zero_address", async function () {
       await token.setMinter(accounts[0].address);
       await expect(token.mint(ZERO_ADDRESS, 0)).to.be.revertedWith(
-        "dev: zero address"
+        "dev: zero address",
       );
     });
   });

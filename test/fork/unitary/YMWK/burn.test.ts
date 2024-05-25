@@ -32,7 +32,7 @@ describe("YMWK", function () {
       await token.connect(accounts[0]).burn(31337);
 
       expect(await token.balanceOf(accounts[0].address)).to.equal(
-        balance.sub(31337)
+        balance.sub(31337),
       );
       expect(await token.totalSupply()).to.equal(initialSupply.sub(31337));
     });
@@ -44,7 +44,7 @@ describe("YMWK", function () {
       await token.connect(accounts[1]).burn(31337);
 
       expect(await token.balanceOf(accounts[1].address)).to.equal(
-        1000000 - 31337
+        1000000 - 31337,
       );
       expect(await token.totalSupply()).to.equal(initialSupply.sub(31337));
     });
@@ -62,7 +62,7 @@ describe("YMWK", function () {
       const initialSupply: BigNumber = await token.totalSupply();
 
       await expect(
-        token.connect(accounts[0]).burn(initialSupply.add(1))
+        token.connect(accounts[0]).burn(initialSupply.add(1)),
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
   });

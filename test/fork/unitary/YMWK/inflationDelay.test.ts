@@ -65,7 +65,7 @@ describe("YMWK", function () {
 
     it("test_availableSupply", async function () {
       expect(await token.availableSupply()).to.equal(
-        ethers.utils.parseEther("450000000")
+        ethers.utils.parseEther("450000000"),
       );
 
       await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
@@ -74,7 +74,7 @@ describe("YMWK", function () {
       await token.updateMiningParameters();
 
       expect(await token.availableSupply()).to.be.gt(
-        ethers.utils.parseEther("450000000")
+        ethers.utils.parseEther("450000000"),
       );
     });
   });

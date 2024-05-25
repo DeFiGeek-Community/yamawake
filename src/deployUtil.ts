@@ -34,7 +34,7 @@ export function existsDeployedContract(_network: string, _name: string) {
 export function setContractAddress(
   _network: string,
   _name: string,
-  _address: string
+  _address: string,
 ) {
   writeFileSync(`deployments/${_network}/${_name}`, _address);
 }
@@ -59,11 +59,11 @@ export async function deploy(contractName: string, opts: Options) {
     console.log(
       `${contractName} is deployed as ${
         _Contract.address
-      } by ${await opts.signer.getAddress()}`
+      } by ${await opts.signer.getAddress()}`,
     );
   writeFileSync(
     `deployments/${network.name}/${contractName}`,
-    _Contract.address
+    _Contract.address,
   );
   return _Contract;
 }

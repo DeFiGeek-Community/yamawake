@@ -31,32 +31,32 @@ describe("FeePool", function () {
     // 正常な手数料回収
     it("withdrawEther_success_1", async function () {
       const { feePool, owner } = await loadFixture(
-        deployFactoryAndFeePoolFixture
+        deployFactoryAndFeePoolFixture,
       );
       sendEther(feePool.address, "1", owner);
       await expect(
-        feePool.connect(owner).withdrawEther(owner.address)
+        feePool.connect(owner).withdrawEther(owner.address),
       ).to.changeEtherBalances(
         [feePool, owner],
-        [`-${ethers.utils.parseEther("1")}`, ethers.utils.parseEther("1")]
+        [`-${ethers.utils.parseEther("1")}`, ethers.utils.parseEther("1")],
       );
     });
 
     // Nullアドレスへの手数料回収
     it("withdrawEther_fail_1", async function () {
       const { feePool, owner } = await loadFixture(
-        deployFactoryAndFeePoolFixture
+        deployFactoryAndFeePoolFixture,
       );
       sendEther(feePool.address, "1", owner);
       await expect(
-        feePool.connect(owner).withdrawEther(ethers.constants.AddressZero)
+        feePool.connect(owner).withdrawEther(ethers.constants.AddressZero),
       ).to.be.revertedWith("Don't discard treasury!");
     });
 
     // オーナー以外の手数料回収
     it("withdrawEther_fail_2", async function () {
       const { feePool, owner, addr1 } = await loadFixture(
-        deployFactoryAndFeePoolFixture
+        deployFactoryAndFeePoolFixture,
       );
       sendEther(feePool.address, "1", owner);
       await expect(feePool.connect(addr1).withdrawEther(addr1.address)).to.be
@@ -68,25 +68,25 @@ describe("FeePool", function () {
     // 正常な手数料回収
     it("withdrawToken_success_1", async function () {
       const { feePool, owner } = await loadFixture(
-        deployFactoryAndFeePoolFixture
+        deployFactoryAndFeePoolFixture,
       );
       const { token } = await loadFixture(deployTokenFixture);
       const amount = ethers.utils.parseEther("1");
       await token.transfer(feePool.address, amount);
 
       await expect(
-        feePool.connect(owner).withdrawToken(owner.address, [token.address])
+        feePool.connect(owner).withdrawToken(owner.address, [token.address]),
       ).to.changeTokenBalances(
         token,
         [feePool, owner],
-        [`-${ethers.utils.parseEther("1")}`, ethers.utils.parseEther("1")]
+        [`-${ethers.utils.parseEther("1")}`, ethers.utils.parseEther("1")],
       );
     });
 
     // Nullアドレスへの手数料回収
     it("withdrawToken_fail_1", async function () {
       const { feePool, owner } = await loadFixture(
-        deployFactoryAndFeePoolFixture
+        deployFactoryAndFeePoolFixture,
       );
       const { token } = await loadFixture(deployTokenFixture);
       const amount = ethers.utils.parseEther("1");
@@ -94,14 +94,14 @@ describe("FeePool", function () {
       await expect(
         feePool
           .connect(owner)
-          .withdrawToken(ethers.constants.AddressZero, [token.address])
+          .withdrawToken(ethers.constants.AddressZero, [token.address]),
       ).to.be.revertedWith("Don't discard treasury!");
     });
 
     // オーナー以外の手数料回収
     it("withdrawToken_fail_2", async function () {
       const { feePool, owner, addr1 } = await loadFixture(
-        deployFactoryAndFeePoolFixture
+        deployFactoryAndFeePoolFixture,
       );
       const { token } = await loadFixture(deployTokenFixture);
       const amount = ethers.utils.parseEther("1");

@@ -22,10 +22,10 @@ describe("YMWK", function () {
       const signers = await ethers.getSigners();
 
       await expect(await ymwk.balanceOf(signers[0].address)).to.be.equal(
-        ethers.utils.parseEther("450000000")
+        ethers.utils.parseEther("450000000"),
       );
       await expect(await ymwk.totalSupply()).to.be.equal(
-        ethers.utils.parseEther("450000000")
+        ethers.utils.parseEther("450000000"),
       );
       await expect(await ymwk.name()).to.be.equal("Yamawake DAO Token");
       await expect(await ymwk.symbol()).to.be.equal("YMWK");
@@ -69,7 +69,7 @@ describe("YMWK", function () {
       await ymwk.setMinter(ethers.constants.AddressZero);
 
       await expect(await ymwk.minter()).to.be.equal(
-        ethers.constants.AddressZero
+        ethers.constants.AddressZero,
       );
     });
   });
@@ -108,7 +108,7 @@ describe("YMWK", function () {
       await ymwk.setAdmin(ethers.constants.AddressZero);
 
       await expect(await ymwk.admin()).to.be.equal(
-        ethers.constants.AddressZero
+        ethers.constants.AddressZero,
       );
     });
   });
@@ -126,7 +126,7 @@ describe("YMWK", function () {
       const amount = availableSupply.sub(totalSupply);
 
       await expect(
-        ymwk.connect(addr1).mint(addr1.address, amount)
+        ymwk.connect(addr1).mint(addr1.address, amount),
       ).to.changeTokenBalance(ymwk, addr1, amount);
     });
 
@@ -148,7 +148,7 @@ describe("YMWK", function () {
       await ymwk.setMinter(addr1.address);
 
       await expect(
-        ymwk.connect(addr1).mint(ethers.constants.AddressZero, amount)
+        ymwk.connect(addr1).mint(ethers.constants.AddressZero, amount),
       ).to.be.reverted;
     });
   });
@@ -190,16 +190,16 @@ describe("YMWK", function () {
       const mintableIn235 = await ymwk.mintableInTimeframe(startTime, endTime);
 
       await expect(availableSupplyAtLast).to.be.above(
-        ethers.utils.parseEther("999999999")
+        ethers.utils.parseEther("999999999"),
       );
       await expect(availableSupplyAtLast).to.be.below(
-        ethers.utils.parseEther("1000000000")
+        ethers.utils.parseEther("1000000000"),
       );
       await expect(mintableIn235).to.be.above(
-        ethers.utils.parseEther("549999820")
+        ethers.utils.parseEther("549999820"),
       );
       await expect(mintableIn235).to.be.below(
-        ethers.utils.parseEther("549999823")
+        ethers.utils.parseEther("549999823"),
       );
     });
   });
