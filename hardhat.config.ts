@@ -12,7 +12,7 @@ const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, FOUNDATION_PRIVATE_KEY } =
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.18",
+    version: "0.8.19",
     settings: {
       optimizer: {
         enabled: true,
