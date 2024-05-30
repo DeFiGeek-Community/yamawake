@@ -3,6 +3,10 @@ pragma solidity 0.8.19;
 
 import "./BaseTemplate.sol";
 
+interface IFactory {
+    function owner() external view returns (address);
+}
+
 /**
  * @title TemplateYMWKWithdraw
  */
@@ -21,7 +25,7 @@ contract TemplateYMWKWithdraw is BaseTemplate {
     }
 
     function addScore(uint amount) external {
-        require(msg.sender == factory.call(abi.encodeWithSignature("owner()")));
+        require(msg.sender == IFactory(factory).owner());
 
         IDistributor(distributor).addScore(msg.sender, amount);
     }

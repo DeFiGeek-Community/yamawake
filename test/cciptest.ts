@@ -21,27 +21,27 @@ describe("ccip test", function () {
       await ethers.getContractFactory("CCIPSender_Unsafe");
     const CCIPSender_Unsafe = await CCIPSender_UnsafeFactory.deploy(
       config.linkToken_,
-      config.sourceRouter_
+      config.sourceRouter_,
     );
 
     console.log("Deployed CCIPSender_Unsafe to: ", CCIPSender_Unsafe.address);
 
     const CCIPReceiver_UnsafeFactory = await ethers.getContractFactory(
-      "CCIPReceiver_Unsafe"
+      "CCIPReceiver_Unsafe",
     );
     const CCIPReceiver_Unsafe = await CCIPReceiver_UnsafeFactory.deploy(
-      config.destinationRouter_
+      config.destinationRouter_,
     );
 
     console.log(
       "Deployed CCIPReceiver_Unsafe to: ",
-      CCIPReceiver_Unsafe.address
+      CCIPReceiver_Unsafe.address,
     );
 
     console.log("-------------------------------------------");
 
     const ccipBnMFactory = await ethers.getContractFactory(
-      "BurnMintERC677Helper"
+      "BurnMintERC677Helper",
     );
     const ccipBnM = ccipBnMFactory.attach(config.ccipBnM_);
 
@@ -55,20 +55,20 @@ describe("ccip test", function () {
 
     console.log(
       `Link Balance of CCIPSender_Unsafe before: `,
-      await linkToken.balanceOf(CCIPSender_Unsafe.address)
+      await linkToken.balanceOf(CCIPSender_Unsafe.address),
     );
     console.log(
       `Link Balance of CCIPReceiver_Unsafe before: `,
-      await linkToken.balanceOf(CCIPReceiver_Unsafe.address)
+      await linkToken.balanceOf(CCIPReceiver_Unsafe.address),
     );
 
     console.log(
       `Balance of CCIPSender_Unsafe before: `,
-      await ccipBnM.balanceOf(CCIPSender_Unsafe.address)
+      await ccipBnM.balanceOf(CCIPSender_Unsafe.address),
     );
     console.log(
       `Balance of CCIPReceiver_Unsafe before: `,
-      await ccipBnM.balanceOf(CCIPReceiver_Unsafe.address)
+      await ccipBnM.balanceOf(CCIPReceiver_Unsafe.address),
     );
     console.log("-------------------------------------------");
 
@@ -77,7 +77,7 @@ describe("ccip test", function () {
       textToSend,
       config.chainSelector_,
       config.ccipBnM_,
-      amountToSend
+      amountToSend,
     );
     console.log("Transaction hash: ", tx.hash);
 
@@ -85,28 +85,28 @@ describe("ccip test", function () {
 
     console.log(
       `Link Balance of CCIPSender_Unsafe after: `,
-      await linkToken.balanceOf(CCIPSender_Unsafe.address)
+      await linkToken.balanceOf(CCIPSender_Unsafe.address),
     );
     console.log(
       `Link Balance of CCIPReceiver_Unsafe after: `,
-      await linkToken.balanceOf(CCIPReceiver_Unsafe.address)
+      await linkToken.balanceOf(CCIPReceiver_Unsafe.address),
     );
 
     console.log(
       `Balance of CCIPSender_Unsafe after: `,
-      await ccipBnM.balanceOf(CCIPSender_Unsafe.address)
+      await ccipBnM.balanceOf(CCIPSender_Unsafe.address),
     );
     console.log(
       `Balance of CCIPReceiver_Unsafe after: `,
-      await ccipBnM.balanceOf(CCIPReceiver_Unsafe.address)
+      await ccipBnM.balanceOf(CCIPReceiver_Unsafe.address),
     );
 
-    expect(await ccipBnM.balanceOf(CCIPReceiver_Unsafe.address)).to.be.eq(100)
+    expect(await ccipBnM.balanceOf(CCIPReceiver_Unsafe.address)).to.be.eq(100);
 
     console.log("-------------------------------------------");
     const received = await CCIPReceiver_Unsafe.text();
     console.log(`Received:`, received);
 
-    expect(received).to.be.eq(textToSend)
+    expect(received).to.be.eq(textToSend);
   });
 });
