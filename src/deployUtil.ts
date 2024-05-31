@@ -63,7 +63,7 @@ export async function deploy(contractName: string, opts: Options) {
     );
   writeFileSync(
     `deployments/${network.name}/${contractName}`,
-    _Contract.address
+    await _Contract.getAddress()
   );
   return _Contract;
 }

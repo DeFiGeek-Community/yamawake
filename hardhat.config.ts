@@ -1,8 +1,8 @@
 require("dotenv").config();
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-// import "@nomiclabs/hardhat-ethers";
-// import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";

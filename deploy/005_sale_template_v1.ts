@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const feePoolAddress = getContractAddress(hre.network.name, "FeePool");
   const distributorAddress = getContractAddress(
     hre.network.name,
-    "Distributor",
+    "Distributor"
   );
   if (
     factoryAddress === null ||
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("factory, feepool or distributorAddress address is null");
   }
 
-  let TemplateV1: Contract;
+  let TemplateV1;
   if (!existsDeployedContract(hre.network.name, "TemplateV1")) {
     console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
@@ -41,7 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
   } else {
     TemplateV1 = (await getContractFactory(codename)).attach(
-      getContractAddress(hre.network.name, "TemplateV1"),
+      getContractAddress(hre.network.name, "TemplateV1")
     );
     console.log(`${codename} is already deployed. skipping deploy...`);
   }
@@ -51,7 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       hre.network.name,
       codename,
       factoryAddress,
-      TemplateV1.address,
+      await TemplateV1.getAddress()
     );
   } catch (e: any) {
     console.trace(e.message);

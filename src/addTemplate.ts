@@ -1,27 +1,27 @@
 import chalk from "chalk";
-import { Contract, utils } from "ethers";
-import { genABI } from "../src/genABI";
+import { ethers } from "hardhat";
 import { getFoundation, getContractAddress } from "../src/deployUtil";
 
 export async function addTemplate(
   networkName: string,
   templateName: string,
   deployedFactoryAddress: string,
-  deployedTemplateAddress: string,
+  deployedTemplateAddress: string
 ): Promise<string> {
   /*
         1. Instanciate the deployed factory and template.
     */
   const foundation = await getFoundation();
-  const Factory = new Contract(
+
+  const Factory = await ethers.getContractAt(
+    "Factory",
     deployedFactoryAddress,
-    genABI("Factory"),
-    foundation,
+    foundation
   );
-  const Template = new Contract(
+  const Template = await ethers.getContractAt(
+    templateName,
     deployedTemplateAddress,
-    genABI(templateName),
-    foundation,
+    foundation
   );
 
   /*
@@ -30,7 +30,7 @@ export async function addTemplate(
   const factoryAddressFromFile = getContractAddress(networkName, "Factory");
   if (factoryAddressFromFile !== deployedFactoryAddress) {
     throw new Error(
-      `factoryAddressFromFile=${factoryAddressFromFile} is not equal to deployedFactoryAddress=${deployedFactoryAddress}`,
+      `factoryAddressFromFile=${factoryAddressFromFile} is not equal to deployedFactoryAddress=${deployedFactoryAddress}`
     );
   }
 
@@ -38,20 +38,22 @@ export async function addTemplate(
         3. Finding unique name
     */
 
-  const name = encodeBytes32String(templateName);
-  const initializeSignature = Template.interface.getFunction("initialize")!.selector;
-  const transferSignature = Template.interface.getFunction("initializeTransfer")!.selector;
+  const name = ethers.encodeBytes32String(templateName);
+  const initializeSignature =
+    Template.interface.getFunction("initialize")!.selector;
+  const transferSignature =
+    Template.interface.getFunction("initializeTransfer")!.selector;
   /*
         4. Register the template to the Factory.
     */
   console.log(
-    `"mapping(${name} => ${Template.address})" is being registered to the Factory... (Factory.owner = ${foundation.address})`,
+    `"mapping(${name} => ${Template.address})" is being registered to the Factory... (Factory.owner = ${foundation.address})`
   );
   let tx = await Factory.connect(foundation).addTemplate(
     name,
-    Template.address,
+    await Template.getAddress(),
     initializeSignature,
-    transferSignature,
+    transferSignature
   );
   await tx.wait();
 
@@ -61,9 +63,9 @@ export async function addTemplate(
   console.log(
     chalk.green.bgBlack.bold(
       `[Finished] addTemplate :: ${name}=${await Factory.templates(
-        name,
-      )} is registered to factory=${Factory.address}\n\n`,
-    ),
+        name
+      )} is registered to factory=${await Factory.getAddress()}\n\n`
+    )
   );
 
   /*
