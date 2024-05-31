@@ -5,7 +5,7 @@ import {
   SnapshotRestorer,
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { YMWK } from "../../../../typechain-types";
 
 // Assuming you have a helper function to increase blockchain time

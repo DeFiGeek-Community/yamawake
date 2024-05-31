@@ -6,9 +6,10 @@ import {
   SnapshotRestorer,
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { abs } from "../../../helper";
 import Constants from "../../Constants";
+import { YMWK } from "../../../../typechain-types";
 
 async function increaseTime(duration: bigint) {
   await ethers.provider.send("evm_increaseTime", [Number(duration)]);
@@ -23,7 +24,7 @@ const INITIAL_SUPPLY = BigInt(450_000_000);
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
   const year = Constants.year;
 
@@ -55,7 +56,7 @@ describe("YMWK", function () {
     }
 
     // Helper function for theoretical supply calculation
-    async function theoreticalSupply(token: Contract): Promise<bigint> {
+    async function theoreticalSupply(token: YMWK): Promise<bigint> {
       const epoch: bigint = await token.miningEpoch();
       const q = BigInt(10) ** 18n / BigInt(2) ** 2n; // Equivalent to 1/2**0.25
       let S = INITIAL_SUPPLY * BigInt(10) ** 18n;

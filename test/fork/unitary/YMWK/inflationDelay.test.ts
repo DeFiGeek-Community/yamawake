@@ -4,13 +4,13 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { Contract } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import Constants from "../../Constants";
+import { YMWK } from "../../../../typechain-types";
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
 
   const YEAR = Constants.YEAR;
