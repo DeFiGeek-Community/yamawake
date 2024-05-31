@@ -4,7 +4,7 @@ import { Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
-  time
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { abs } from "../../../helper";
@@ -18,9 +18,7 @@ async function increaseTime(duration: bigint) {
 // Constants
 const YEAR = Constants.YEAR;
 const INITIAL_RATE = BigInt(55_000_000);
-const YEAR_1_SUPPLY = INITIAL_RATE * (BigInt(10) ** BigInt(18))
-  / YEAR
-  * YEAR;
+const YEAR_1_SUPPLY = ((INITIAL_RATE * BigInt(10) ** BigInt(18)) / YEAR) * YEAR;
 const INITIAL_SUPPLY = BigInt(450_000_000);
 
 describe("YMWK", function () {
@@ -50,32 +48,32 @@ describe("YMWK", function () {
         return true;
       }
 
-      // Adjust precision for BigNumber
+      // Adjust precision for BigInt
       const precisionAdjusted = BigInt(10) ** 18n * precision;
 
-      return abs(a - b) <= ((a + b) / precisionAdjusted);
+      return abs(a - b) <= (a + b) / precisionAdjusted;
     }
 
     // Helper function for theoretical supply calculation
     async function theoreticalSupply(token: Contract): Promise<bigint> {
       const epoch: bigint = await token.miningEpoch();
-      const q = BigInt(10) ** 18n / (BigInt(2) ** 2n); // Equivalent to 1/2**0.25
-      let S = INITIAL_SUPPLY * (BigInt(10) ** 18n);
+      const q = BigInt(10) ** 18n / BigInt(2) ** 2n; // Equivalent to 1/2**0.25
+      let S = INITIAL_SUPPLY * BigInt(10) ** 18n;
 
       if (epoch > 0n) {
-        S = S + (
-          YEAR_1_SUPPLY * (BigInt(10) ** 18n)
-            * (BigInt(10) ** 18n - (q ** epoch))
-            / (BigInt(10) ** 18n - q)
-        );
+        S =
+          S +
+          (YEAR_1_SUPPLY *
+            BigInt(10) ** 18n *
+            (BigInt(10) ** 18n - q ** epoch)) /
+            (BigInt(10) ** 18n - q);
       }
 
-      S = S + (
-        YEAR_1_SUPPLY / YEAR
-          * (q ** epoch)
-          * (BigInt(await time.latest()) -
-              (await token.startEpochTime())
-      ));
+      S =
+        S +
+        (YEAR_1_SUPPLY / YEAR) *
+          q ** epoch *
+          (BigInt(await time.latest()) - (await token.startEpochTime()));
 
       return S;
     }
@@ -96,19 +94,16 @@ describe("YMWK", function () {
       const availableSupply: bigint = await token.availableSupply();
       const mintable = await token.mintableInTimeframe(t0, t1);
       expect(
-        availableSupply
-          - (INITIAL_SUPPLY * Constants.ten_to_the_18)
-          >= mintable,
+        availableSupply - INITIAL_SUPPLY * Constants.ten_to_the_18 >= mintable
       ).to.equal(true);
       if (t1 == t0) {
         expect(mintable).to.equal(BigInt(0));
       } else {
         const tolerance = BigInt("10000000"); // Adjust as needed for precision
         expect(
-          (availableSupply
-            - (INITIAL_SUPPLY * Constants.ten_to_the_18))
-            / mintable
-            - 1n,
+          (availableSupply - INITIAL_SUPPLY * Constants.ten_to_the_18) /
+            mintable -
+            1n
         ).to.be.lt(tolerance);
       }
 
@@ -118,8 +113,8 @@ describe("YMWK", function () {
         approx(
           await theoreticalSupply(token),
           availableSupply,
-          Constants.ten_to_the_16,
-        ),
+          Constants.ten_to_the_16
+        )
       ).to.equal(true);
     });
 
@@ -132,22 +127,20 @@ describe("YMWK", function () {
       const rate = YEAR_1_SUPPLY / YEAR;
 
       expect(
-        await token.mintableInTimeframe(sortedTimes[0], sortedTimes[1]),
+        await token.mintableInTimeframe(sortedTimes[0], sortedTimes[1])
       ).to.equal(rate * (sortedTimes[1] - sortedTimes[0]));
     });
 
     it("test_random_range_multiple_epochs", async function () {
       const creationTime: bigint = await token.startEpochTime();
-      const start = creationTime + (YEAR * 2n);
+      const start = creationTime + YEAR * 2n;
       const duration = YEAR * 2n;
       const end = start + duration;
 
       const startEpoch = (start - creationTime) / YEAR;
       const endEpoch = (end - creationTime) / YEAR;
       const exponent = startEpoch * 25n;
-      const rate = YEAR_1_SUPPLY / YEAR / (
-        BigInt(2) ** (exponent / 100n)
-      );
+      const rate = YEAR_1_SUPPLY / YEAR / BigInt(2) ** (exponent / 100n);
 
       for (let i = startEpoch; i < endEpoch; i++) {
         await increaseTime(YEAR);
@@ -160,7 +153,7 @@ describe("YMWK", function () {
         expect(approx(mintable, expectedMintable, Constants.ten_to_the_16)).to
           .be.true;
       } else {
-        expect(mintable < (rate * end)).to.be.true;
+        expect(mintable < rate * end).to.be.true;
       }
     });
 
@@ -172,10 +165,8 @@ describe("YMWK", function () {
 
       await increaseTime(duration);
 
-      const now = BigInt(
-        await time.latest(),
-      );
-      const expected = initialSupply + ((now - creationTime) * rate);
+      const now = BigInt(await time.latest());
+      const expected = initialSupply + (now - creationTime) * rate;
       expect(await token.availableSupply()).to.equal(expected);
     });
   });

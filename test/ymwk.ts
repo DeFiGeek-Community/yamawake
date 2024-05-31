@@ -184,14 +184,12 @@ describe("YMWK", function () {
       const availableSupplyAtLast = await ymwk.availableSupply();
       const mintableIn235 = await ymwk.mintableInTimeframe(startTime, endTime);
 
-      await expect(availableSupplyAtLast).to.be.above(
-        ethers.parseEther("999999999")
-      );
-      await expect(availableSupplyAtLast).to.be.below(
+      expect(availableSupplyAtLast).to.be.above(ethers.parseEther("999999999"));
+      expect(availableSupplyAtLast).to.be.below(
         ethers.parseEther("1000000000")
       );
-      await expect(mintableIn235).to.be.above(ethers.parseEther("549999820"));
-      await expect(mintableIn235).to.be.below(ethers.parseEther("549999823"));
+      expect(mintableIn235).to.be.above(ethers.parseEther("549999820"));
+      expect(mintableIn235).to.be.below(ethers.parseEther("549999823"));
     });
   });
 });

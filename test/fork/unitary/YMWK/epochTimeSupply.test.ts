@@ -3,14 +3,15 @@ import { expect } from "chai";
 import {
   takeSnapshot,
   SnapshotRestorer,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { BigNumber, Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import Constants from "../../Constants";
+import { YMWK } from "../../../../typechain-types";
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
 
   const week = Constants.week;
@@ -20,8 +21,7 @@ describe("YMWK", function () {
   beforeEach(async function () {
     snapshot = await takeSnapshot();
     accounts = await ethers.getSigners();
-    const Token = await ethers.getContractFactory("YMWK");
-    token = await Token.deploy();
+    token = await ethers.deployContract("YMWK", []);
     await token.waitForDeployment();
   });
 
@@ -31,7 +31,7 @@ describe("YMWK", function () {
 
   describe("YMWK EpochTimeSupply", function () {
     it("test_startEpochTimeWrite", async function () {
-      const creationTime: BigNumber = await token.startEpochTime();
+      const creationTime = await token.startEpochTime();
       await ethers.provider.send("evm_increaseTime", [year]);
       await ethers.provider.send("evm_mine", []);
 
@@ -39,7 +39,7 @@ describe("YMWK", function () {
 
       await token.startEpochTimeWrite();
 
-      expect(await token.startEpochTime()).to.equal(creationTime.add(YEAR));
+      expect(await token.startEpochTime()).to.equal(creationTime + YEAR);
     });
 
     it("test_startEpochTimeWrite_same_epoch", async function () {
@@ -49,32 +49,28 @@ describe("YMWK", function () {
 
     it("test_updateMiningParameters", async function () {
       const creationTime = await token.startEpochTime();
-      const now = BigInt(
-        (await ethers.provider.getBlock("latest")).timestamp,
-      );
-      const newEpoch = creationTime.add(YEAR).sub(now);
-      await ethers.provider.send("evm_increaseTime", [newEpoch.toNumber()]);
+      const now = BigInt(await time.latest());
+      const newEpoch = creationTime + YEAR - now;
+      await ethers.provider.send("evm_increaseTime", [Number(newEpoch)]);
       await token.updateMiningParameters();
     });
 
     it("test_updateMiningParameters_same_epoch", async function () {
       const creationTime = await token.startEpochTime();
-      const now = BigInt(
-        (await ethers.provider.getBlock("latest")).timestamp,
-      );
-      const newEpoch = creationTime.add(YEAR).sub(now);
+      const now = BigInt(await time.latest());
+      const newEpoch = creationTime + YEAR - now;
       await ethers.provider.send("evm_increaseTime", [
-        newEpoch.sub(BigInt("3")).toNumber(),
+        Number(newEpoch - BigInt("3")),
       ]);
       await expect(token.updateMiningParameters()).to.be.revertedWith(
-        "dev: too soon!",
+        "dev: too soon!"
       );
     });
 
     it("test_mintableInTimeframe_end_before_start", async function () {
       const creationTime = await token.startEpochTime();
       await expect(
-        token.mintableInTimeframe(creationTime.add(1), creationTime),
+        token.mintableInTimeframe(creationTime + 1n, creationTime)
       ).to.be.revertedWith("dev: start > end");
     });
 
@@ -82,22 +78,18 @@ describe("YMWK", function () {
       const creationTime = await token.startEpochTime();
 
       // Two epochs should not raise
-      const mintable = BigInt("19").div(BigInt("10"));
+      const mintable = BigInt("19") / BigInt("10");
       await token.mintableInTimeframe(
         creationTime,
-        creationTime
-          .add(YEAR)
-          .mul(BigInt("19").div(BigInt("10"))),
+        (creationTime + YEAR) * (BigInt("19") / BigInt("10"))
       );
 
       // Three epochs should raise
       await expect(
         token.mintableInTimeframe(
           creationTime,
-          creationTime
-            .add(YEAR)
-            .mul(BigInt("21").div(BigInt("10"))),
-        ),
+          (creationTime + YEAR) * (BigInt("21") / BigInt("10"))
+        )
       ).to.be.revertedWith("dev: too far in future");
     });
 
@@ -107,11 +99,10 @@ describe("YMWK", function () {
       const rate = await token.rate();
       await ethers.provider.send("evm_increaseTime", [week]);
 
-      const latestBlock = await ethers.provider.getBlock("latest");
-      const currentTime = BigInt(latestBlock.timestamp);
+      const currentTime = BigInt(await time.latest());
 
-      const timeElapsed = currentTime.sub(creationTime);
-      const expected = initialSupply.add(timeElapsed.mul(rate));
+      const timeElapsed = currentTime - creationTime;
+      const expected = initialSupply + timeElapsed * rate;
 
       expect(await token.availableSupply()).to.equal(expected);
     });

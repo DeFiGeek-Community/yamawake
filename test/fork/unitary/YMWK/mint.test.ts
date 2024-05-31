@@ -3,8 +3,9 @@ import { expect } from "chai";
 import {
   takeSnapshot,
   SnapshotRestorer,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { BigNumber, Contract } from "ethers";
+import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import Constants from "../../Constants";
 
@@ -22,7 +23,7 @@ describe("YMWK", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
-    await ethers.provider.send("evm_increaseTime", [year.add(1).toNumber()]);
+    await ethers.provider.send("evm_increaseTime", [Number(year + 1n)]);
     await token.updateMiningParameters();
   });
 
@@ -38,13 +39,8 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_increaseTime", [week]);
       await ethers.provider.send("evm_mine", []);
 
-      const currentBlock = BigInt(
-        (await ethers.provider.getBlock("latest")).timestamp,
-      );
-      // const currentBlock = await ethers.provider.getBlock('latest');
-      const expected = initialSupply.add(
-        currentBlock.sub(creationTime).mul(rate),
-      );
+      const currentBlock = BigInt(await time.latest());
+      const expected = initialSupply + (currentBlock - creationTime) * rate;
       expect(await token.availableSupply()).to.equal(expected);
     });
 
@@ -56,14 +52,12 @@ describe("YMWK", function () {
 
       await ethers.provider.send("evm_increaseTime", [week]);
 
-      const currentTime = BigInt(
-        (await ethers.provider.getBlock("latest")).timestamp,
-      );
-      const amount = currentTime.sub(creationTime).mul(rate);
+      const currentTime = BigInt(await time.latest());
+      const amount = (currentTime - creationTime) * rate;
       await token.mint(accounts[1].address, amount);
 
       expect(await token.balanceOf(accounts[1].address)).to.equal(amount);
-      expect(await token.totalSupply()).to.equal(initialSupply.add(amount));
+      expect(await token.totalSupply()).to.equal(initialSupply + amount);
     });
 
     it("test_overmint", async function () {
@@ -74,26 +68,24 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_increaseTime", [week]);
       await ethers.provider.send("evm_mine", []);
 
-      const currentTime = BigInt(
-        (await ethers.provider.getBlock("latest")).timestamp,
-      );
-      const amount = currentTime.sub(creationTime).add(2).mul(rate);
+      const currentTime = BigInt(await time.latest());
+      const amount = (currentTime - creationTime + 2n) * rate;
       await expect(token.mint(accounts[1].address, amount)).to.be.revertedWith(
-        "dev: exceeds allowable mint amount",
+        "dev: exceeds allowable mint amount"
       );
     });
 
     it("test_minter_only", async function () {
       await token.setMinter(accounts[0].address);
       await expect(
-        token.connect(accounts[1]).mint(accounts[1].address, 0),
+        token.connect(accounts[1]).mint(accounts[1].address, 0)
       ).to.be.revertedWith("dev: minter only");
     });
 
     it("test_zero_address", async function () {
       await token.setMinter(accounts[0].address);
       await expect(token.mint(ZERO_ADDRESS, 0)).to.be.revertedWith(
-        "dev: zero address",
+        "dev: zero address"
       );
     });
   });

@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getTemplateAddr } from "./scenarioHelper";
-import { TemplateYMWKWithdraw } from "../typechain-types";
+import { Factory, TemplateYMWKWithdraw } from "../typechain-types";
 
 describe("TemplateYMWKWithdraw", function () {
   const templateName = ethers.encodeBytes32String("TemplateYMWKWithdraw");
@@ -69,13 +69,14 @@ describe("TemplateYMWKWithdraw", function () {
     };
   }
 
-  async function deployTemplate(factory: any) {
+  async function deployTemplate(
+    factory: Factory
+  ): Promise<TemplateYMWKWithdraw> {
     const arg = ethers.ZeroHash;
     const tx = await factory.deployAuction(templateName, arg);
     const receipt = await tx.wait();
     const templateAddr = await getTemplateAddr(receipt);
-    const Sale = await ethers.getContractFactory("TemplateYMWKWithdraw");
-    return Sale.attach(templateAddr) as TemplateYMWKWithdraw;
+    return await ethers.getContractAt("TemplateYMWKWithdraw", templateAddr);
   }
 
   describe("initialize", function () {
@@ -109,7 +110,7 @@ describe("TemplateYMWKWithdraw", function () {
       const score = ethers.parseEther("10");
       expect(await distributor.scores(owner.address)).to.be.equal(0);
 
-      instance.addScore(score);
+      await instance.addScore(score);
 
       expect(await distributor.scores(owner.address)).to.be.equal(score);
     });

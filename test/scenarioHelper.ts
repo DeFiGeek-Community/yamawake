@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import type { TransactionReceipt, Log } from "ethers";
+import type { TransactionReceipt } from "ethers";
 import { TemplateV1 } from "../typechain-types/contracts/TemplateV1";
 
 const saleTemplateName = ethers.encodeBytes32String("sale");
@@ -72,15 +72,16 @@ export async function timeTravel(seconds: number) {
  * @param {TransactionReceipt} receipt - The transaction receipt from the `deployAuction` call
  * @returns {string} Returns either the sent message or empty string if provided receipt does not contain `Deployed` log
  */
-export async function getTemplateAddr(receipt: TransactionReceipt) {
-  const Sale = await ethers.getContractFactory("TemplateV1");
-  const iContract = Sale.interface;
+export async function getTemplateAddr(receipt: TransactionReceipt | null) {
+  if (receipt === null) return "";
+  const contractFactory = await ethers.getContractFactory("Factory");
+  const iContract = contractFactory.interface;
 
   for (const log of receipt.logs) {
     try {
       const parsedLog = iContract.parseLog(log);
       if (parsedLog?.name == `Deployed`) {
-        const [templateAddr] = parsedLog?.args;
+        const [, templateAddr] = parsedLog?.args;
         return templateAddr as string;
       }
     } catch (error) {

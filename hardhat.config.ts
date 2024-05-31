@@ -20,6 +20,9 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  mocha: {
+    timeout: 60000,
+  },
   networks: {
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_API_TOKEN}`,

@@ -183,7 +183,7 @@ describe("Distributor", function () {
         [ethers.parseEther("-100"), ethers.parseEther("100")]
       );
 
-      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
+      expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
 
     // スコアがないユーザのクレーム
@@ -252,7 +252,7 @@ describe("Distributor", function () {
         [ethers.parseEther("-50"), ethers.parseEther("50")]
       );
 
-      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
+      expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
 
     // Distributorのトークン残高が0の場合のクレーム
@@ -346,7 +346,7 @@ describe("Distributor", function () {
         ]
       );
 
-      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
+      expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
   });
 });
