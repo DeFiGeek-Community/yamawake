@@ -20,7 +20,7 @@ describe("YMWK", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
   });
 
   afterEach(async () => {
@@ -41,7 +41,7 @@ describe("YMWK", function () {
 
     it("test_startEpochTime", async function () {
       const creationTime = await token.startEpochTime();
-      // const now = BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
+      // const now = BigInt((await ethers.provider.getBlock("latest")).timestamp);
       // expect(creationTime).to.equal(now.add("86392").sub(YEAR));
 
       await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
@@ -65,7 +65,7 @@ describe("YMWK", function () {
 
     it("test_availableSupply", async function () {
       expect(await token.availableSupply()).to.equal(
-        ethers.utils.parseEther("450000000"),
+        ethers.parseEther("450000000"),
       );
 
       await ethers.provider.send("evm_increaseTime", [YEAR.add(1).toNumber()]);
@@ -74,7 +74,7 @@ describe("YMWK", function () {
       await token.updateMiningParameters();
 
       expect(await token.availableSupply()).to.be.gt(
-        ethers.utils.parseEther("450000000"),
+        ethers.parseEther("450000000"),
       );
     });
   });

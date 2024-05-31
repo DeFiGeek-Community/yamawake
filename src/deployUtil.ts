@@ -54,7 +54,7 @@ export async function deploy(contractName: string, opts: Options) {
   });
 
   const _Contract: Contract = await _Factory.deploy(...opts.args);
-  await _Contract.deployed();
+  await _Contract.waitForDeployment();
   if (opts.log)
     console.log(
       `${contractName} is deployed as ${

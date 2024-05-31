@@ -1,10 +1,10 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Yamawake Dapp", function () {
-  const templateName = ethers.utils.formatBytes32String("TemplateV1");
-  const initialSupply = ethers.utils.parseEther("1000");
+  const templateName = ethers.encodeBytes32String("TemplateV1");
+  const initialSupply = ethers.parseEther("1000");
 
   const DAY = 24 * 60 * 60;
 
@@ -13,25 +13,25 @@ describe("Yamawake Dapp", function () {
 
     const Factory = await ethers.getContractFactory("Factory");
     const factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
     const FeePool = await ethers.getContractFactory("FeePool");
     const feePool = await FeePool.deploy();
-    await feePool.deployed();
+    await feePool.waitForDeployment();
 
     return { factory, feePool, owner, addr1, addr2 };
   }
 
   async function deployDistributorFixture() {
     const { factory, feePool, owner, addr1, addr2 } = await loadFixture(
-      deployFactoryAndFeePoolFixture,
+      deployFactoryAndFeePoolFixture
     );
     const YMWK = await ethers.getContractFactory("YMWK");
     const ymwk = await YMWK.deploy();
-    await ymwk.deployed();
+    await ymwk.waitForDeployment();
 
     const Distributor = await ethers.getContractFactory("Distributor");
-    const distributor = await Distributor.deploy(factory.address, ymwk.address);
-    await distributor.deployed();
+    const distributor = await Distributor.deploy(factory.target, ymwk.target);
+    await distributor.waitForDeployment();
 
     return { factory, feePool, distributor, ymwk, owner, addr1, addr2 };
   }
@@ -42,17 +42,17 @@ describe("Yamawake Dapp", function () {
 
     const Template = await ethers.getContractFactory("TemplateV1");
     const template = await Template.deploy(
-      factory.address,
-      feePool.address,
-      distributor.address,
+      factory.target,
+      feePool.target,
+      distributor.target
     );
-    await template.deployed();
+    await template.waitForDeployment();
 
     await factory.addTemplate(
       templateName,
-      template.address,
-      Template.interface.getSighash("initialize"),
-      Template.interface.getSighash("initializeTransfer"),
+      template.target,
+      Template.interface.getFunction("initialize")!.selector,
+      Template.interface.getFunction("initializeTransfer")!.selector
     );
 
     return {
@@ -80,35 +80,35 @@ describe("Yamawake Dapp", function () {
 
     it("addTemplate_fail_1", async function () {
       const { factory, template, addr1 } = await loadFixture(
-        deployFactoryAndTemplateFixture,
+        deployFactoryAndTemplateFixture
       );
-      const templateName2 = ethers.utils.hexZeroPad(
-        ethers.utils.hexlify(ethers.utils.toUtf8Bytes("sale2")),
-        32,
+      const templateName2 = ethers.zeroPadValue(
+        ethers.hexlify(ethers.toUtf8Bytes("sale2")),
+        32
       );
       await expect(
         factory
           .connect(addr1)
           .addTemplate(
             templateName2,
-            template.address,
-            template.interface.getSighash("initialize"),
-            template.interface.getSighash("initializeTransfer"),
-          ),
+            template.target,
+            template.interface.getFunction("initialize")!.selector,
+            template.interface.getFunction("initializeTransfer")!.selector
+          )
       ).to.be.reverted;
     });
 
     it("addTemplate_fail_2", async function () {
       const { factory, template } = await loadFixture(
-        deployFactoryAndTemplateFixture,
+        deployFactoryAndTemplateFixture
       );
       await expect(
         factory.addTemplate(
           templateName,
-          template.address,
-          template.interface.getSighash("initialize"),
-          template.interface.getSighash("initializeTransfer"),
-        ),
+          template.target,
+          template.interface.getFunction("initialize")!.selector,
+          template.interface.getFunction("initializeTransfer")!.selector
+        )
       ).to.be.reverted;
     });
   });
@@ -118,29 +118,27 @@ describe("Yamawake Dapp", function () {
       const { factory } = await loadFixture(deployFactoryAndTemplateFixture);
       await factory.removeTemplate(templateName);
       const templateInfo = await factory.templates(templateName);
-      await expect(templateInfo[0]).to.equal(ethers.constants.AddressZero);
+      await expect(templateInfo[0]).to.equal(ethers.ZeroAddress);
     });
 
     it("removeTemplate_success_2", async function () {
       const { factory, template, addr1 } = await loadFixture(
-        deployFactoryAndTemplateFixture,
+        deployFactoryAndTemplateFixture
       );
       const notRegisteredTemplateName =
         "0x11116c6554656d706c6174655631000000000000000000000000000000000000";
       await factory.removeTemplate(notRegisteredTemplateName);
       const templateInfo = await factory.templates(templateName);
       const notRegisteredtemplateInfo = await factory.templates(
-        notRegisteredTemplateName,
+        notRegisteredTemplateName
       );
-      await expect(templateInfo[0]).to.equal(template.address);
-      await expect(notRegisteredtemplateInfo[0]).to.equal(
-        ethers.constants.AddressZero,
-      );
+      await expect(templateInfo[0]).to.equal(template.target);
+      await expect(notRegisteredtemplateInfo[0]).to.equal(ethers.ZeroAddress);
     });
 
     it("removeTemplate_fail_1", async function () {
       const { factory, template, addr1 } = await loadFixture(
-        deployFactoryAndTemplateFixture,
+        deployFactoryAndTemplateFixture
       );
       await expect(factory.connect(addr1).removeTemplate(templateName)).to.be
         .reverted;
@@ -150,27 +148,27 @@ describe("Yamawake Dapp", function () {
   describe("deployAuction", function () {
     it("deployAuction_success_1", async function () {
       const { factory, owner } = await loadFixture(
-        deployFactoryAndTemplateFixture,
+        deployFactoryAndTemplateFixture
       );
       const Token = await ethers.getContractFactory("SampleToken");
       const token = await Token.deploy(initialSupply);
-      await token.deployed();
+      await token.waitForDeployment();
 
-      const allocatedAmount = ethers.utils.parseEther("1");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("1");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
-      const abiCoder = ethers.utils.defaultAbiCoder;
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       const args = abiCoder.encode(
         ["address", "uint256", "uint256", "address", "uint256", "uint256"],
         [
           owner.address,
           now + DAY,
           DAY,
-          token.address,
+          await token.getAddress(),
           allocatedAmount,
-          ethers.utils.parseEther("0.1"),
-        ],
+          ethers.parseEther("0.1"),
+        ]
       );
 
       await expect(factory.deployAuction(templateName, args)).to.not.be
@@ -180,33 +178,33 @@ describe("Yamawake Dapp", function () {
     // 登録されていないテンプレートでのセール立ち上げ
     it("deployAuction_fail_1", async function () {
       const { factory, owner } = await loadFixture(
-        deployFactoryAndTemplateFixture,
+        deployFactoryAndTemplateFixture
       );
       const Token = await ethers.getContractFactory("SampleToken");
       const token = await Token.deploy(initialSupply);
-      await token.deployed();
+      await token.waitForDeployment();
 
-      const allocatedAmount = ethers.utils.parseEther("1");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("1");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
-      const abiCoder = ethers.utils.defaultAbiCoder;
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       const args = abiCoder.encode(
         ["address", "uint256", "uint256", "address", "uint256", "uint256"],
         [
           owner.address,
           now + DAY,
           DAY,
-          token.address,
+          await token.getAddress(),
           allocatedAmount,
-          ethers.utils.parseEther("0.1"),
-        ],
+          ethers.parseEther("0.1"),
+        ]
       );
 
       const notRegisteredTemplateName =
         "0x11116c6554656d706c6174655631000000000000000000000000000000000000";
       await expect(
-        factory.deployAuction(notRegisteredTemplateName, args),
+        factory.deployAuction(notRegisteredTemplateName, args)
       ).to.be.revertedWith("No such template in the list.");
     });
   });

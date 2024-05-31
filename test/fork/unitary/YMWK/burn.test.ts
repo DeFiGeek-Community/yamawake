@@ -17,7 +17,7 @@ describe("YMWK", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
   });
 
   afterEach(async () => {

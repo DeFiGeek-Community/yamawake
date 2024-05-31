@@ -22,7 +22,7 @@ describe("YMWK", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
   });
 
   afterEach(async () => {
@@ -49,7 +49,7 @@ describe("YMWK", function () {
 
     it("test_updateMiningParameters", async function () {
       const creationTime = await token.startEpochTime();
-      const now = BigNumber.from(
+      const now = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       const newEpoch = creationTime.add(YEAR).sub(now);
@@ -59,12 +59,12 @@ describe("YMWK", function () {
 
     it("test_updateMiningParameters_same_epoch", async function () {
       const creationTime = await token.startEpochTime();
-      const now = BigNumber.from(
+      const now = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       const newEpoch = creationTime.add(YEAR).sub(now);
       await ethers.provider.send("evm_increaseTime", [
-        newEpoch.sub(BigNumber.from("3")).toNumber(),
+        newEpoch.sub(BigInt("3")).toNumber(),
       ]);
       await expect(token.updateMiningParameters()).to.be.revertedWith(
         "dev: too soon!",
@@ -82,12 +82,12 @@ describe("YMWK", function () {
       const creationTime = await token.startEpochTime();
 
       // Two epochs should not raise
-      const mintable = BigNumber.from("19").div(BigNumber.from("10"));
+      const mintable = BigInt("19").div(BigInt("10"));
       await token.mintableInTimeframe(
         creationTime,
         creationTime
           .add(YEAR)
-          .mul(BigNumber.from("19").div(BigNumber.from("10"))),
+          .mul(BigInt("19").div(BigInt("10"))),
       );
 
       // Three epochs should raise
@@ -96,7 +96,7 @@ describe("YMWK", function () {
           creationTime,
           creationTime
             .add(YEAR)
-            .mul(BigNumber.from("21").div(BigNumber.from("10"))),
+            .mul(BigInt("21").div(BigInt("10"))),
         ),
       ).to.be.revertedWith("dev: too far in future");
     });
@@ -108,7 +108,7 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_increaseTime", [week]);
 
       const latestBlock = await ethers.provider.getBlock("latest");
-      const currentTime = BigNumber.from(latestBlock.timestamp);
+      const currentTime = BigInt(latestBlock.timestamp);
 
       const timeElapsed = currentTime.sub(creationTime);
       const expected = initialSupply.add(timeElapsed.mul(rate));

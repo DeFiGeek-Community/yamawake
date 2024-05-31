@@ -38,7 +38,7 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_increaseTime", [week]);
       await ethers.provider.send("evm_mine", []);
 
-      const currentBlock = BigNumber.from(
+      const currentBlock = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       // const currentBlock = await ethers.provider.getBlock('latest');
@@ -56,7 +56,7 @@ describe("YMWK", function () {
 
       await ethers.provider.send("evm_increaseTime", [week]);
 
-      const currentTime = BigNumber.from(
+      const currentTime = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).mul(rate);
@@ -74,7 +74,7 @@ describe("YMWK", function () {
       await ethers.provider.send("evm_increaseTime", [week]);
       await ethers.provider.send("evm_mine", []);
 
-      const currentTime = BigNumber.from(
+      const currentTime = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).add(2).mul(rate);

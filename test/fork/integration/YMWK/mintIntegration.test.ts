@@ -45,7 +45,7 @@ describe("YMWK", function () {
 
       await increaseTime(duration);
 
-      const currentTime = BigNumber.from(
+      const currentTime = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).mul(rate);
@@ -63,7 +63,7 @@ describe("YMWK", function () {
 
       await increaseTime(duration);
 
-      const currentTime = BigNumber.from(
+      const currentTime = BigInt(
         (await ethers.provider.getBlock("latest")).timestamp,
       );
       const amount = currentTime.sub(creationTime).add(2).mul(rate);
@@ -75,7 +75,7 @@ describe("YMWK", function () {
     it("should mint multiple times correctly", async function () {
       await token.setMinter(accounts[0].address);
       let totalSupply = await token.totalSupply();
-      let balance = BigNumber.from(0);
+      let balance = BigInt(0);
       let epochStart = await token.startEpochTime();
 
       const durations = [YEAR * 0.33, YEAR * 0.5, YEAR * 0.7]; // Replace with dynamic values as needed

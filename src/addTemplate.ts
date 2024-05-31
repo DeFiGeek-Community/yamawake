@@ -38,9 +38,9 @@ export async function addTemplate(
         3. Finding unique name
     */
 
-  const name = utils.formatBytes32String(templateName);
-  const initializeSignature = Template.interface.getSighash("initialize");
-  const transferSignature = Template.interface.getSighash("initializeTransfer");
+  const name = encodeBytes32String(templateName);
+  const initializeSignature = Template.interface.getFunction("initialize")!.selector;
+  const transferSignature = Template.interface.getFunction("initializeTransfer")!.selector;
   /*
         4. Register the template to the Factory.
     */
