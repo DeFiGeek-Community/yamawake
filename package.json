@@ -6,12 +6,16 @@
   "scripts": {
     "node": "npx hardhat node --no-deploy",
     "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy:base_sepolia": "npx hardhat deploy --network base_sepolia",
     "deploy:sepolia": "npx hardhat deploy --network sepolia",
     "deploy:holesky": "npx hardhat deploy --network holesky",
     "deploy:mainnet": "npx hardhat deploy --network mainnet",
+    "deploy:base_mainnet": "npx hardhat deploy --network base_mainnet",
+    "verify:base_sepolia": "npx hardhat run ./src/verify.ts --network base_sepolia",
     "verify:sepolia": "npx hardhat run ./src/verify.ts --network sepolia",
     "verify:holesky": "npx hardhat run ./src/verify.ts --network holesky",
     "verify:mainnet": "npx hardhat run ./src/verify.ts --network mainnet",
+    "verify:base_mainnet": "npx hardhat run ./src/verify.ts --network base_mainnet",
     "test": "npx hardhat test",
     "format": "npx prettier --write --plugin=prettier-plugin-solidity contracts/**/*.sol deploy/**/*.ts src/**/*.ts test/**/*.ts"
   },

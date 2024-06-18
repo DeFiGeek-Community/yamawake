@@ -28,16 +28,33 @@ const config: HardhatUserConfig = {
       url: `https://mainnet.infura.io/v3/${INFURA_API_TOKEN}`,
       accounts: [`${FOUNDATION_PRIVATE_KEY}`],
       saveDeployments: true,
+      tags: ["prod", "receiver"],
     },
     holesky: {
       url: `https://holesky.infura.io/v3/${INFURA_API_TOKEN}`,
       accounts: [`${FOUNDATION_PRIVATE_KEY}`],
       saveDeployments: true,
+      tags: ["test", "receiver"],
     },
     sepolia: {
       url: `https://sepolia.infura.io/v3/${INFURA_API_TOKEN}`,
       accounts: [`${FOUNDATION_PRIVATE_KEY}`],
       saveDeployments: true,
+      tags: ["test", "receiver"],
+    },
+    base_sepolia: {
+      url: `https://sepolia.base.org`,
+      chainId: 84532,
+      accounts: [`${FOUNDATION_PRIVATE_KEY}`],
+      saveDeployments: true,
+      tags: ["test", "sender"],
+    },
+    base_mainnet: {
+      url: `https://mainnet.base.org`,
+      chainId: 8453,
+      accounts: [`${FOUNDATION_PRIVATE_KEY}`],
+      saveDeployments: true,
+      tags: ["prod", "sender"],
     },
     hardhat: {
       accounts: {
