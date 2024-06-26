@@ -32,25 +32,25 @@ describe("ccip fork test", function () {
     const ccipBnMTokenAddressArbSepolia = `0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D`;
 
     const CCIPReceiver_UnsafeFactory = await ethers.getContractFactory(
-      "CCIPReceiver_Unsafe"
+      "CCIPReceiver_Unsafe",
     );
     let CCIPReceiver_Unsafe = await CCIPReceiver_UnsafeFactory.deploy(
-      ccipRouterAddressArbSepolia
+      ccipRouterAddressArbSepolia,
     );
 
     console.log(
       "Deployed CCIPReceiver_Unsafe to: ",
-      CCIPReceiver_Unsafe.target
+      CCIPReceiver_Unsafe.target,
     );
 
     const ccipBnMArbSepolia = await ethers.getContractAt(
       "BurnMintERC677Helper",
-      ccipBnMTokenAddressArbSepolia
+      ccipBnMTokenAddressArbSepolia,
     );
 
     console.log(
       `Balance of CCIPReceiver_Unsafe before: `,
-      await ccipBnMArbSepolia.balanceOf(CCIPReceiver_Unsafe.target)
+      await ccipBnMArbSepolia.balanceOf(CCIPReceiver_Unsafe.target),
     );
 
     console.log("-------------------------------------------");
@@ -75,14 +75,14 @@ describe("ccip fork test", function () {
       await ethers.getContractFactory("CCIPSender_Unsafe");
     const CCIPSender_Unsafe = await CCIPSender_UnsafeFactory.deploy(
       linkTokenAddressSepolia,
-      ccipRouterAddressSepolia
+      ccipRouterAddressSepolia,
     );
 
     console.log("Deployed CCIPSender_Unsafe to: ", CCIPSender_Unsafe.target);
 
     const ccipBnMSepolia = await ethers.getContractAt(
       "BurnMintERC677Helper",
-      ccipBnMTokenAddressSepolia
+      ccipBnMTokenAddressSepolia,
     );
 
     await ccipBnMSepolia.drip(CCIPSender_Unsafe.target);
@@ -91,7 +91,7 @@ describe("ccip fork test", function () {
     await requestLinkFromTheFaucet(
       linkTokenAddressSepolia,
       await CCIPSender_Unsafe.getAddress(),
-      linkAmountForFees
+      linkAmountForFees,
     );
 
     const textToSend = `Hello World`;
@@ -100,7 +100,7 @@ describe("ccip fork test", function () {
 
     console.log(
       `Balance of CCIPSender_Unsafe before: `,
-      await ccipBnMSepolia.balanceOf(CCIPSender_Unsafe.target)
+      await ccipBnMSepolia.balanceOf(CCIPSender_Unsafe.target),
     );
 
     const tx = await CCIPSender_Unsafe.send(
@@ -108,7 +108,7 @@ describe("ccip fork test", function () {
       textToSend,
       arbSepoliaChainSelector,
       ccipBnMTokenAddressSepolia,
-      amountToSend
+      amountToSend,
     );
     console.log("Transaction hash: ", tx.hash);
     const receipt = await tx.wait();
@@ -117,7 +117,7 @@ describe("ccip fork test", function () {
 
     console.log(
       `Balance of CCIPSender_Unsafe after: `,
-      await ccipBnMSepolia.balanceOf(CCIPSender_Unsafe.target)
+      await ccipBnMSepolia.balanceOf(CCIPSender_Unsafe.target),
     );
 
     console.log("-------------------------------------------");
@@ -136,7 +136,7 @@ describe("ccip fork test", function () {
 
     // We must redeploy it because of the network reset but it will be deployed to the same address because of the CREATE opcode: address = keccak256(rlp([sender_address,sender_nonce]))[12:]
     CCIPReceiver_Unsafe = await CCIPReceiver_UnsafeFactory.deploy(
-      ccipRouterAddressArbSepolia
+      ccipRouterAddressArbSepolia,
     );
 
     if (!evm2EvmMessage) return;
@@ -147,10 +147,10 @@ describe("ccip fork test", function () {
 
     console.log(
       `Balance of CCIPReceiver_Unsafe after: `,
-      await ccipBnMArbSepolia.balanceOf(CCIPReceiver_Unsafe.target)
+      await ccipBnMArbSepolia.balanceOf(CCIPReceiver_Unsafe.target),
     );
     expect(
-      await ccipBnMArbSepolia.balanceOf(CCIPReceiver_Unsafe.target)
+      await ccipBnMArbSepolia.balanceOf(CCIPReceiver_Unsafe.target),
     ).to.be.eq(100);
     expect(received).to.be.eq(textToSend);
   });

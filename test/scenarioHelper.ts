@@ -8,7 +8,7 @@ export async function sendERC20(
   erc20contract: any,
   to: any,
   amountStr: string,
-  signer: any
+  signer: any,
 ) {
   let sendResult = await (
     await signer.sendTransaction({
@@ -35,7 +35,8 @@ export async function deploySaleTemplate(
   startingAt: number,
   eventDuration: number,
   minRaisedAmount: any,
-  creationFee?: bigint
+  creationFee?: bigint,
+  templateName_?: string,
 ): Promise<TemplateV1> {
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
   const args = abiCoder.encode(
@@ -47,17 +48,60 @@ export async function deploySaleTemplate(
       tokenAddr,
       allocatedAmount,
       minRaisedAmount,
-    ]
+    ],
   );
   const tx = creationFee
-    ? await factory.deployAuction(templateName, args, { value: creationFee })
-    : await factory.deployAuction(templateName, args);
+    ? await factory.deployAuction(templateName_ ?? templateName, args, {
+        value: creationFee,
+      })
+    : await factory.deployAuction(templateName_ ?? templateName, args);
 
   const receipt: TransactionReceipt = await tx.wait();
 
   const templateAddr = await getTemplateAddr(receipt);
   const Sale = await ethers.getContractFactory("TemplateV1");
   return Sale.attach(templateAddr) as TemplateV1;
+}
+
+export async function deployCCIPRouter(linkReceiver: string): Promise<{
+  chainSelector: bigint;
+  sourceRouter: string;
+  destinationRouter: string;
+  wrappedNative: any;
+  linkToken: any;
+}> {
+  const localSimulatorFactory =
+    await ethers.getContractFactory("CCIPLocalSimulator");
+  const localSimulator = await localSimulatorFactory.deploy();
+
+  const config: {
+    chainSelector_: bigint;
+    sourceRouter_: string;
+    destinationRouter_: string;
+    wrappedNative_: string;
+    linkToken_: string;
+    ccipBnM_: string;
+    ccipLnM_: string;
+  } = await localSimulator.configuration();
+
+  localSimulator.requestLinkFromFaucet(linkReceiver, ethers.parseEther("1"));
+
+  const linkToken = await ethers.getContractAt(
+    "SampleToken",
+    config.linkToken_,
+  );
+  const wrappedNative = await ethers.getContractAt(
+    "SampleToken",
+    config.wrappedNative_,
+  );
+
+  return {
+    chainSelector: config.chainSelector_,
+    sourceRouter: config.sourceRouter_,
+    destinationRouter: config.destinationRouter_,
+    wrappedNative: wrappedNative,
+    linkToken,
+  };
 }
 
 export async function timeTravel(seconds: number) {

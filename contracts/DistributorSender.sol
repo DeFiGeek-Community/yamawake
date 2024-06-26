@@ -63,6 +63,16 @@ contract DistributorSender is Ownable {
         emit ScoreAdded(msg.sender, target_, amount_);
     }
 
+    function setAllowlistDestinationChainSender(
+        uint64 _destinationChainSelector,
+        address _sender,
+        bool allowed
+    ) external onlyOwner {
+        allowlistedDestinationChainSenders[_destinationChainSelector][
+            _sender
+        ] = allowed;
+    }
+
     /// @dev Modifier that checks if the chain with the given destinationChainSelector is allowlisted.
     /// @param _destinationChainSelector The selector of the destination chain.
     modifier onlyAllowlisted(

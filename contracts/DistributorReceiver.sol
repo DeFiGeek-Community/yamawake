@@ -68,7 +68,7 @@ contract DistributorReceiver is Ownable, CCIPReceiver {
         _;
     }
 
-    function allowlistSourceChainSender(
+    function setAllowlistSourceChainSender(
         uint64 _sourceChainSelector,
         address _sender,
         bool allowed
@@ -87,6 +87,11 @@ contract DistributorReceiver is Ownable, CCIPReceiver {
     /// @param target_ The address of the user who is rewarded
     /// @param amount_ The amount of the score to be added
     function addScore(address target_, uint256 amount_) external onlyAuction {
+        _addScore(target_, amount_);
+    }
+
+    /// @notice Add a specified amount to the score of a specified user
+    function rescueScore(address target_, uint256 amount_) external onlyOwner {
         _addScore(target_, amount_);
     }
 
