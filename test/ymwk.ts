@@ -1,5 +1,5 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { sendEther, deploySaleTemplate, timeTravel } from "./scenarioHelper";
 
@@ -10,7 +10,7 @@ describe("YMWK", function () {
   async function deployYMWKFixture() {
     const YMWK = await ethers.getContractFactory("YMWK");
     const ymwk = await YMWK.deploy();
-    await ymwk.deployed();
+    await ymwk.waitForDeployment();
     return { ymwk };
   }
 
@@ -22,10 +22,10 @@ describe("YMWK", function () {
       const signers = await ethers.getSigners();
 
       await expect(await ymwk.balanceOf(signers[0].address)).to.be.equal(
-        ethers.utils.parseEther("450000000"),
+        ethers.parseEther("450000000")
       );
       await expect(await ymwk.totalSupply()).to.be.equal(
-        ethers.utils.parseEther("450000000"),
+        ethers.parseEther("450000000")
       );
       await expect(await ymwk.name()).to.be.equal("Yamawake DAO Token");
       await expect(await ymwk.symbol()).to.be.equal("YMWK");
@@ -66,11 +66,9 @@ describe("YMWK", function () {
     // ゼロアドレスをMinterに設定
     it("setMinter_success_2", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
-      await ymwk.setMinter(ethers.constants.AddressZero);
+      await ymwk.setMinter(ethers.ZeroAddress);
 
-      await expect(await ymwk.minter()).to.be.equal(
-        ethers.constants.AddressZero,
-      );
+      await expect(await ymwk.minter()).to.be.equal(ethers.ZeroAddress);
     });
   });
 
@@ -105,11 +103,9 @@ describe("YMWK", function () {
     // ゼロアドレスをAdminに設定
     it("setAdmin_fail_2", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
-      await ymwk.setAdmin(ethers.constants.AddressZero);
+      await ymwk.setAdmin(ethers.ZeroAddress);
 
-      await expect(await ymwk.admin()).to.be.equal(
-        ethers.constants.AddressZero,
-      );
+      await expect(await ymwk.admin()).to.be.equal(ethers.ZeroAddress);
     });
   });
 
@@ -123,10 +119,10 @@ describe("YMWK", function () {
       await ymwk.updateMiningParameters();
       const availableSupply = await ymwk.availableSupply();
       const totalSupply = await ymwk.totalSupply();
-      const amount = availableSupply.sub(totalSupply);
+      const amount = availableSupply - totalSupply;
 
       await expect(
-        ymwk.connect(addr1).mint(addr1.address, amount),
+        ymwk.connect(addr1).mint(addr1.address, amount)
       ).to.changeTokenBalance(ymwk, addr1, amount);
     });
 
@@ -134,7 +130,7 @@ describe("YMWK", function () {
     it("mint_fail_1", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
       const [owner, addr1, addr2] = await ethers.getSigners();
-      const amount = ethers.utils.parseEther("1");
+      const amount = ethers.parseEther("1");
       await ymwk.setMinter(addr1.address);
 
       await expect(ymwk.mint(addr1.address, amount)).to.be.reverted;
@@ -144,12 +140,11 @@ describe("YMWK", function () {
     it("mint_fail_2", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
       const [owner, addr1, addr2] = await ethers.getSigners();
-      const amount = ethers.utils.parseEther("1");
+      const amount = ethers.parseEther("1");
       await ymwk.setMinter(addr1.address);
 
-      await expect(
-        ymwk.connect(addr1).mint(ethers.constants.AddressZero, amount),
-      ).to.be.reverted;
+      await expect(ymwk.connect(addr1).mint(ethers.ZeroAddress, amount)).to.be
+        .reverted;
     });
   });
 
@@ -170,7 +165,7 @@ describe("YMWK", function () {
 
       await timeTravel(YEAR);
 
-      const startTime = time.latest();
+      const startTime = await time.latest();
 
       await ymwk.updateMiningParameters();
 
@@ -185,22 +180,16 @@ describe("YMWK", function () {
         await expect(currentRate.toString()).to.be.equal(localRate);
       }
 
-      const endTime = time.latest();
+      const endTime = await time.latest();
       const availableSupplyAtLast = await ymwk.availableSupply();
       const mintableIn235 = await ymwk.mintableInTimeframe(startTime, endTime);
 
-      await expect(availableSupplyAtLast).to.be.above(
-        ethers.utils.parseEther("999999999"),
+      expect(availableSupplyAtLast).to.be.above(ethers.parseEther("999999999"));
+      expect(availableSupplyAtLast).to.be.below(
+        ethers.parseEther("1000000000")
       );
-      await expect(availableSupplyAtLast).to.be.below(
-        ethers.utils.parseEther("1000000000"),
-      );
-      await expect(mintableIn235).to.be.above(
-        ethers.utils.parseEther("549999820"),
-      );
-      await expect(mintableIn235).to.be.below(
-        ethers.utils.parseEther("549999823"),
-      );
+      expect(mintableIn235).to.be.above(ethers.parseEther("549999820"));
+      expect(mintableIn235).to.be.below(ethers.parseEther("549999823"));
     });
   });
 });

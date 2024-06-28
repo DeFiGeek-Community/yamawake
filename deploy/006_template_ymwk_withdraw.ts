@@ -9,7 +9,7 @@ import {
 } from "../src/deployUtil";
 import { addTemplate } from "../src/addTemplate";
 
-const codename = "TemplateV1";
+const codename = "TemplateYMWKWithdraw";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const feePoolAddress = getContractAddress(hre.network.name, "FeePool");
   const distributorAddress = getContractAddress(
     hre.network.name,
-    "Distributor"
+    "Distributor",
   );
   if (
     factoryAddress === null ||
@@ -29,32 +29,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("factory, feepool or distributorAddress address is null");
   }
 
-  let TemplateV1;
-  if (!existsDeployedContract(hre.network.name, "TemplateV1")) {
+  let TemplateYMWKWithdraw: Contract;
+  if (!existsDeployedContract(hre.network.name, "TemplateYMWKWithdraw")) {
     console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 
-    TemplateV1 = await deploy(codename, {
+    TemplateYMWKWithdraw = await deploy(codename, {
       from: foundation,
       args: [factoryAddress, feePoolAddress, distributorAddress],
       log: true,
       getContractFactory,
     });
   } else {
-    TemplateV1 = (await getContractFactory(codename)).attach(
-      getContractAddress(hre.network.name, "TemplateV1")
+    TemplateYMWKWithdraw = (await getContractFactory(codename)).attach(
+      getContractAddress(hre.network.name, "TemplateYMWKWithdraw"),
     );
     console.log(`${codename} is already deployed. skipping deploy...`);
-  }
-
-  try {
-    await addTemplate(
-      hre.network.name,
-      codename,
-      factoryAddress,
-      await TemplateV1.getAddress()
-    );
-  } catch (e: any) {
-    console.trace(e.message);
   }
 };
 export default func;

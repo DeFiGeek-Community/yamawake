@@ -4,20 +4,19 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { BigNumber, Contract } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { YMWK } from "../../../../typechain-types";
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
     snapshot = await takeSnapshot();
     accounts = await ethers.getSigners();
-    const Token = await ethers.getContractFactory("YMWK");
-    token = await Token.deploy();
-    await token.deployed();
+    token = await ethers.deployContract("YMWK", []);
+    await token.waitForDeployment();
   });
 
   afterEach(async () => {
@@ -26,31 +25,31 @@ describe("YMWK", function () {
 
   describe("YMWK EpochTimeSupply", function () {
     it("test_burn", async function () {
-      const balance: BigNumber = await token.balanceOf(accounts[0].address);
-      const initialSupply: BigNumber = await token.totalSupply();
+      const balance = await token.balanceOf(accounts[0].address);
+      const initialSupply = await token.totalSupply();
 
       await token.connect(accounts[0]).burn(31337);
 
       expect(await token.balanceOf(accounts[0].address)).to.equal(
-        balance.sub(31337),
+        balance - 31337n
       );
-      expect(await token.totalSupply()).to.equal(initialSupply.sub(31337));
+      expect(await token.totalSupply()).to.equal(initialSupply - 31337n);
     });
 
     it("test_burn_not_admin", async function () {
-      const initialSupply: BigNumber = await token.totalSupply();
+      const initialSupply = await token.totalSupply();
 
       await token.transfer(accounts[1].address, 1000000);
       await token.connect(accounts[1]).burn(31337);
 
       expect(await token.balanceOf(accounts[1].address)).to.equal(
-        1000000 - 31337,
+        1000000 - 31337
       );
-      expect(await token.totalSupply()).to.equal(initialSupply.sub(31337));
+      expect(await token.totalSupply()).to.equal(initialSupply - 31337n);
     });
 
     it("test_burn_all", async function () {
-      const initialSupply: BigNumber = await token.totalSupply();
+      const initialSupply = await token.totalSupply();
 
       await token.connect(accounts[0]).burn(initialSupply);
 
@@ -59,10 +58,10 @@ describe("YMWK", function () {
     });
 
     it("test_overburn", async function () {
-      const initialSupply: BigNumber = await token.totalSupply();
+      const initialSupply = await token.totalSupply();
 
       await expect(
-        token.connect(accounts[0]).burn(initialSupply.add(1)),
+        token.connect(accounts[0]).burn(initialSupply + 1n)
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
     });
   });

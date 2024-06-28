@@ -7,12 +7,14 @@ import {
   existsDeployedContract,
 } from "../src/deployUtil";
 
+const tagName = "DistributorSender";
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  // Skip processing because it is deprecated
-  return;
-  
-  if (existsDeployedContract(hre.network.name, "Distributor")) {
-    console.log(`Distributor is already deployed. skipping deploy...`);
+  if (existsDeployedContract(hre.network.name, tagName)) {
+    console.log(`${tagName} is already deployed. skipping deploy...`);
+    return;
+  }
+  if (!hre.network.tags.sender) {
     return;
   }
 
@@ -20,14 +22,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
   const factoryAddress = getContractAddress(hre.network.name, "Factory");
-  const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
+  const routerAddress = getContractAddress(hre.network.name, "Router");
 
-  await deploy("Distributor", {
+  await deploy(tagName, {
     from: foundation,
-    args: [factoryAddress, ymwkAddress],
+    args: [factoryAddress, routerAddress],
     log: true,
     getContractFactory,
   });
 };
 export default func;
-func.tags = ["Distributor"];
+func.tags = [tagName];

@@ -144,4 +144,5 @@ cache
 .embeddedMode
 .saleTemplateName
 deployments/localhost/*
+deployments/localhost_l2/*
 
