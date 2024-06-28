@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "node": "npx hardhat node --no-deploy",
+    "node:l2": "dotenv -- bash -c 'anvil --port 8546 --chain-id 31338 --fork-url https://arbitrum-sepolia.infura.io/v3/$INFURA_API_TOKEN'",
     "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy:localhost_l2": "npx hardhat deploy --network localhost_l2",
     "deploy:base_sepolia": "npx hardhat deploy --network base_sepolia",
     "deploy:sepolia": "npx hardhat deploy --network sepolia",
     "deploy:holesky": "npx hardhat deploy --network holesky",
@@ -38,6 +40,7 @@
     "@nomicfoundation/hardhat-verify": "^2.0.7",
     "@openzeppelin/contracts": "^4.8.3",
     "dotenv": "^16.0.3",
+    "dotenv-cli": "^7.4.2",
     "hardhat": "^2.14.0",
     "hardhat-deploy": "^0.12.0",
     "hardhat-deploy-ethers": "^0.4.2",

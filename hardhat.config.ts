@@ -63,6 +63,20 @@ const config: HardhatUserConfig = {
         accountsBalance: "2000000000000000000000",
       },
     },
+    localhost: {
+      forking: {
+        url: `https://sepolia.infura.io/v3/${INFURA_API_TOKEN}`,
+      },
+      tags: ["test", "receiver"],
+    },
+    localhost_l2: {
+      url: "http://127.0.0.1:8546",
+      forking: {
+        url: `https://arbitrum-sepolia.infura.io/v3/${INFURA_API_TOKEN}`,
+      },
+      chainId: 31338,
+      tags: ["test", "sender"],
+    },
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
