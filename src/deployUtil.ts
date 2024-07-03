@@ -57,13 +57,11 @@ export async function deploy(contractName: string, opts: Options) {
   await _Contract.waitForDeployment();
   if (opts.log)
     console.log(
-      `${contractName} is deployed as ${
-        _Contract.address
-      } by ${await opts.signer.getAddress()}`
+      `${contractName} is deployed as ${_Contract.target} by ${opts.signer.address}`
     );
   writeFileSync(
     `deployments/${network.name}/${contractName}`,
-    await _Contract.getAddress()
+    _Contract.target.toString()
   );
   return _Contract;
 }

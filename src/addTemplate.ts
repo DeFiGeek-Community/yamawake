@@ -47,11 +47,11 @@ export async function addTemplate(
         4. Register the template to the Factory.
     */
   console.log(
-    `"mapping(${name} => ${Template.address})" is being registered to the Factory... (Factory.owner = ${foundation.address})`
+    `"mapping(${name} => ${Template.target})" is being registered to the Factory... (Factory.owner = ${foundation.address})`
   );
   let tx = await Factory.connect(foundation).addTemplate(
     name,
-    await Template.getAddress(),
+    Template.target,
     initializeSignature,
     transferSignature
   );
@@ -64,7 +64,7 @@ export async function addTemplate(
     chalk.green.bgBlack.bold(
       `[Finished] addTemplate :: ${name}=${await Factory.templates(
         name
-      )} is registered to factory=${await Factory.getAddress()}\n\n`
+      )} is registered to factory=${Factory.target}\n\n`
     )
   );
 
