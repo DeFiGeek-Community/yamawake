@@ -62,8 +62,10 @@ const config: HardhatUserConfig = {
         initialIndex: 0,
         accountsBalance: "2000000000000000000000",
       },
+      tags: ["test", "receiver", "local"],
     },
     localhost: {
+      tags: ["test", "receiver", "local"],
       forking: {
         url: `https://sepolia.infura.io/v3/${INFURA_API_TOKEN}`,
       },

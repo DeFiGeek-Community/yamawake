@@ -12,6 +12,9 @@ import { addTemplate } from "../src/addTemplate";
 const codename = "TemplateV1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  // Skip processing because it is deprecated
+  return;
+
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();

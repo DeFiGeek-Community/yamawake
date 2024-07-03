@@ -1,17 +1,21 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { Contract } from "ethers";
 import {
   deploy,
   getFoundation,
   getContractAddress,
   existsDeployedContract,
 } from "../src/deployUtil";
-import { addTemplate } from "../src/addTemplate";
 
 const codename = "TemplateYMWKWithdraw";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (!hre.network.tags.receiver) {
+    console.log(
+      `TemplateYMWKWithdraw should be deployed only to receiver network. Skipping deployment...`
+    );
+    return;
+  }
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
@@ -29,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error("factory, feepool or distributorAddress address is null");
   }
 
-  let TemplateYMWKWithdraw: Contract;
+  let TemplateYMWKWithdraw;
   if (!existsDeployedContract(hre.network.name, "TemplateYMWKWithdraw")) {
     console.log(`${codename} is deploying with factory=${factoryAddress}...`);
 

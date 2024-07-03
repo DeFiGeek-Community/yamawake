@@ -7,6 +7,13 @@ import {
 } from "../src/deployUtil";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  if (!hre.network.tags.receiver) {
+    console.log(
+      `YMWK should be deployed only to receiver network. Skipping deployment...`
+    );
+    return;
+  }
+
   if (existsDeployedContract(hre.network.name, "YMWK")) {
     console.log(`YMWK is already deployed. skipping deploy...`);
     return;
