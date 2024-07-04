@@ -7,7 +7,7 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
 
-const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, FOUNDATION_PRIVATE_KEY } =
+const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, BASESCAN_API_KEY, FOUNDATION_PRIVATE_KEY } =
   process.env;
 
 const config: HardhatUserConfig = {
@@ -81,7 +81,10 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: ETHERSCAN_API_KEY,
+      baseSepolia: BASESCAN_API_KEY,
+    },
   },
   paths: {
     deployments: "hardhat-deployments",
