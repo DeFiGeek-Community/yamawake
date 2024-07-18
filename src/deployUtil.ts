@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { Contract } from "ethers";
 import { genABI } from "./genABI";
 import { ethers, network } from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 type Options = {
   from?: SignerWithAddress | undefined;
@@ -34,7 +34,7 @@ export function existsDeployedContract(_network: string, _name: string) {
 export function setContractAddress(
   _network: string,
   _name: string,
-  _address: string,
+  _address: string
 ) {
   writeFileSync(`deployments/${_network}/${_name}`, _address);
 }
@@ -54,16 +54,14 @@ export async function deploy(contractName: string, opts: Options) {
   });
 
   const _Contract: Contract = await _Factory.deploy(...opts.args);
-  await _Contract.deployed();
+  await _Contract.waitForDeployment();
   if (opts.log)
     console.log(
-      `${contractName} is deployed as ${
-        _Contract.address
-      } by ${await opts.signer.getAddress()}`,
+      `${contractName} is deployed as ${_Contract.target} by ${opts.signer.address}`
     );
   writeFileSync(
     `deployments/${network.name}/${contractName}`,
-    _Contract.address,
+    _Contract.target.toString()
   );
   return _Contract;
 }

@@ -1,5 +1,4 @@
-const { ethers } = require("hardhat");
-import { BigNumber } from "ethers";
+import { ethers } from "hardhat";
 
 export function parseAddr(addr: string) {
   if (!addr) throw new Error("Error: helper.parseAddr(undefined)");
@@ -13,24 +12,13 @@ export function parseInteger(bytes: string) {
   return parseInt(bytes);
 }
 
-const codec = new ethers.utils.AbiCoder();
-
-export function encode(
-  types: string[],
-  values: (number | BigNumber | string)[],
-) {
-  return codec.encode(types, values);
-}
-export function decode(
-  types: string[],
-  values: (number | BigNumber | string)[],
-) {
-  return codec.decode(types, values);
-}
-
-export function toERC20(amount: string, decimal: number = 18): BigNumber {
-  return ethers.utils.parseUnits(amount, decimal);
+export function toERC20(amount: string, decimal: number = 18): BigInt {
+  return ethers.parseUnits(amount, decimal);
 }
 export function toFloat(amount: string, decimal: number = 18): string {
-  return ethers.utils.formatUnits(amount, decimal);
+  return ethers.formatUnits(amount, decimal);
+}
+
+export function abs(value: bigint) {
+  return value < 0n ? -value : value;
 }

@@ -5,7 +5,7 @@ import {
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { Contract } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
@@ -26,13 +26,13 @@ describe("YMWK", function () {
   describe("YMWK Setters", function () {
     it("should revert when non-admin tries to set minter", async function () {
       await expect(
-        token.connect(accounts[1]).setMinter(accounts[2].address),
+        token.connect(accounts[1]).setMinter(accounts[2].address)
       ).to.be.revertedWith("dev: admin only");
     });
 
     it("should revert when non-admin tries to set admin", async function () {
       await expect(
-        token.connect(accounts[1]).setAdmin(accounts[2].address),
+        token.connect(accounts[1]).setAdmin(accounts[2].address)
       ).to.be.revertedWith("dev: admin only");
     });
 

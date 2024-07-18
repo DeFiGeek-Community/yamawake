@@ -1,93 +1,8 @@
-const { ethers } = require("hardhat");
-import { BigNumber } from "ethers";
-import { encode } from "./helper";
+import { ethers } from "hardhat";
+import type { TransactionReceipt } from "ethers";
+import { TemplateV1 } from "../typechain-types/contracts/TemplateV1";
 
-const saleTemplateName = ethers.utils.formatBytes32String("sale");
-
-export function getTokenAbiArgs(
-  templateName: string,
-  {
-    initialSupply,
-    name,
-    symbol,
-    owner,
-  }: {
-    initialSupply: BigNumber;
-    name: string;
-    symbol: string;
-    owner: string;
-  },
-) {
-  let types;
-  if (!templateName || templateName.length == 0)
-    throw new Error(
-      `scenarioHelper::getTokenAbiArgs() -> templateName is empty.`,
-    );
-  if (templateName.indexOf("OwnableToken") == 0) {
-    types = ["uint", "string", "string", "address"];
-  } else {
-    console.trace(
-      `${templateName} is not planned yet. Add your typedef for abi here.`,
-    );
-    throw 1;
-  }
-  return encode(types, [initialSupply, name, symbol, owner]);
-}
-
-export function getSaleAbiArgs(
-  templateName: string,
-  {
-    token,
-    owner,
-    start,
-    eventDuration,
-    allocatedAmount,
-    minEtherTarget,
-  }: {
-    token: string;
-    owner: string;
-    start: number /* unixtime in sec (not milisec) */;
-    eventDuration: number /* in sec */;
-    allocatedAmount: BigNumber;
-    minEtherTarget: BigNumber;
-  },
-) {
-  let types;
-  if (!templateName || templateName.length == 0)
-    throw new Error(
-      `scenarioHelper::getBulksaleAbiArgs() -> templateName is empty.`,
-    );
-  if (templateName.indexOf(saleTemplateName) == 0) {
-    types = ["address", "address", "uint", "uint", "uint", "uint"];
-  } else if (templateName == "ERC20CRV.vy") {
-    // for revert test
-    types = [
-      "address",
-      "uint",
-      "uint",
-      "uint",
-      "uint",
-      "uint",
-      "uint",
-      "address",
-      "uint",
-    ];
-  } else {
-    console.trace(
-      `${templateName} is not planned yet. Add your typedef for abi here.`,
-    );
-    throw 1;
-  }
-
-  return encode(types, [
-    token,
-    owner,
-    start,
-    eventDuration,
-    allocatedAmount,
-    minEtherTarget,
-  ]);
-}
+const saleTemplateName = ethers.encodeBytes32String("sale");
 
 export async function sendERC20(
   erc20contract: any,
@@ -98,7 +13,7 @@ export async function sendERC20(
   let sendResult = await (
     await signer.sendTransaction({
       to: to,
-      value: ethers.utils.parseEther(amountStr),
+      value: ethers.parseEther(amountStr),
     })
   ).wait();
 }
@@ -106,12 +21,12 @@ export async function sendEther(to: any, amountStr: string, signer: any) {
   let sendResult = await (
     await signer.sendTransaction({
       to: to,
-      value: ethers.utils.parseEther(amountStr),
+      value: ethers.parseEther(amountStr),
     })
   ).wait();
 }
 
-const templateName = ethers.utils.formatBytes32String("TemplateV1");
+const templateName = ethers.encodeBytes32String("TemplateV1");
 export async function deploySaleTemplate(
   factory: any,
   tokenAddr: string,
@@ -120,9 +35,10 @@ export async function deploySaleTemplate(
   startingAt: number,
   eventDuration: number,
   minRaisedAmount: any,
-  creationFee?: string,
-) {
-  const abiCoder = ethers.utils.defaultAbiCoder;
+  creationFee?: bigint,
+  templateName_?: string,
+): Promise<TemplateV1> {
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
   const args = abiCoder.encode(
     ["address", "uint256", "uint256", "address", "uint256", "uint256"],
     [
@@ -135,16 +51,87 @@ export async function deploySaleTemplate(
     ],
   );
   const tx = creationFee
-    ? await factory.deployAuction(templateName, args, { value: creationFee })
-    : await factory.deployAuction(templateName, args);
-  const receipt = await tx.wait();
-  const event = receipt.events.find((event: any) => event.event === "Deployed");
-  const [, templateAddr] = event.args;
+    ? await factory.deployAuction(templateName_ ?? templateName, args, {
+        value: creationFee,
+      })
+    : await factory.deployAuction(templateName_ ?? templateName, args);
+
+  const receipt: TransactionReceipt = await tx.wait();
+
+  const templateAddr = await getTemplateAddr(receipt);
   const Sale = await ethers.getContractFactory("TemplateV1");
-  return await Sale.attach(templateAddr);
+  return Sale.attach(templateAddr) as TemplateV1;
+}
+
+export async function deployCCIPRouter(linkReceiver: string): Promise<{
+  chainSelector: bigint;
+  sourceRouter: string;
+  destinationRouter: string;
+  wrappedNative: any;
+  linkToken: any;
+}> {
+  const localSimulatorFactory =
+    await ethers.getContractFactory("CCIPLocalSimulator");
+  const localSimulator = await localSimulatorFactory.deploy();
+
+  const config: {
+    chainSelector_: bigint;
+    sourceRouter_: string;
+    destinationRouter_: string;
+    wrappedNative_: string;
+    linkToken_: string;
+    ccipBnM_: string;
+    ccipLnM_: string;
+  } = await localSimulator.configuration();
+
+  localSimulator.requestLinkFromFaucet(linkReceiver, ethers.parseEther("1"));
+
+  const linkToken = await ethers.getContractAt(
+    "SampleToken",
+    config.linkToken_,
+  );
+  const wrappedNative = await ethers.getContractAt(
+    "SampleToken",
+    config.wrappedNative_,
+  );
+
+  return {
+    chainSelector: config.chainSelector_,
+    sourceRouter: config.sourceRouter_,
+    destinationRouter: config.destinationRouter_,
+    wrappedNative: wrappedNative,
+    linkToken,
+  };
 }
 
 export async function timeTravel(seconds: number) {
   await ethers.provider.send("evm_increaseTime", [seconds]);
   await ethers.provider.send("evm_mine", []);
+}
+
+/**
+ * Parses a transaction receipt to extract the deployed template address
+ * Scans through transaction logs to find a `Deployed` event and then decodes it to an object
+ *
+ * @param {TransactionReceipt} receipt - The transaction receipt from the `deployAuction` call
+ * @returns {string} Returns either the sent message or empty string if provided receipt does not contain `Deployed` log
+ */
+export async function getTemplateAddr(receipt: TransactionReceipt | null) {
+  if (receipt === null) return "";
+  const contractFactory = await ethers.getContractFactory("Factory");
+  const iContract = contractFactory.interface;
+
+  for (const log of receipt.logs) {
+    try {
+      const parsedLog = iContract.parseLog(log);
+      if (parsedLog?.name == `Deployed`) {
+        const [, templateAddr] = parsedLog?.args;
+        return templateAddr as string;
+      }
+    } catch (error) {
+      return "";
+    }
+  }
+
+  return "";
 }

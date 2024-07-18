@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.18;
+pragma solidity 0.8.19;
 
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
@@ -61,6 +61,16 @@ contract DistributorSender is Ownable {
     function addScore(address target_, uint256 amount_) external onlyAuction {
         scores[target_] += amount_;
         emit ScoreAdded(msg.sender, target_, amount_);
+    }
+
+    function setAllowlistDestinationChainSender(
+        uint64 _destinationChainSelector,
+        address _sender,
+        bool allowed
+    ) external onlyOwner {
+        allowlistedDestinationChainSenders[_destinationChainSelector][
+            _sender
+        ] = allowed;
     }
 
     /// @dev Modifier that checks if the chain with the given destinationChainSelector is allowlisted.

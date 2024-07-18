@@ -1,29 +1,30 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { BigNumber, Contract } from "ethers";
+import { Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
+  time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { abs } from "../../../helper";
 import Constants from "../../Constants";
+import { YMWK } from "../../../../typechain-types";
 
-async function increaseTime(duration: BigNumber) {
-  await ethers.provider.send("evm_increaseTime", [duration.toNumber()]);
+async function increaseTime(duration: bigint) {
+  await ethers.provider.send("evm_increaseTime", [Number(duration)]);
   await ethers.provider.send("evm_mine", []);
 }
 
 // Constants
 const YEAR = Constants.YEAR;
-const INITIAL_RATE = BigNumber.from(55_000_000);
-const YEAR_1_SUPPLY = INITIAL_RATE.mul(BigNumber.from(10).pow(18))
-  .div(YEAR)
-  .mul(YEAR);
-const INITIAL_SUPPLY = BigNumber.from(450_000_000);
+const INITIAL_RATE = BigInt(55_000_000);
+const YEAR_1_SUPPLY = ((INITIAL_RATE * BigInt(10) ** BigInt(18)) / YEAR) * YEAR;
+const INITIAL_SUPPLY = BigInt(450_000_000);
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
   const year = Constants.year;
 
@@ -33,7 +34,7 @@ describe("YMWK", function () {
     const Token = await ethers.getContractFactory("YMWK");
     token = await Token.deploy();
 
-    await increaseTime(YEAR.add(1));
+    await increaseTime(YEAR + 1n);
     await token.updateMiningParameters();
   });
 
@@ -43,39 +44,37 @@ describe("YMWK", function () {
 
   describe("YMWK MintableInTimeframe", function () {
     // Helper function for approximate equality
-    function approx(a: BigNumber, b: BigNumber, precision: BigNumber): boolean {
-      if (a.isZero() && b.isZero()) {
+    function approx(a: bigint, b: bigint, precision: bigint): boolean {
+      if (a === 0n && b === 0n) {
         return true;
       }
 
-      // Adjust precision for BigNumber
-      const precisionAdjusted = BigNumber.from(10).pow(18).mul(precision);
+      // Adjust precision for BigInt
+      const precisionAdjusted = BigInt(10) ** 18n * precision;
 
-      return a.sub(b).abs().lte(a.add(b).div(precisionAdjusted));
+      return abs(a - b) <= (a + b) / precisionAdjusted;
     }
 
     // Helper function for theoretical supply calculation
-    async function theoreticalSupply(token: Contract): Promise<BigNumber> {
-      const epoch = await token.miningEpoch();
-      const q = BigNumber.from(10).pow(18).div(BigNumber.from(2).pow(2)); // Equivalent to 1/2**0.25
-      let S = INITIAL_SUPPLY.mul(BigNumber.from(10).pow(18));
+    async function theoreticalSupply(token: YMWK): Promise<bigint> {
+      const epoch: bigint = await token.miningEpoch();
+      const q = BigInt(10) ** 18n / BigInt(2) ** 2n; // Equivalent to 1/2**0.25
+      let S = INITIAL_SUPPLY * BigInt(10) ** 18n;
 
-      if (epoch.gt(0)) {
-        S = S.add(
-          YEAR_1_SUPPLY.mul(BigNumber.from(10).pow(18))
-            .mul(BigNumber.from(10).pow(18).sub(q.pow(epoch)))
-            .div(BigNumber.from(10).pow(18).sub(q)),
-        );
+      if (epoch > 0n) {
+        S =
+          S +
+          (YEAR_1_SUPPLY *
+            BigInt(10) ** 18n *
+            (BigInt(10) ** 18n - q ** epoch)) /
+            (BigInt(10) ** 18n - q);
       }
 
-      S = S.add(
-        YEAR_1_SUPPLY.div(YEAR)
-          .mul(q.pow(epoch))
-          .mul(
-            (await ethers.provider.getBlock("latest")).timestamp -
-              (await token.startEpochTime()),
-          ),
-      );
+      S =
+        S +
+        (YEAR_1_SUPPLY / YEAR) *
+          q ** epoch *
+          (BigInt(await time.latest()) - (await token.startEpochTime()));
 
       return S;
     }
@@ -84,98 +83,91 @@ describe("YMWK", function () {
       const t0 = Number(await token.startEpochTime());
 
       // Ensure the exponentiation stays within safe integer limits
-      const exponent = BigNumber.from(10).pow(1); // Adjust the exponent as necessary
+      const exponent = BigInt(10) ** 1n; // Adjust the exponent as necessary
       await increaseTime(exponent);
 
-      let t1 = (await ethers.provider.getBlock("latest")).timestamp;
+      let t1 = await time.latest();
       if (t1 - t0 >= year) {
         await token.updateMiningParameters();
       }
-      t1 = (await ethers.provider.getBlock("latest")).timestamp;
+      t1 = await time.latest();
 
-      const availableSupply = await token.availableSupply();
+      const availableSupply: bigint = await token.availableSupply();
       const mintable = await token.mintableInTimeframe(t0, t1);
       expect(
-        availableSupply
-          .sub(INITIAL_SUPPLY.mul(Constants.ten_to_the_18))
-          .gte(mintable),
+        availableSupply - INITIAL_SUPPLY * Constants.ten_to_the_18 >= mintable
       ).to.equal(true);
       if (t1 == t0) {
-        expect(mintable).to.equal(BigNumber.from(0));
+        expect(mintable).to.equal(BigInt(0));
       } else {
-        const tolerance = BigNumber.from("10000000"); // Adjust as needed for precision
+        const tolerance = BigInt("10000000"); // Adjust as needed for precision
         expect(
-          availableSupply
-            .sub(INITIAL_SUPPLY.mul(Constants.ten_to_the_18))
-            .div(mintable)
-            .sub(1),
+          (availableSupply - INITIAL_SUPPLY * Constants.ten_to_the_18) /
+            mintable -
+            1n
         ).to.be.lt(tolerance);
       }
 
       // Replace this with the actual theoretical supply calculation
-      // const theoreticalSupply = BigNumber.from("EXPECTED_SUPPLY_CALCULATION");
+      // const theoreticalSupply = BigInt("EXPECTED_SUPPLY_CALCULATION");
       expect(
         approx(
           await theoreticalSupply(token),
           availableSupply,
-          Constants.ten_to_the_16,
-        ),
+          Constants.ten_to_the_16
+        )
       ).to.equal(true);
     });
 
     it("test_random_range_year_one", async function () {
-      const creationTime = await token.startEpochTime();
-      const time1 = BigNumber.from(Math.floor(Math.random() * YEAR.toNumber()));
-      const time2 = BigNumber.from(Math.floor(Math.random() * YEAR.toNumber()));
-      const [start, end] = [creationTime.add(time1), creationTime.add(time2)];
-      const sortedTimes = start.lt(end) ? [start, end] : [end, start];
-      const rate = YEAR_1_SUPPLY.div(YEAR);
+      const creationTime: bigint = await token.startEpochTime();
+      const time1 = BigInt(Math.floor(Math.random() * Number(YEAR)));
+      const time2 = BigInt(Math.floor(Math.random() * Number(YEAR)));
+      const [start, end] = [creationTime + time1, creationTime + time2];
+      const sortedTimes = start < end ? [start, end] : [end, start];
+      const rate = YEAR_1_SUPPLY / YEAR;
 
       expect(
-        await token.mintableInTimeframe(sortedTimes[0], sortedTimes[1]),
-      ).to.equal(rate.mul(sortedTimes[1].sub(sortedTimes[0])));
+        await token.mintableInTimeframe(sortedTimes[0], sortedTimes[1])
+      ).to.equal(rate * (sortedTimes[1] - sortedTimes[0]));
     });
 
     it("test_random_range_multiple_epochs", async function () {
-      const creationTime = await token.startEpochTime();
-      const start = creationTime.add(YEAR.mul(2));
-      const duration = YEAR.mul(2);
-      const end = start.add(duration);
+      const creationTime: bigint = await token.startEpochTime();
+      const start = creationTime + YEAR * 2n;
+      const duration = YEAR * 2n;
+      const end = start + duration;
 
-      const startEpoch = start.sub(creationTime).div(YEAR);
-      const endEpoch = end.sub(creationTime).div(YEAR);
-      const exponent = startEpoch.mul(25);
-      const rate = YEAR_1_SUPPLY.div(YEAR).div(
-        BigNumber.from(2).pow(exponent.div(100)),
-      );
+      const startEpoch = (start - creationTime) / YEAR;
+      const endEpoch = (end - creationTime) / YEAR;
+      const exponent = startEpoch * 25n;
+      const rate = YEAR_1_SUPPLY / YEAR / BigInt(2) ** (exponent / 100n);
 
-      for (let i = startEpoch.toNumber(); i < endEpoch.toNumber(); i++) {
+      for (let i = startEpoch; i < endEpoch; i++) {
         await increaseTime(YEAR);
         await token.updateMiningParameters();
       }
 
-      const mintable = await token.mintableInTimeframe(start, end);
-      if (startEpoch.eq(endEpoch)) {
-        const expectedMintable = rate.mul(end.sub(start));
+      const mintable: bigint = await token.mintableInTimeframe(start, end);
+      if (startEpoch === endEpoch) {
+        const expectedMintable = rate * (end - start);
         expect(approx(mintable, expectedMintable, Constants.ten_to_the_16)).to
           .be.true;
       } else {
-        expect(mintable.lt(rate.mul(end))).to.be.true;
+        expect(mintable < rate * end).to.be.true;
       }
     });
 
     it("test_availableSupply", async function () {
-      const duration = BigNumber.from(100000);
+      const duration = BigInt(100000);
       const creationTime = await token.startEpochTime();
       const initialSupply = await token.totalSupply();
       const rate = await token.rate();
 
       await increaseTime(duration);
 
-      const now = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp,
-      );
-      const expected = initialSupply.add(now.sub(creationTime).mul(rate));
+      const now = BigInt(await time.latest());
+      const expected = initialSupply + (now - creationTime) * rate;
       expect(await token.availableSupply()).to.equal(expected);
     });
   });

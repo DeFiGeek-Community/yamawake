@@ -1,11 +1,11 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { ethers } from "hardhat";
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { sendEther, deploySaleTemplate, timeTravel } from "./scenarioHelper";
 
 describe("Distributor", function () {
-  const initialSupply = ethers.utils.parseEther("1000");
-  const templateName = ethers.utils.formatBytes32String("TemplateV1");
+  const initialSupply = ethers.parseEther("1000");
+  const templateName = ethers.encodeBytes32String("TemplateV1");
   const DAY = 24 * 60 * 60;
 
   async function deployFactoryAndFeePoolFixture() {
@@ -13,25 +13,25 @@ describe("Distributor", function () {
 
     const Factory = await ethers.getContractFactory("Factory");
     const factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
     const FeePool = await ethers.getContractFactory("FeePool");
     const feePool = await FeePool.deploy();
-    await feePool.deployed();
+    await feePool.waitForDeployment();
 
     return { factory, feePool, owner, addr1, addr2 };
   }
 
   async function deployDistributorFixture() {
     const { factory, feePool, owner, addr1, addr2 } = await loadFixture(
-      deployFactoryAndFeePoolFixture,
+      deployFactoryAndFeePoolFixture
     );
     const YMWK = await ethers.getContractFactory("YMWK");
     const ymwk = await YMWK.deploy();
-    await ymwk.deployed();
+    await ymwk.waitForDeployment();
 
     const Distributor = await ethers.getContractFactory("Distributor");
-    const distributor = await Distributor.deploy(factory.address, ymwk.address);
-    await distributor.deployed();
+    const distributor = await Distributor.deploy(factory.target, ymwk.target);
+    await distributor.waitForDeployment();
 
     return { factory, feePool, distributor, ymwk, owner, addr1, addr2 };
   }
@@ -42,17 +42,17 @@ describe("Distributor", function () {
 
     const Template = await ethers.getContractFactory("TemplateV1");
     const template = await Template.deploy(
-      factory.address,
-      feePool.address,
-      distributor.address,
+      factory.target,
+      feePool.target,
+      distributor.target
     );
-    await template.deployed();
+    await template.waitForDeployment();
 
     await factory.addTemplate(
       templateName,
-      template.address,
-      Template.interface.getSighash("initialize"),
-      Template.interface.getSighash("initializeTransfer"),
+      template.target,
+      Template.interface.getFunction("initialize")!.selector,
+      Template.interface.getFunction("initializeTransfer")!.selector
     );
 
     return {
@@ -70,7 +70,7 @@ describe("Distributor", function () {
   async function deployTokenFixture() {
     const Token = await ethers.getContractFactory("SampleToken");
     const token = await Token.deploy(initialSupply);
-    await token.deployed();
+    await token.waitForDeployment();
 
     return { token };
   }
@@ -81,9 +81,9 @@ describe("Distributor", function () {
       const { factory, feePool, distributor, ymwk, owner, addr1, addr2 } =
         await loadFixture(deployDistributorFixture);
 
-      expect(await distributor.factory()).to.be.equal(factory.address);
+      expect(await distributor.factory()).to.be.equal(factory.target);
 
-      expect(await distributor.token()).to.be.equal(ymwk.address);
+      expect(await distributor.token()).to.be.equal(ymwk.target);
     });
   });
 
@@ -102,36 +102,36 @@ describe("Distributor", function () {
       } = await loadFixture(deployFactoryAndTemplateFixture);
 
       const { token } = await loadFixture(deployTokenFixture);
-      const allocatedAmount = ethers.utils.parseEther("100");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("100");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
       const sale = await deploySaleTemplate(
         factory,
-        token.address,
+        await token.getAddress(),
         owner.address,
         allocatedAmount,
         now + DAY,
         DAY,
-        "0",
+        "0"
       );
 
       await timeTravel(DAY);
 
-      await sendEther(sale.address, "1", addr1);
+      await sendEther(sale.target, "1", addr1);
 
       await timeTravel(DAY);
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
       expect(await distributor.scores(addr1.address)).to.be.equal(
-        ethers.utils.parseEther("100"),
+        ethers.parseEther("100")
       );
 
       await sale.connect(owner).withdrawRaisedETH();
 
       expect(await distributor.scores(owner.address)).to.be.equal(
-        ethers.utils.parseEther("100"),
+        ethers.parseEther("100")
       );
     });
   });
@@ -151,39 +151,39 @@ describe("Distributor", function () {
       } = await loadFixture(deployFactoryAndTemplateFixture);
 
       const { token } = await loadFixture(deployTokenFixture);
-      const allocatedAmount = ethers.utils.parseEther("100");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("100");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
       const sale = await deploySaleTemplate(
         factory,
-        token.address,
+        await token.getAddress(),
         owner.address,
         allocatedAmount,
         now + DAY,
         DAY,
-        "0",
+        "0"
       );
 
       await timeTravel(DAY);
 
-      await sendEther(sale.address, "1", addr1);
+      await sendEther(sale.target, "1", addr1);
 
       await timeTravel(DAY);
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
-      await ymwk.transfer(distributor.address, ethers.utils.parseEther("500"));
+      await ymwk.transfer(distributor.target, ethers.parseEther("500"));
 
       await expect(
-        await distributor.connect(addr1).claim(addr1.address),
+        await distributor.connect(addr1).claim(addr1.address)
       ).to.changeTokenBalances(
         ymwk,
         [distributor, addr1],
-        [ethers.utils.parseEther("-100"), ethers.utils.parseEther("100")],
+        [ethers.parseEther("-100"), ethers.parseEther("100")]
       );
 
-      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
+      expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
 
     // スコアがないユーザのクレーム
@@ -199,10 +199,10 @@ describe("Distributor", function () {
         addr2,
       } = await loadFixture(deployFactoryAndTemplateFixture);
 
-      await ymwk.transfer(distributor.address, ethers.utils.parseEther("500"));
+      await ymwk.transfer(distributor.target, ethers.parseEther("500"));
 
       await expect(
-        distributor.connect(addr1).claim(addr1.address),
+        distributor.connect(addr1).claim(addr1.address)
       ).to.be.revertedWith("Not eligible to get rewarded");
     });
 
@@ -220,39 +220,39 @@ describe("Distributor", function () {
       } = await loadFixture(deployFactoryAndTemplateFixture);
 
       const { token } = await loadFixture(deployTokenFixture);
-      const allocatedAmount = ethers.utils.parseEther("100");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("100");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
       const sale = await deploySaleTemplate(
         factory,
-        token.address,
+        await token.getAddress(),
         owner.address,
         allocatedAmount,
         now + DAY,
         DAY,
-        "0",
+        "0"
       );
 
       await timeTravel(DAY);
 
-      await sendEther(sale.address, "1", addr1);
+      await sendEther(sale.target, "1", addr1);
 
       await timeTravel(DAY);
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
-      await ymwk.transfer(distributor.address, ethers.utils.parseEther("50"));
+      await ymwk.transfer(distributor.target, ethers.parseEther("50"));
 
       await expect(
-        await distributor.connect(addr1).claim(addr1.address),
+        await distributor.connect(addr1).claim(addr1.address)
       ).to.changeTokenBalances(
         ymwk,
         [distributor, addr1],
-        [ethers.utils.parseEther("-50"), ethers.utils.parseEther("50")],
+        [ethers.parseEther("-50"), ethers.parseEther("50")]
       );
 
-      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
+      expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
 
     // Distributorのトークン残高が0の場合のクレーム
@@ -269,30 +269,30 @@ describe("Distributor", function () {
       } = await loadFixture(deployFactoryAndTemplateFixture);
 
       const { token } = await loadFixture(deployTokenFixture);
-      const allocatedAmount = ethers.utils.parseEther("100");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("100");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
       const sale = await deploySaleTemplate(
         factory,
-        token.address,
+        await token.getAddress(),
         owner.address,
         allocatedAmount,
         now + DAY,
         DAY,
-        "0",
+        "0"
       );
 
       await timeTravel(DAY);
 
-      await sendEther(sale.address, "1", addr1);
+      await sendEther(sale.target, "1", addr1);
 
       await timeTravel(DAY);
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
       await expect(
-        distributor.connect(addr1).claim(addr1.address),
+        distributor.connect(addr1).claim(addr1.address)
       ).to.be.revertedWith("No reward available.");
     });
 
@@ -310,43 +310,43 @@ describe("Distributor", function () {
       } = await loadFixture(deployFactoryAndTemplateFixture);
 
       const { token } = await loadFixture(deployTokenFixture);
-      const allocatedAmount = ethers.utils.parseEther("100");
-      await token.approve(factory.address, allocatedAmount);
+      const allocatedAmount = ethers.parseEther("100");
+      await token.approve(factory.target, allocatedAmount);
       const now = await time.latest();
 
       const sale = await deploySaleTemplate(
         factory,
-        token.address,
+        await token.getAddress(),
         owner.address,
         allocatedAmount,
         now + DAY,
         DAY,
-        "0",
+        "0"
       );
 
       await timeTravel(DAY);
 
-      await sendEther(sale.address, "1", addr1);
+      await sendEther(sale.target, "1", addr1);
 
       await timeTravel(DAY);
 
       await sale.connect(addr1).claim(addr1.address, addr1.address);
 
-      await ymwk.transfer(distributor.address, ethers.utils.parseEther("50"));
+      await ymwk.transfer(distributor.target, ethers.parseEther("50"));
 
       await expect(
-        await distributor.connect(addr2).claim(addr1.address),
+        await distributor.connect(addr2).claim(addr1.address)
       ).to.changeTokenBalances(
         ymwk,
         [distributor, addr1, addr2],
         [
-          ethers.utils.parseEther("-50"),
-          ethers.utils.parseEther("50"),
-          ethers.utils.parseEther("0"),
-        ],
+          ethers.parseEther("-50"),
+          ethers.parseEther("50"),
+          ethers.parseEther("0"),
+        ]
       );
 
-      await expect(await distributor.scores(addr1.address)).to.be.equal("0");
+      expect(await distributor.scores(addr1.address)).to.be.equal("0");
     });
   });
 });
