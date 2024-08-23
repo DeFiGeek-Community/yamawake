@@ -1,6 +1,7 @@
 import { ethers } from "hardhat";
 import type { TransactionReceipt } from "ethers";
 import { TemplateV1 } from "../typechain-types/contracts/TemplateV1";
+import { SampleToken } from "../typechain-types";
 
 const saleTemplateName = ethers.encodeBytes32String("sale");
 
@@ -67,8 +68,8 @@ export async function deployCCIPRouter(linkReceiver: string): Promise<{
   chainSelector: bigint;
   sourceRouter: string;
   destinationRouter: string;
-  wrappedNative: any;
-  linkToken: any;
+  wrappedNative: SampleToken;
+  linkToken: SampleToken;
 }> {
   const localSimulatorFactory =
     await ethers.getContractFactory("CCIPLocalSimulator");
