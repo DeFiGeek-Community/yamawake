@@ -367,7 +367,7 @@ describe("DistributorCCIP", function () {
           ),
           tokenAmounts: [],
           extraArgs: "0x",
-          feeToken: ethers.ZeroAddress,
+          feeToken: linkToken.target,
         };
 
         const router = await ethers.getContractAt(
