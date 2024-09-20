@@ -298,6 +298,7 @@ describe("DistributorCCIP", function () {
               chainSelector,
               distributorReceiver.target,
               addr1.address,
+              addr1.address,
               false,
               { value: feeAmount },
             ),
@@ -393,6 +394,7 @@ describe("DistributorCCIP", function () {
             .sendScorePayToken(
               chainSelector,
               distributorReceiver.target,
+              addr1.address,
               addr1.address,
               false,
               linkToken,
@@ -490,6 +492,7 @@ describe("DistributorCCIP", function () {
               chainSelector,
               distributorReceiver.target,
               addr1.address,
+              addr1.address,
               true,
               { value: feeAmount },
             ),
@@ -504,8 +507,366 @@ describe("DistributorCCIP", function () {
         );
       });
 
-      // 別アドレス宛のクレーム
+      // L1の別アドレス宛へのスコア送信（Native）
       it("claim_success_4", async function () {
+        const {
+          factory,
+          chainSelector,
+          distributorSender,
+          distributorReceiver,
+          ymwk,
+          owner,
+          addr1,
+          addr2,
+        } = await loadFixture(deployFactoryAndTemplateFixture);
+
+        await distributorSender.setAllowlistDestinationChainSender(
+          chainSelector,
+          distributorReceiver.target,
+          true,
+        );
+        await distributorReceiver.setAllowlistSourceChainSender(
+          chainSelector,
+          distributorSender.target,
+          true,
+        );
+
+        ymwk.transfer(distributorReceiver.target, ethers.parseEther("1000"));
+
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.parseEther("100");
+        await token.approve(factory.target, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+          factory,
+          await token.getAddress(),
+          owner.address,
+          allocatedAmount,
+          now + DAY,
+          DAY,
+          "0",
+          undefined,
+          templateNameSender,
+        );
+
+        await timeTravel(DAY);
+
+        await sendEther(sale.target, "1", addr1);
+
+        await timeTravel(DAY);
+
+        await sale.connect(addr1).claim(addr1.address, addr1.address);
+
+        const message = {
+          receiver: abiCoder.encode(["bytes"], [distributorReceiver.target]),
+          data: abiCoder.encode(
+            ["address", "uint256", "bool"],
+            [addr2.address, ethers.parseEther("100"), true],
+          ),
+          tokenAmounts: [],
+          extraArgs: "0x",
+          feeToken: ethers.ZeroAddress,
+        };
+
+        const router = await ethers.getContractAt(
+          "IRouterClient",
+          await distributorSender.router(),
+        );
+        const feeAmount = await router.getFee(chainSelector, message);
+
+        expect(await distributorSender.scores(addr1.address)).to.be.equal(
+          ethers.parseEther("100"),
+        );
+        expect(await distributorSender.scores(addr2.address)).to.be.equal("0");
+
+        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
+          "0",
+        );
+        expect(await distributorReceiver.scores(addr2.address)).to.be.equal(
+          "0",
+        );
+        expect(await ymwk.balanceOf(addr1.address)).to.be.equal("0");
+        expect(await ymwk.balanceOf(addr2.address)).to.be.equal("0");
+
+        await expect(
+          distributorSender
+            .connect(addr1)
+            .sendScorePayNative(
+              chainSelector,
+              distributorReceiver.target,
+              addr1.address,
+              addr2.address,
+              true,
+              { value: feeAmount },
+            ),
+        ).to.not.be.reverted;
+
+        expect(await distributorSender.scores(addr1.address)).to.be.equal("0");
+        expect(await distributorSender.scores(addr2.address)).to.be.equal("0");
+        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
+          ethers.parseEther("0"),
+        );
+        expect(await distributorReceiver.scores(addr2.address)).to.be.equal(
+          ethers.parseEther("0"),
+        );
+        expect(await ymwk.balanceOf(addr1.address)).to.be.equal("0");
+        expect(await ymwk.balanceOf(addr2.address)).to.be.equal(
+          ethers.parseEther("100"),
+        );
+      });
+
+      // L1の別アドレス宛へのスコア送信（Token）
+      it("claim_success_5", async function () {
+        const {
+          factory,
+          chainSelector,
+          distributorSender,
+          distributorReceiver,
+          linkToken,
+          ymwk,
+          owner,
+          addr1,
+          addr2,
+        } = await loadFixture(deployFactoryAndTemplateFixture);
+
+        linkToken.transfer(addr1.address, ethers.parseEther("0.1"));
+
+        await distributorSender.setAllowlistDestinationChainSender(
+          chainSelector,
+          distributorReceiver.target,
+          true,
+        );
+        await distributorReceiver.setAllowlistSourceChainSender(
+          chainSelector,
+          distributorSender.target,
+          true,
+        );
+
+        ymwk.transfer(distributorReceiver.target, ethers.parseEther("1000"));
+
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.parseEther("100");
+        await token.approve(factory.target, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+          factory,
+          await token.getAddress(),
+          owner.address,
+          allocatedAmount,
+          now + DAY,
+          DAY,
+          "0",
+          undefined,
+          templateNameSender,
+        );
+
+        await timeTravel(DAY);
+
+        await sendEther(sale.target, "1", addr1);
+
+        await timeTravel(DAY);
+
+        await sale.connect(addr1).claim(addr1.address, addr1.address);
+
+        const message = {
+          receiver: abiCoder.encode(["bytes"], [distributorReceiver.target]),
+          data: abiCoder.encode(
+            ["address", "uint256", "bool"],
+            [addr2.address, ethers.parseEther("100"), true],
+          ),
+          tokenAmounts: [],
+          extraArgs: "0x",
+          feeToken: linkToken.target,
+        };
+
+        const router = await ethers.getContractAt(
+          "IRouterClient",
+          await distributorSender.router(),
+        );
+        const feeAmount = await router.getFee(chainSelector, message);
+
+        await linkToken
+          .connect(addr1)
+          .approve(distributorSender.target, feeAmount);
+
+        expect(await distributorSender.scores(addr1.address)).to.be.equal(
+          ethers.parseEther("100"),
+        );
+        expect(await distributorSender.scores(addr2.address)).to.be.equal("0");
+
+        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
+          "0",
+        );
+        expect(await distributorReceiver.scores(addr2.address)).to.be.equal(
+          "0",
+        );
+        expect(await ymwk.balanceOf(addr1.address)).to.be.equal("0");
+        expect(await ymwk.balanceOf(addr2.address)).to.be.equal("0");
+
+        await expect(
+          distributorSender
+            .connect(addr1)
+            .sendScorePayToken(
+              chainSelector,
+              distributorReceiver.target,
+              addr1.address,
+              addr2.address,
+              true,
+              linkToken,
+            ),
+        ).to.not.be.reverted;
+
+        expect(await distributorSender.scores(addr1.address)).to.be.equal("0");
+        expect(await distributorSender.scores(addr2.address)).to.be.equal("0");
+        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
+          ethers.parseEther("0"),
+        );
+        expect(await distributorReceiver.scores(addr2.address)).to.be.equal(
+          ethers.parseEther("0"),
+        );
+        expect(await ymwk.balanceOf(addr1.address)).to.be.equal("0");
+        expect(await ymwk.balanceOf(addr2.address)).to.be.equal(
+          ethers.parseEther("100"),
+        );
+      });
+
+      // sender,receiverの設定不足エラー
+      it("claim_fail_1", async function () {
+        const {
+          factory,
+          chainSelector,
+          distributorSender,
+          distributorReceiver,
+          owner,
+          addr1,
+        } = await loadFixture(deployFactoryAndTemplateFixture);
+
+        const { token } = await loadFixture(deployTokenFixture);
+        const allocatedAmount = ethers.parseEther("100");
+        await token.approve(factory.target, allocatedAmount);
+        const now = await time.latest();
+
+        const sale = await deploySaleTemplate(
+          factory,
+          await token.getAddress(),
+          owner.address,
+          allocatedAmount,
+          now + DAY,
+          DAY,
+          "0",
+          undefined,
+          templateNameSender,
+        );
+
+        await timeTravel(DAY);
+
+        await sendEther(sale.target, "1", addr1);
+
+        await timeTravel(DAY);
+
+        await sale.connect(addr1).claim(addr1.address, addr1.address);
+
+        const message = {
+          receiver: abiCoder.encode(["bytes"], [distributorReceiver.target]),
+          data: abiCoder.encode(
+            ["address", "uint256", "bool"],
+            [addr1.address, ethers.parseEther("100"), false],
+          ),
+          tokenAmounts: [],
+          extraArgs: "0x",
+          feeToken: ethers.ZeroAddress,
+        };
+
+        const router = await ethers.getContractAt(
+          "IRouterClient",
+          await distributorSender.router(),
+        );
+        const feeAmount = await router.getFee(chainSelector, message);
+
+        expect(await distributorSender.scores(addr1.address)).to.be.equal(
+          ethers.parseEther("100"),
+        );
+        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
+          "0",
+        );
+
+        await expect(
+          distributorSender
+            .connect(addr1)
+            .sendScorePayNative(
+              chainSelector,
+              distributorReceiver.target,
+              addr1.address,
+              addr1.address,
+              false,
+              { value: feeAmount },
+            ),
+        ).to.be.reverted;
+      });
+
+      // スコアがないユーザのクレーム
+      it("claim_fail_2", async function () {
+        const {
+          factory,
+          chainSelector,
+          distributorSender,
+          distributorReceiver,
+          addr1,
+        } = await loadFixture(deployFactoryAndTemplateFixture);
+
+        await distributorSender.setAllowlistDestinationChainSender(
+          chainSelector,
+          distributorReceiver.target,
+          true,
+        );
+        await distributorReceiver.setAllowlistSourceChainSender(
+          chainSelector,
+          distributorSender.target,
+          true,
+        );
+
+        const message = {
+          receiver: abiCoder.encode(["bytes"], [distributorReceiver.target]),
+          data: abiCoder.encode(
+            ["address", "uint256", "bool"],
+            [addr1.address, ethers.parseEther("100"), false],
+          ),
+          tokenAmounts: [],
+          extraArgs: "0x",
+          feeToken: ethers.ZeroAddress,
+        };
+
+        const router = await ethers.getContractAt(
+          "IRouterClient",
+          await distributorSender.router(),
+        );
+        const feeAmount = await router.getFee(chainSelector, message);
+
+        expect(await distributorSender.scores(addr1.address)).to.be.equal(
+          ethers.parseEther("0"),
+        );
+        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
+          "0",
+        );
+
+        await expect(
+          distributorSender
+            .connect(addr1)
+            .sendScorePayNative(
+              chainSelector,
+              distributorReceiver.target,
+              addr1.address,
+              addr1.address,
+              false,
+              { value: feeAmount },
+            ),
+        ).to.be.revertedWith("Not eligible to get rewarded");
+      });
+
+      // 別アドレス宛のクレーム（ownerがaddr1のスコア送信, Native）
+      it("claim_fail_3", async function () {
         const {
           factory,
           chainSelector,
@@ -584,30 +945,40 @@ describe("DistributorCCIP", function () {
             chainSelector,
             distributorReceiver.target,
             addr1.address,
+            addr1.address,
             true,
             { value: feeAmount },
           ),
-        ).to.not.be.reverted;
-
-        expect(await distributorSender.scores(addr1.address)).to.be.equal("0");
-        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
-          ethers.parseEther("0"),
-        );
-        expect(await ymwk.balanceOf(addr1.address)).to.be.equal(
-          ethers.parseEther("100"),
-        );
+        ).to.be.revertedWith("You are not the contributor.");
       });
 
-      // sender,receiverの設定不足エラー
-      it("claim_fail_1", async function () {
+      // 別アドレス宛のクレーム（ownerがaddr1のスコア送信, Native）
+      it("claim_fail_3", async function () {
         const {
           factory,
           chainSelector,
           distributorSender,
           distributorReceiver,
+          linkToken,
+          ymwk,
           owner,
           addr1,
+          addr2,
         } = await loadFixture(deployFactoryAndTemplateFixture);
+
+        await distributorSender.setAllowlistDestinationChainSender(
+          chainSelector,
+          distributorReceiver.target,
+          true,
+        );
+        await distributorReceiver.setAllowlistSourceChainSender(
+          chainSelector,
+          distributorSender.target,
+          true,
+        );
+
+        ymwk.transfer(distributorReceiver.target, ethers.parseEther("1000"));
+        linkToken.transfer(addr1.address, ethers.parseEther("0.1"));
 
         const { token } = await loadFixture(deployTokenFixture);
         const allocatedAmount = ethers.parseEther("100");
@@ -638,11 +1009,11 @@ describe("DistributorCCIP", function () {
           receiver: abiCoder.encode(["bytes"], [distributorReceiver.target]),
           data: abiCoder.encode(
             ["address", "uint256", "bool"],
-            [addr1.address, ethers.parseEther("100"), false],
+            [addr1.address, ethers.parseEther("100"), true],
           ),
           tokenAmounts: [],
           extraArgs: "0x",
-          feeToken: ethers.ZeroAddress,
+          feeToken: linkToken.target,
         };
 
         const router = await ethers.getContractAt(
@@ -650,6 +1021,10 @@ describe("DistributorCCIP", function () {
           await distributorSender.router(),
         );
         const feeAmount = await router.getFee(chainSelector, message);
+
+        await linkToken
+          .connect(addr1)
+          .approve(distributorSender.target, feeAmount);
 
         expect(await distributorSender.scores(addr1.address)).to.be.equal(
           ethers.parseEther("100"),
@@ -657,72 +1032,18 @@ describe("DistributorCCIP", function () {
         expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
           "0",
         );
+        expect(await ymwk.balanceOf(addr1.address)).to.be.equal("0");
 
         await expect(
-          distributorSender.sendScorePayNative(
+          distributorSender.sendScorePayToken(
             chainSelector,
             distributorReceiver.target,
             addr1.address,
-            false,
-            { value: feeAmount },
+            addr2.address,
+            true,
+            linkToken,
           ),
-        ).to.be.reverted;
-      });
-
-      // スコアがないユーザのクレーム
-      it("claim_fail_2", async function () {
-        const {
-          factory,
-          chainSelector,
-          distributorSender,
-          distributorReceiver,
-          addr1,
-        } = await loadFixture(deployFactoryAndTemplateFixture);
-
-        await distributorSender.setAllowlistDestinationChainSender(
-          chainSelector,
-          distributorReceiver.target,
-          true,
-        );
-        await distributorReceiver.setAllowlistSourceChainSender(
-          chainSelector,
-          distributorSender.target,
-          true,
-        );
-
-        const message = {
-          receiver: abiCoder.encode(["bytes"], [distributorReceiver.target]),
-          data: abiCoder.encode(
-            ["address", "uint256", "bool"],
-            [addr1.address, ethers.parseEther("100"), false],
-          ),
-          tokenAmounts: [],
-          extraArgs: "0x",
-          feeToken: ethers.ZeroAddress,
-        };
-
-        const router = await ethers.getContractAt(
-          "IRouterClient",
-          await distributorSender.router(),
-        );
-        const feeAmount = await router.getFee(chainSelector, message);
-
-        expect(await distributorSender.scores(addr1.address)).to.be.equal(
-          ethers.parseEther("0"),
-        );
-        expect(await distributorReceiver.scores(addr1.address)).to.be.equal(
-          "0",
-        );
-
-        await expect(
-          distributorSender.sendScorePayNative(
-            chainSelector,
-            distributorReceiver.target,
-            addr1.address,
-            false,
-            { value: feeAmount },
-          ),
-        ).to.be.revertedWith("Not eligible to get rewarded");
+        ).to.be.revertedWith("You are not the contributor.");
       });
     });
   });

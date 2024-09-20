@@ -94,16 +94,22 @@ contract DistributorSender is Ownable {
 
     /// @notice Claim early user rewards
     /// @dev Epected to be called from rewarded users
-    /// @param target_ The address of the user who is rewarded
+    /// @param destinationChainSelector_ The selector of the target chain
+    /// @param receiver_ The address of the distributor receiver on the target chain
+    /// @param target_ The address of the user who has the score
+    /// @param destination_ The address of the user who is rewarded on the target chain
+    /// @param isClaim_ Claim rewards at the same time or not
     function sendScorePayNative(
         uint64 destinationChainSelector_,
         address receiver_,
         address target_,
+        address destination_,
         bool isClaim_
     )
         external
         payable
         onlyAllowlisted(destinationChainSelector_, receiver_)
+        onlyContributor(target_)
         returns (bytes32 messageId)
     {
         uint256 _score = scores[target_];
@@ -113,7 +119,7 @@ contract DistributorSender is Ownable {
 
         Client.EVM2AnyMessage memory encodedMessage = _buildCCIPMessage(
             receiver_,
-            target_,
+            destination_,
             _score,
             isClaim_,
             address(0)
@@ -129,21 +135,27 @@ contract DistributorSender is Ownable {
             encodedMessage
         );
 
-        emit ScoreSent(messageId, target_, _score);
+        emit ScoreSent(messageId, destination_, _score);
     }
 
     /// @notice Claim early user rewards
     /// @dev Epected to be called from rewarded users
-    /// @param target_ The address of the user who is rewarded
+    /// @param receiver_ The address of the distributor receiver on the target chain
+    /// @param target_ The address of the user who has the score
+    /// @param destination_ The address of the user who is rewarded on the target chain
+    /// @param isClaim_ Claim rewards at the same time or not
+    /// @param payToken_ Token address for paying fee
     function sendScorePayToken(
         uint64 destinationChainSelector_,
         address receiver_,
         address target_,
+        address destination_,
         bool isClaim_,
         address payToken_
     )
         external
         onlyAllowlisted(destinationChainSelector_, receiver_)
+        onlyContributor(target_)
         returns (bytes32 messageId)
     {
         uint256 _score = scores[target_];
@@ -153,7 +165,7 @@ contract DistributorSender is Ownable {
 
         Client.EVM2AnyMessage memory encodedMessage = _buildCCIPMessage(
             receiver_,
-            target_,
+            destination_,
             _score,
             isClaim_,
             payToken_
@@ -168,19 +180,19 @@ contract DistributorSender is Ownable {
         // Send the CCIP message through the router and store the returned CCIP message ID
         messageId = router.ccipSend(destinationChainSelector_, encodedMessage);
 
-        emit ScoreSent(messageId, target_, _score);
+        emit ScoreSent(messageId, destination_, _score);
     }
 
     /// @notice Construct a CCIP message.
     /// @dev This function will create an EVM2AnyMessage struct with all the necessary information for sending a text.
     /// @param _receiver The address of the receiver.
-    /// @param _target The string data to be sent.
+    /// @param _destination The string data to be sent.
     /// @param _amount The string data to be sent.
     /// @param _feeToken The address of the token used for fees. Set address(0) for native gas.
     /// @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
     function _buildCCIPMessage(
         address _receiver,
-        address _target,
+        address _destination,
         uint256 _amount,
         bool _isClaim,
         address _feeToken
@@ -189,7 +201,7 @@ contract DistributorSender is Ownable {
         return
             Client.EVM2AnyMessage({
                 receiver: abi.encode(_receiver), // ABI-encoded receiver address
-                data: abi.encode(_target, _amount, _isClaim), // ABI-encoded string
+                data: abi.encode(_destination, _amount, _isClaim), // ABI-encoded string
                 tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array aas no tokens are transferred
                 extraArgs: "",
                 // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
@@ -200,6 +212,12 @@ contract DistributorSender is Ownable {
     /// @dev Allow only scorers who is registered in Factory
     modifier onlyAuction() {
         require(factory.auctions(msg.sender), "You are not the auction.");
+        _;
+    }
+
+    /// @dev Allow only contributor for claim
+    modifier onlyContributor(address _contributor) {
+        require(msg.sender == _contributor, "You are not the contributor.");
         _;
     }
 }
