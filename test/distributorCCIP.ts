@@ -298,7 +298,6 @@ describe("DistributorCCIP", function () {
               chainSelector,
               distributorReceiver.target,
               addr1.address,
-              addr1.address,
               false,
               { value: feeAmount },
             ),
@@ -395,7 +394,6 @@ describe("DistributorCCIP", function () {
               chainSelector,
               distributorReceiver.target,
               addr1.address,
-              addr1.address,
               false,
               linkToken,
             ),
@@ -491,7 +489,6 @@ describe("DistributorCCIP", function () {
             .sendScorePayNative(
               chainSelector,
               distributorReceiver.target,
-              addr1.address,
               addr1.address,
               true,
               { value: feeAmount },
@@ -595,7 +592,6 @@ describe("DistributorCCIP", function () {
             .sendScorePayNative(
               chainSelector,
               distributorReceiver.target,
-              addr1.address,
               addr2.address,
               true,
               { value: feeAmount },
@@ -711,7 +707,6 @@ describe("DistributorCCIP", function () {
             .sendScorePayToken(
               chainSelector,
               distributorReceiver.target,
-              addr1.address,
               addr2.address,
               true,
               linkToken,
@@ -799,7 +794,6 @@ describe("DistributorCCIP", function () {
               chainSelector,
               distributorReceiver.target,
               addr1.address,
-              addr1.address,
               false,
               { value: feeAmount },
             ),
@@ -858,14 +852,13 @@ describe("DistributorCCIP", function () {
               chainSelector,
               distributorReceiver.target,
               addr1.address,
-              addr1.address,
               false,
               { value: feeAmount },
             ),
         ).to.be.revertedWith("Not eligible to get rewarded");
       });
 
-      // 別アドレス宛のクレーム（ownerがaddr1のスコア送信, Native）
+      // スコアが無いアドレスから別アドレス宛のクレーム（ownerがaddr1へスコア送信, Native）
       it("claim_fail_3", async function () {
         const {
           factory,
@@ -945,14 +938,13 @@ describe("DistributorCCIP", function () {
             chainSelector,
             distributorReceiver.target,
             addr1.address,
-            addr1.address,
             true,
             { value: feeAmount },
           ),
-        ).to.be.revertedWith("You are not the contributor.");
+        ).to.be.revertedWith("Not eligible to get rewarded");
       });
 
-      // 別アドレス宛のクレーム（ownerがaddr1のスコア送信, Native）
+      // スコアが無いアドレスから別アドレス宛のクレーム（ownerがaddr1へスコア送信, Token
       it("claim_fail_3", async function () {
         const {
           factory,
@@ -1038,12 +1030,11 @@ describe("DistributorCCIP", function () {
           distributorSender.sendScorePayToken(
             chainSelector,
             distributorReceiver.target,
-            addr1.address,
             addr2.address,
             true,
             linkToken,
           ),
-        ).to.be.revertedWith("You are not the contributor.");
+        ).to.be.revertedWith("Not eligible to get rewarded");
       });
     });
   });
