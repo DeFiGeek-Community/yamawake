@@ -1,8 +1,20 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+  SnapshotRestorer,
+  takeSnapshot,
+  time,
+} from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Yamawake Dapp", function () {
+  let snapshot: SnapshotRestorer;
+  before(async () => {
+    snapshot = await takeSnapshot();
+  });
+  after(async () => {
+    await snapshot.restore();
+  });
   const templateName = ethers.utils.formatBytes32String("TemplateV1");
   const initialSupply = ethers.utils.parseEther("1000");
 

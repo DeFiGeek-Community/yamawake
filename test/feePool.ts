@@ -1,9 +1,20 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+  SnapshotRestorer,
+  takeSnapshot,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { sendEther } from "./scenarioHelper";
 
 describe("FeePool", function () {
+  let snapshot: SnapshotRestorer;
+  before(async () => {
+    snapshot = await takeSnapshot();
+  });
+  after(async () => {
+    await snapshot.restore();
+  });
   const initialSupply = ethers.utils.parseEther("1000");
 
   async function deployFactoryAndFeePoolFixture() {

@@ -1,9 +1,21 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+  SnapshotRestorer,
+  takeSnapshot,
+  time,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { sendEther, deploySaleTemplate, timeTravel } from "./scenarioHelper";
 
 describe("YMWK", function () {
+  let snapshot: SnapshotRestorer;
+  before(async () => {
+    snapshot = await takeSnapshot();
+  });
+  after(async () => {
+    await snapshot.restore();
+  });
   const DAY = 24 * 60 * 60;
   const YEAR = DAY * 365;
 

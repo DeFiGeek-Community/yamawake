@@ -17,12 +17,13 @@ contract FeeDistributor is ReentrancyGuard {
     uint256 public constant WEEK = 7 * 86400;
 
     address public immutable factory;
-    uint256 public startTime;
     uint256 public timeCursor;
+    uint256 public lastCheckpointTotalSupplyTime;
     mapping(address => mapping(address => uint256)) public timeCursorOf; // user -> token -> timestamp
     mapping(address => mapping(address => uint256)) public userEpochOf; // user -> token -> epoch
 
-    mapping(address => uint256) public lastTokenTime;
+    mapping(address => uint256) public lastTokenTime; // token -> timestamp
+    mapping(address => uint256) public startTime; // token -> timestamp
     mapping(address => mapping(uint256 => uint256)) public tokensPerWeek; // token -> week(timestamp) -> amount
 
     address public votingEscrow;
@@ -71,7 +72,7 @@ contract FeeDistributor is ReentrancyGuard {
      */
     constructor(address votingEscrow_, address factory_, uint256 startTime_) {
         uint256 t = (startTime_ / WEEK) * WEEK;
-        startTime = t;
+        startTime[address(0)] = t;
         lastTokenTime[address(0)] = t;
         timeCursor = t;
         tokens.push(address(0));
@@ -175,6 +176,11 @@ contract FeeDistributor is ReentrancyGuard {
             msg.sender == admin || IFactory(factory).auctions(msg.sender),
             "Unauthorized"
         );
+
+        if (block.timestamp >= timeCursor) {
+            _checkpointTotalSupply();
+        }
+
         _checkpointToken(token_);
     }
 
@@ -268,18 +274,37 @@ contract FeeDistributor is ReentrancyGuard {
         uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK;
         IVotingEscrow(_ve).checkpoint();
 
+        uint256 _sinceLastInWeeks;
+        if (_t > 0) {
+            unchecked {
+                _sinceLastInWeeks = (_roundedTimestamp - _t) / WEEK;
+            }
+        }
+
+        /*
+        If the time since the last checkpoint exceeds 20 weeks,
+        set the checkpoint time to the beginning of the week that is 19 weeks prior to the current block time.
+        */
+        if (_sinceLastInWeeks >= 20) {
+            _t = (_roundedTimestamp - WEEK * 19);
+        }
+
+        /*
+        If the last checkpoint total supply time is the previous week,
+        update the veSupply to ensure it reflects the latest state.
+        This prevents a scenario where checkpointTotalSupply and veToken's createLock
+        occur in the same block, potentially causing veSupply to not be updated with the latest value.
+        */
+        uint256 _previousWeek = timeCursor - WEEK;
+        if (lastCheckpointTotalSupplyTime == _previousWeek) {
+            _updateVeSupply(_ve, _previousWeek);
+        }
+
         for (uint256 i; i < 20; ) {
             if (_t > _roundedTimestamp) {
                 break;
             } else {
-                uint256 _epoch = _findTimestampEpoch(_ve, _t);
-                IVotingEscrow.Point memory _pt = IVotingEscrow(_ve)
-                    .pointHistory(_epoch);
-                int128 _dt = 0;
-                if (_t > _pt.ts) {
-                    _dt = int128(int256(_t) - int256(_pt.ts));
-                }
-                veSupply[_t] = uint256(int256(_pt.bias - _pt.slope * _dt));
+                _updateVeSupply(_ve, _t);
                 _t += WEEK;
             }
             unchecked {
@@ -287,7 +312,25 @@ contract FeeDistributor is ReentrancyGuard {
             }
         }
 
+        lastCheckpointTotalSupplyTime = block.timestamp;
         timeCursor = _t;
+    }
+
+    /**
+     * @notice Internal function to update veSupply for a given timestamp.
+     * @param _ve The address of the veToken contract.
+     * @param _t The timestamp to update veSupply for.
+     */
+    function _updateVeSupply(address _ve, uint256 _t) internal {
+        uint256 _epoch = _findTimestampEpoch(_ve, _t);
+        IVotingEscrow.Point memory _pt = IVotingEscrow(_ve).pointHistory(
+            _epoch
+        );
+        int128 _dt = 0;
+        if (_t > _pt.ts) {
+            _dt = int128(int256(_t) - int256(_pt.ts));
+        }
+        veSupply[_t] = uint256(int256(_pt.bias - _pt.slope * _dt));
     }
 
     /***
@@ -309,7 +352,7 @@ contract FeeDistributor is ReentrancyGuard {
             userEpoch: 0,
             toDistribute: 0,
             maxUserEpoch: IVotingEscrow(ve_).userPointEpoch(addr_),
-            startTime: startTime,
+            startTime: startTime[token_],
             thisWeek: (block.timestamp / WEEK) * WEEK,
             lastTokenTime: lastTokenTime_,
             latestFeeUnlockTime: ((lastTokenTime_ + WEEK) / WEEK) * WEEK
@@ -409,7 +452,8 @@ contract FeeDistributor is ReentrancyGuard {
                 if (_rp.balanceOf == 0 && _cp.userEpoch > _cp.maxUserEpoch) {
                     break;
                 }
-                if (_rp.balanceOf > 0) {
+
+                if (_rp.balanceOf > 0 && veSupply[_weekCursor] > 0) {
                     _rp.tokensPerWeek = tokensPerWeek[token_][_weekCursor];
                     _cp.toDistribute +=
                         (uint256(_rp.balanceOf) * _rp.tokensPerWeek) /
@@ -685,6 +729,7 @@ contract FeeDistributor is ReentrancyGuard {
         require(tokenFlags[coin_] == 0, "Token is already registered");
 
         lastTokenTime[coin_] = block.timestamp;
+        startTime[coin_] = (block.timestamp / WEEK) * WEEK;
         tokenFlags[coin_] = 1;
         tokens.push(coin_);
 

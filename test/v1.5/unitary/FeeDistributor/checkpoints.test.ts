@@ -100,16 +100,18 @@ describe("FeeDistributor", () => {
       await time.increase(YEAR);
       await distributor.checkpointTotalSupply();
       const newTimeCursor = (await distributor.timeCursor()).toNumber();
-      expect(newTimeCursor).to.equal(startTime + WEEK * 20);
-      expect(await distributor.veSupply(startTime + WEEK * 19)).to.be.above(0);
-      expect(await distributor.veSupply(startTime + WEEK * 20)).to.equal(0);
 
-      await distributor.checkpointTotalSupply();
-
-      expect(await distributor.timeCursor()).to.equal(startTime + WEEK * 40);
-      expect(await distributor.veSupply(startTime + WEEK * 20)).to.be.above(0);
-      expect(await distributor.veSupply(startTime + WEEK * 39)).to.be.above(0);
-      expect(await distributor.veSupply(startTime + WEEK * 40)).to.equal(0);
+      expect(newTimeCursor).to.equal(startTime + WEEK * 53);
+      expect(await distributor.veSupply(startTime + WEEK * 52)).to.equal(0);
+      for (let i = 0; i < 51; i++) {
+        const veSupply = await distributor.veSupply(startTime + WEEK * i);
+        // veSupply should be stored starting from 20 weeks ago
+        if (i < 33) {
+          expect(veSupply).to.equal(0);
+        } else {
+          expect(veSupply).to.be.above(0);
+        }
+      }
     });
 
     it("test_claim_checkpoints_total_supply", async function () {

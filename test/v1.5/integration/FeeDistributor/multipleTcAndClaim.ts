@@ -1,13 +1,13 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { Contract } from "ethers";
+import { ethers, network } from "hardhat";
+import { Contract, BigNumber } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { sendEther } from "../../../scenarioHelper";
+import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 const DAY = 86400;
 const WEEK = DAY * 7;
@@ -156,5 +156,77 @@ describe("FeeDistributor", function () {
       ["claim(address)"](ethers.constants.AddressZero);
     const balanceAlice3 = await ethers.provider.getBalance(accounts[1].address);
     expect(balanceAlice3).to.be.above(balanceAlice2);
+  });
+
+  // トークンが遅れて追加された場合に一度で正しくクレームできるかの確認
+  it("should be fully claimed in a single claim", async function () {
+    await coinA._mintForTesting(
+      accounts[0].address,
+      ethers.utils.parseEther("500")
+    );
+    const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+    const auction = await deploySampleSaleTemplate(
+      factory,
+      feeDistributor,
+      token,
+      coinA,
+      TEMPLATE_NAME,
+      accounts[0]
+    );
+
+    // ユーザ1のロック
+    await token.transfer(accounts[1].address, ethers.utils.parseEther("1"));
+    await token
+      .connect(accounts[1])
+      .approve(votingEscrow.address, ethers.utils.parseEther("1"));
+    await votingEscrow
+      .connect(accounts[1])
+      .createLock(
+        ethers.utils.parseEther("1"),
+        (await time.latest()) + WEEK * 61
+      );
+
+    // 60週間後に時間を進める
+    await time.increaseTo((await time.latest()) + 60 * WEEK);
+
+    // 一度自動マイニングをOFF --->
+    await network.provider.send("evm_setAutomine", [false]);
+
+    // Calling the mock function to add coinA to the reward list
+    await auction.connect(accounts[0]).withdrawRaisedToken(coinA.address);
+
+    // Feeとして100 coinAを送信し分配
+    await coinA.transfer(
+      feeDistributor.address,
+      ethers.utils.parseEther("100")
+    );
+
+    // <--- 自動マイニングの再開
+    await network.provider.send("evm_setAutomine", [true]);
+
+    await feeDistributor.connect(accounts[0]).checkpointToken(coinA.address);
+
+    // 1週間時間を進める
+    await time.increaseTo((await time.latest()) + WEEK);
+
+    await feeDistributor.connect(accounts[1])["claim(address)"](coinA.address);
+
+    const feeDistributorBalance = await coinA.balanceOf(feeDistributor.address);
+    const user1Balance = await coinA.balanceOf(accounts[1].address);
+
+    // const timeCursor = (await feeDistributor.timeCursor()).toNumber();
+    // for (let i = 0; i < 60; i++) {
+    //   console.log(
+    //     (
+    //       await feeDistributor.tokensPerWeek(
+    //         coinA.address,
+    //         timeCursor - WEEK * i
+    //       )
+    //     ).toString()
+    //   );
+    // }
+
+    expect(user1Balance).to.be.eq(ethers.utils.parseEther("100"));
+    expect(feeDistributorBalance).to.be.eq(0);
   });
 });

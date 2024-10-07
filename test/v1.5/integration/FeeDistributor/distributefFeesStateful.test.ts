@@ -487,7 +487,7 @@ describe("FeeDistributor", function () {
     Claim fees for all accounts and verify that only dust remains.
     */
     console.log("teardown----");
-    const startTime = await distributor.startTime();
+    const startTime = await distributor.startTime(stToken);
     const lastTokenTime = await distributor.lastTokenTime(stToken);
     if (lastTokenTime.eq(0) || lastTokenTime.eq(startTime)) {
       //if no token checkpoint occured, add 100,000 tokens prior to teardown
@@ -512,7 +512,7 @@ describe("FeeDistributor", function () {
       );
     }
 
-    const t0: number = (await distributor.startTime()).toNumber();
+    const t0: number = (await distributor.startTime(stToken)).toNumber();
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
     const tokensPerUserPerWeek: { [key: string]: BigNumber[] } = {};

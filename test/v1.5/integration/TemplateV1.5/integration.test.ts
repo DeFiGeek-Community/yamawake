@@ -435,7 +435,7 @@ describe("TemplateV1.5", function () {
     stTime.gt(0) && (await time.increase(stTime));
 
     // For debug ---
-    // const t0: number = (await distributor.startTime()).toNumber();
+    // const t0: number = (await distributor.startTime(ethers.constants.AddressZero)).toNumber();
     // const ue = await distributor.userEpochOf(stAcct.address);
     // const up = await votingEscrow.userPointHistory(stAcct.address, ue);
     // console.log(`Week:
@@ -609,7 +609,7 @@ describe("TemplateV1.5", function () {
 
     for (const acct of accounts) {
       // For debug --->
-      //   const t0: number = (await distributor.startTime()).toNumber();
+      //   const t0: number = (await distributor.startTime(ethers.constants.AddressZero).toNumber();
       //   const ue = await distributor.userEpochOf(acct.address);
       //   const up = await votingEscrow.userPointHistory(acct.address, ue);
       //   console.log(`Week:
@@ -634,14 +634,16 @@ describe("TemplateV1.5", function () {
       }
     }
 
-    const t0: number = (await distributor.startTime()).toNumber();
+    const t0: number = (
+      await distributor.startTime(ethers.constants.AddressZero)
+    ).toNumber();
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
     const tokensPerUserPerWeek: { [key: string]: BigNumber[] } = {};
     const tokensPerWeeks: BigNumber[] = [];
 
     for (let w = t0; w < t1 + WEEK; w += WEEK) {
-      const tokensPerWeek = await distributor.tokensPerWeek(
+      const tokensPerWeek: BigNumber = await distributor.tokensPerWeek(
         ethers.constants.AddressZero,
         w
       );
@@ -650,9 +652,16 @@ describe("TemplateV1.5", function () {
       for (const acct of accounts) {
         tokensPerUserPerWeek[acct.address] =
           tokensPerUserPerWeek[acct.address] || [];
-        const tokens: BigNumber = tokensPerWeek
-          .mul(await distributor.veForAt(acct.address, w))
-          .div(await distributor.veSupply(w));
+        const veSupply: BigNumber = await distributor.veSupply(w);
+        if (veSupply.isZero() && !tokensPerWeek.isZero()) {
+          // tokensPerWeekが発生しているのにもかかわらずveSupplyが0の場合はエラーを出す
+          throw Error("veSupply is incorrectly zero");
+        }
+        const tokens: BigNumber = tokensPerWeek.isZero()
+          ? BigNumber.from("0")
+          : tokensPerWeek
+              .mul(await distributor.veForAt(acct.address, w))
+              .div(await distributor.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
       }
     }
