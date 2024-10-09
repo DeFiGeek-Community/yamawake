@@ -21,7 +21,7 @@ IBAO(Initial Bulk Auction Offering)テンプレート
 ### 固定パラメータ
 
 - 最低入札量
-  - 0.01ETH
+  - 0.001ETH
 - 総入札限度量
   - 1e27
 - 販売トークン限度量
