@@ -97,7 +97,7 @@ describe("FeeDistributor", () => {
 
     it("test_advance_time_cursor", async function () {
       const startTime = (await distributor.timeCursor()).toNumber();
-      await time.increase(YEAR);
+      await time.increaseTo(startTime + YEAR);
       await distributor.checkpointTotalSupply();
       const newTimeCursor = (await distributor.timeCursor()).toNumber();
 
