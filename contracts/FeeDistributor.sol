@@ -295,7 +295,7 @@ contract FeeDistributor is ReentrancyGuard {
         This prevents a scenario where checkpointTotalSupply and veToken's createLock
         occur in the same block, potentially causing veSupply to not be updated with the latest value.
         */
-        uint256 _previousWeek = timeCursor - WEEK;
+        uint256 _previousWeek = timeCursor > WEEK ? timeCursor - WEEK : 0;
         if (lastCheckpointTotalSupplyTime == _previousWeek) {
             _updateVeSupply(_ve, _previousWeek);
         }
