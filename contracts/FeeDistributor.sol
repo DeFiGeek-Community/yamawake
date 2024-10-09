@@ -275,7 +275,7 @@ contract FeeDistributor is ReentrancyGuard {
         IVotingEscrow(_ve).checkpoint();
 
         uint256 _sinceLastInWeeks;
-        if (_t > 0) {
+        if (_t > 0 && _roundedTimestamp > _t) {
             unchecked {
                 _sinceLastInWeeks = (_roundedTimestamp - _t) / WEEK;
             }
