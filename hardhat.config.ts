@@ -69,7 +69,6 @@ const config: HardhatUserConfig = {
       forking: {
         url: `https://sepolia.infura.io/v3/${INFURA_API_TOKEN}`,
       },
-      tags: ["test", "receiver"],
     },
     localhost_l2: {
       url: "http://127.0.0.1:8546",
@@ -84,6 +83,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       mainnet: ETHERSCAN_API_KEY,
       baseSepolia: BASESCAN_API_KEY,
+      base:BASESCAN_API_KEY,
     },
   },
   paths: {
