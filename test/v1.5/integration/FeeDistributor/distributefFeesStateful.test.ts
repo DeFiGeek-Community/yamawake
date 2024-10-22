@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { ethers, network } from "hardhat";
-import { BigNumber } from "ethers";
+import { ethers } from "hardhat";
+import type { TransactionReceipt } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -9,7 +9,6 @@ import {
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate } from "../../../scenarioHelper";
 import {
-  Distributor,
   Factory,
   FeeDistributor,
   MockToken,
@@ -28,11 +27,6 @@ const MOUNT_DECIMALS = 3;
 const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
 // Helper functions to generate random variables ----->
-function randomBigValue(min: number, max: number): BigNumber {
-  return BigNumber.from(
-    Math.floor(Math.random() * (max - min) + min).toString()
-  );
-}
 function randomValue(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min) + min);
 }
@@ -40,17 +34,17 @@ function getRandomAccountNum(): number {
   let rdm = Math.floor(Math.random() * ACCOUNT_NUM); //0~9 integer
   return rdm;
 }
-function getRandomWeeks(): BigNumber {
-  return randomBigValue(1, 12);
+function getRandomWeeks(): number {
+  return randomValue(1, 12);
 }
-function getRandomAmounts(): BigNumber {
-  return randomBigValue(
-    1 * 10 ** MOUNT_DECIMALS,
-    100 * 10 ** MOUNT_DECIMALS
-  ).mul(BigNumber.from(10).pow(18 - MOUNT_DECIMALS));
+function getRandomAmounts(): bigint {
+  return BigInt(
+    randomValue(1 * 10 ** MOUNT_DECIMALS, 100 * 10 ** MOUNT_DECIMALS) *
+      10 ** (18 - MOUNT_DECIMALS)
+  );
 }
-function getRandomsTime(): BigNumber {
-  return randomBigValue(0, 86400 * 3);
+function getRandomsTime(): bigint {
+  return BigInt(randomValue(0, 86400 * 3));
 }
 // ------------------------------------------------
 /* 
@@ -74,11 +68,11 @@ describe("FeeDistributor", function () {
   let auction: SampleTemplate;
 
   let lockedUntil: { [key: string]: number } = {};
-  let fees: { [key: number]: BigNumber } = {}; // block number -> amount
-  let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
-  let userGases: { [key: string]: BigNumber }; // address -> total gas fee
-  let initialEthBalance: { [key: string]: BigNumber };
-  let totalFees: BigNumber = ethers.parseEther("1");
+  let fees: { [key: number]: bigint } = {}; // block number -> amount
+  let userClaims: { [key: string]: { [key: number]: bigint[] } } = {}; // address -> block number -> [claimed, timeCursor]
+  let userGases: { [key: string]: bigint }; // address -> total gas fee
+  let initialEthBalance: { [key: string]: bigint };
+  let totalFees: bigint = ethers.parseEther("1");
 
   let tokenAddresses: string[];
   let stToken: string;
@@ -176,7 +170,9 @@ describe("FeeDistributor", function () {
     await auction.connect(admin).withdrawRaisedToken(feeCoin.target);
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
-      initialEthBalance[accounts[i].address] = await accounts[i].getBalance();
+      initialEthBalance[accounts[i].address] = await ethers.provider.getBalance(
+        accounts[i]
+      );
       userGases[accounts[i].address] = 0n;
     }
   });
@@ -196,10 +192,11 @@ describe("FeeDistributor", function () {
 
     if (lockedUntil[stAcct.address] < currentTime) {
       let tx = await votingEscrow.connect(stAcct).withdraw();
-      let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      let receipt = (await tx.wait()) as TransactionReceipt;
+
+      userGases[stAcct.address] =
+        userGases[stAcct.address] +
+        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       delete lockedUntil[stAcct.address];
       return false;
     }
@@ -209,9 +206,9 @@ describe("FeeDistributor", function () {
   //--------------------------------------------- randomly excuted functions -----------------------------------------------------------//
   async function ruleNewLock(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
-    stWeeks?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stWeeks?: number,
+    stTime?: bigint
   ) {
     /*
     Add a new user lock.
@@ -242,24 +239,24 @@ describe("FeeDistributor", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     if (!(await _checkActiveLock(stAcct))) {
-      const until =
-        (Math.floor((await time.latest()) / WEEK) + stWeeks.toNumber()) * WEEK;
+      const until = (Math.floor((await time.latest()) / WEEK) + stWeeks) * WEEK;
       let tx = await votingEscrow.connect(stAcct).createLock(stAmount, until);
-      let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      let receipt = (await tx.wait()) as TransactionReceipt;
+
+      userGases[stAcct.address] =
+        userGases[stAcct.address] +
+        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       lockedUntil[stAcct.address] = until;
     }
   }
 
   async function ruleExtendLock(
     stAcct?: SignerWithAddress,
-    stWeeks?: BigNumber,
-    stTime?: BigNumber
+    stWeeks?: number,
+    stTime?: bigint
   ) {
     /*
     Extend an existing user lock.
@@ -286,32 +283,33 @@ describe("FeeDistributor", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
       const until =
         (Math.floor(
-          (await votingEscrow.lockedEnd(stAcct.address)).toNumber() / WEEK
+          Number(await votingEscrow.lockedEnd(stAcct.address)) / WEEK
         ) +
-          stWeeks.toNumber()) *
+          stWeeks) *
         WEEK;
       const newUntil = Math.min(
         until,
         Math.floor(((await time.latest()) + YEAR * 4) / WEEK) * WEEK
       );
       let tx = await votingEscrow.connect(stAcct).increaseUnlockTime(newUntil);
-      let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      let receipt = (await tx.wait()) as TransactionReceipt;
+
+      userGases[stAcct.address] =
+        userGases[stAcct.address] +
+        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       lockedUntil[stAcct.address] = newUntil;
     }
   }
 
   async function ruleIncreaseLockAmount(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stTime?: bigint
   ) {
     /*
     Increase the amount of an existing user lock.
@@ -338,19 +336,18 @@ describe("FeeDistributor", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
       let tx = await votingEscrow.connect(stAcct).increaseAmount(stAmount);
-      let receipt = await tx.wait();
-
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      let receipt = (await tx.wait()) as TransactionReceipt;
+      userGases[stAcct.address] =
+        userGases[stAcct.address] +
+        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
     }
   }
 
-  async function ruleClaimFees(stAcct?: SignerWithAddress, stTime?: BigNumber) {
+  async function ruleClaimFees(stAcct?: SignerWithAddress, stTime?: bigint) {
     /*
     Claim fees for a user.
 
@@ -370,10 +367,11 @@ describe("FeeDistributor", function () {
     }, stTime: ${stTime.toString()}, WEEK:${(await time.latest()) / WEEK}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     let claimed;
     let tx;
+    let receipt;
     let newClaimed;
 
     if (stToken === ethers.ZeroAddress) {
@@ -381,29 +379,31 @@ describe("FeeDistributor", function () {
       tx = await distributor
         .connect(stAcct)
         ["claim(address)"](ethers.ZeroAddress);
-      const receipt = await tx.wait();
-      const gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
-      userGases[stAcct.address] = userGases[stAcct.address].add(gas);
+      receipt = (await tx.wait()) as TransactionReceipt;
 
-      newClaimed = (await ethers.provider.getBalance(stAcct.address))
-        .sub(claimed)
-        .add(gas);
+      const gas = receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n;
+      userGases[stAcct.address] = userGases[stAcct.address] + gas;
+
+      newClaimed =
+        (await ethers.provider.getBalance(stAcct.address)) - claimed + gas;
     } else {
       claimed = await feeCoin.balanceOf(stAcct.address);
       tx = await distributor.connect(stAcct)["claim(address)"](stToken);
-      let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
-      newClaimed = (await feeCoin.balanceOf(stAcct.address)).sub(claimed);
+      receipt = (await tx.wait()) as TransactionReceipt;
+      userGases[stAcct.address] =
+        userGases[stAcct.address] +
+        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+      newClaimed = (await feeCoin.balanceOf(stAcct.address)) - claimed;
+      receipt.blockNumber;
     }
-    userClaims[stAcct.address][tx.blockNumber] = [
+
+    userClaims[stAcct.address][receipt.blockNumber] = [
       newClaimed,
       await distributor.timeCursorOf(stToken, stAcct.address),
     ];
   }
 
-  async function ruleTransferFees(stAmount?: BigNumber, stTime?: BigNumber) {
+  async function ruleTransferFees(stAmount?: bigint, stTime?: bigint) {
     /*
     Transfer fees into the distributor and make a checkpoint.
 
@@ -426,30 +426,34 @@ describe("FeeDistributor", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     let tx;
+    let receipt;
     if (stToken === ethers.ZeroAddress) {
       tx = await admin.sendTransaction({
-        to: distributor.address,
+        to: distributor.target,
         value: stAmount,
       });
+      receipt = (await tx.wait()) as TransactionReceipt;
     } else {
       const Token = await ethers.getContractFactory("MockToken");
-      tx = await Token.attach(stToken)
+      const token = Token.attach(stToken) as MockToken;
+      tx = await token
         .connect(admin)
-        ._mintForTesting(distributor.address, stAmount);
+        ._mintForTesting(distributor.target, stAmount);
+      receipt = (await tx.wait()) as TransactionReceipt;
     }
 
     await distributor.connect(admin).checkpointToken(stToken);
 
-    fees[tx.blockNumber] = stAmount;
-    totalFees = totalFees.add(stAmount);
+    fees[receipt.blockNumber] = stAmount;
+    totalFees = totalFees + stAmount;
   }
 
   async function ruleTransferFeesWithoutCheckpoint(
-    stAmount?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stTime?: bigint
   ) {
     /*
     Transfer fees into the distributor without checkpointing.
@@ -470,23 +474,27 @@ describe("FeeDistributor", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     let tx;
+    let receipt;
     if (stToken === ethers.ZeroAddress) {
       tx = await admin.sendTransaction({
-        to: distributor.address,
+        to: distributor.target,
         value: stAmount,
       });
+      receipt = (await tx.wait()) as TransactionReceipt;
     } else {
       const Token = await ethers.getContractFactory("MockToken");
-      tx = await Token.attach(stToken)
+      const token = Token.attach(stToken) as MockToken;
+      tx = await token
         .connect(admin)
-        ._mintForTesting(distributor.address, stAmount);
+        ._mintForTesting(distributor.target, stAmount);
+      receipt = (await tx.wait()) as TransactionReceipt;
     }
 
-    fees[tx.blockNumber] = stAmount;
-    totalFees = totalFees.add(stAmount);
+    fees[receipt.blockNumber] = stAmount;
+    totalFees = totalFees + stAmount;
   }
 
   async function teardown() {
@@ -496,9 +504,9 @@ describe("FeeDistributor", function () {
     console.log("teardown----");
     const startTime = await distributor.startTime(stToken);
     const lastTokenTime = await distributor.lastTokenTime(stToken);
-    if (lastTokenTime.eq(0) || lastTokenTime.eq(startTime)) {
+    if (lastTokenTime === 0n || lastTokenTime === startTime) {
       //if no token checkpoint occured, add 100,000 tokens prior to teardown
-      await ruleTransferFees(ethers.parseEther("100000"), BigNumber.from("0"));
+      await ruleTransferFees(ethers.parseEther("100000"), 0n);
     }
 
     // Need two checkpoints to get tokens fully distributed
@@ -510,17 +518,17 @@ describe("FeeDistributor", function () {
 
     for (const acct of accounts) {
       let tx = await distributor.connect(acct)["claim(address)"](stToken);
-      let receipt = await tx.wait();
-      userGases[acct.address] = userGases[acct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      let receipt = (await tx.wait()) as TransactionReceipt;
+      userGases[acct.address] =
+        userGases[acct.address] +
+        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
     }
 
-    const t0: number = (await distributor.startTime(stToken)).toNumber();
+    const t0: number = Number(await distributor.startTime(stToken));
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
-    const tokensPerUserPerWeek: { [key: string]: BigNumber[] } = {};
-    const tokensPerWeeks: BigNumber[] = [];
+    const tokensPerUserPerWeek: { [key: string]: bigint[] } = {};
+    const tokensPerWeeks: bigint[] = [];
 
     for (let w = t0; w < t1 + WEEK; w += WEEK) {
       const tokensPerWeek = await distributor.tokensPerWeek(stToken, w);
@@ -529,9 +537,9 @@ describe("FeeDistributor", function () {
       for (const acct of accounts) {
         tokensPerUserPerWeek[acct.address] =
           tokensPerUserPerWeek[acct.address] || [];
-        const tokens: BigNumber = tokensPerWeek
-          .mul(await distributor.veForAt(acct.address, w))
-          .div(await distributor.veSupply(w));
+        const tokens: bigint =
+          (tokensPerWeek * (await distributor.veForAt(acct.address, w))) /
+          (await distributor.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
       }
     }
@@ -609,19 +617,19 @@ describe("FeeDistributor", function () {
     for (const acct of accounts) {
       if (stToken === ethers.ZeroAddress) {
         expect(await ethers.provider.getBalance(acct.address)).to.equal(
-          tokensPerUserPerWeek[acct.address]
-            .reduce(
-              (a: BigNumber, b: BigNumber) => a.add(b),
-              BigNumber.from("0")
-            )
-            .add(initialEthBalance[acct.address])
-            .sub(userGases[acct.address])
+          tokensPerUserPerWeek[acct.address].reduce(
+            (a: bigint, b: bigint) => a + b,
+            0n
+          ) +
+            initialEthBalance[acct.address] -
+            userGases[acct.address]
         );
       } else {
-        expect(await Token.attach(stToken).balanceOf(acct.address)).to.equal(
+        const token = Token.attach(stToken) as MockToken;
+        expect(await token.balanceOf(acct.address)).to.equal(
           tokensPerUserPerWeek[acct.address].reduce(
-            (a: BigNumber, b: BigNumber) => a.add(b),
-            BigNumber.from("0")
+            (a: bigint, b: bigint) => a + b,
+            0n
           )
         );
       }
@@ -629,13 +637,12 @@ describe("FeeDistributor", function () {
 
     // Check if all fees are distributed
     if (stToken === ethers.ZeroAddress) {
-      expect(await ethers.provider.getBalance(distributor.address)).to.be.lt(
+      expect(await ethers.provider.getBalance(distributor.target)).to.be.lt(
         100
       );
     } else {
-      expect(
-        await Token.attach(stToken).balanceOf(distributor.address)
-      ).to.be.lt(100);
+      const token = Token.attach(stToken) as MockToken;
+      expect(await token.balanceOf(distributor.target)).to.be.lt(100);
     }
   }
 
