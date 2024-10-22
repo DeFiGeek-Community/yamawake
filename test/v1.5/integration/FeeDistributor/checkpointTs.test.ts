@@ -1,12 +1,18 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 const DAY = 86400;
 const WEEK = DAY * 7;
@@ -18,11 +24,11 @@ const MAX_EXAMPLES = 10;
 */
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
-  let coinA: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let feeDistributor: Contract;
+  let token: YMWK;
+  let coinA: MockToken;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let feeDistributor: FeeDistributor;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -36,28 +42,28 @@ describe("FeeDistributor", function () {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
   });
 
   afterEach(async () => {
@@ -84,10 +90,10 @@ describe("FeeDistributor", function () {
     for (let i = 0; i < MAX_EXAMPLES; i++) {
       await token
         .connect(accounts[i])
-        .approve(votingEscrow.address, ethers.constants.MaxUint256);
+        .approve(votingEscrow.target, ethers.MaxUint256);
       await token
         .connect(accounts[0])
-        .transfer(await accounts[i].address, ethers.utils.parseEther("1000"));
+        .transfer(await accounts[i].address, ethers.parseEther("1000"));
     }
 
     let finalLock = 0;
@@ -100,7 +106,7 @@ describe("FeeDistributor", function () {
       await votingEscrow
         .connect(accounts[i])
         .createLock(
-          BigNumber.from(stAmount[i].toFixed(0)).mul((1e14).toString()),
+          BigInt(stAmount[i].toFixed(0)) * BigInt(1e14),
           Math.floor(lockTime)
         );
     }

@@ -156,7 +156,7 @@ export async function snapshot() {
 export async function deploySampleSaleTemplate(
   factory: Factory,
   feeDistributor: FeeDistributor,
-  token: MockToken,
+  token: MockToken | YMWK,
   auctionToken: MockToken,
   templateName: string,
   deployer: SignerWithAddress

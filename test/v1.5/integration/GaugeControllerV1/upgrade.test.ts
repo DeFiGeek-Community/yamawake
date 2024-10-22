@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 type GaugeInfo = {
   contract: Contract;
@@ -68,7 +68,7 @@ describe("GaugeControllerV1", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await Token.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -76,17 +76,17 @@ describe("GaugeControllerV1", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     // GaugeControllerV1のデプロイ
     gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
       votingEscrow.address,
     ]);
-    await gaugeController.deployed();
+    await gaugeController.waitForDeployment();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
-    await minter.deployed();
+    await minter.waitForDeployment();
 
     typeWeights = [];
     gauges = [];
@@ -149,7 +149,7 @@ describe("GaugeControllerV1", function () {
       minter.address,
       tokenInflationStarts
     );
-    await gauge.deployed();
+    await gauge.waitForDeployment();
 
     await gaugeController
       .connect(accounts[0])
@@ -255,7 +255,7 @@ describe("GaugeControllerV1", function () {
         minter.address,
         tokenInflationStarts
       );
-      await gauge.deployed();
+      await gauge.waitForDeployment();
       await gaugeController.addGauge(gauge.address, 0, 1);
 
       // 1) GaugeControllerV2へアップグレード
@@ -266,7 +266,7 @@ describe("GaugeControllerV1", function () {
         gaugeController.address,
         GaugeControllerV2
       );
-      await gaugeController.deployed();
+      await gaugeController.waitForDeployment();
 
       // 2) GaugeControllerV1のデータを保持していることを確認
       expect(await gaugeController.nGaugeTypes()).to.be.eq(1);
@@ -300,7 +300,7 @@ describe("GaugeControllerV1", function () {
           gaugeController.address,
           GaugeControllerV2
         );
-        await gaugeController.deployed();
+        await gaugeController.waitForDeployment();
 
         // 2) Curve版の機能を使ってTypeWeightを調整
         await gaugeController.changeTypeWeight(0, BigNumber.from(10).pow(18));

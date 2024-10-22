@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 const ACCOUNT_NUM = 10;
 const MAX_EXAMPLES = 30; // テストの試行回数
@@ -39,7 +39,7 @@ describe("VotingEscrow", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await Token.deploy("Test Token", "TST", 18);
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -47,7 +47,7 @@ describe("VotingEscrow", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     //init
     for (let i = 0; i < ACCOUNT_NUM; i++) {

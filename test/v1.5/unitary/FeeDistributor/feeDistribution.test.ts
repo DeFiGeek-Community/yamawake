@@ -6,13 +6,13 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 describe("FeeDistributor", () => {
   const DAY = 86400;
   const WEEK = DAY * 7;
-  const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+  const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
@@ -40,10 +40,10 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -51,17 +51,17 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -69,13 +69,13 @@ describe("FeeDistributor", () => {
 
   describe("test_fee_distribution", () => {
     it(`test_eth_deposited_after`, async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
 
       for (let i = 0; i < 5; i++) {
         for (let j = 0; j < 7; j++) {
           await sendEther(feeDistributor.address, "1", bob);
-          await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+          await feeDistributor.checkpointToken(ethers.ZeroAddress);
           await feeDistributor.checkpointTotalSupply();
           await time.increase(DAY);
         }
@@ -88,15 +88,13 @@ describe("FeeDistributor", () => {
       await time.increase(2 * WEEK);
 
       await expect(
-        feeDistributor
-          .connect(alice)
-          ["claim(address)"](ethers.constants.AddressZero)
+        feeDistributor.connect(alice)["claim(address)"](ethers.ZeroAddress)
       ).to.changeEtherBalance(alice, 0);
     });
     it(`test_token_deposited_after`, async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
-      await coinA._mintForTesting(bob.address, ethers.utils.parseEther("100"));
+      await coinA._mintForTesting(bob.address, ethers.parseEther("100"));
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -113,7 +111,7 @@ describe("FeeDistributor", () => {
         for (let j = 0; j < 7; j++) {
           await coinA
             .connect(bob)
-            .transfer(feeDistributor.address, ethers.utils.parseEther("1"));
+            .transfer(feeDistributor.address, ethers.parseEther("1"));
           await feeDistributor.checkpointToken(coinA.address);
           await feeDistributor.checkpointTotalSupply();
           await time.increase(DAY);
@@ -132,7 +130,7 @@ describe("FeeDistributor", () => {
     });
 
     it("test_eth_deposited_during", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
 
       await time.increase(WEEK);
@@ -150,28 +148,28 @@ describe("FeeDistributor", () => {
         factory.address,
         await time.latest()
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 7; j++) {
           await sendEther(feeDistributor.address, "1", bob);
-          await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+          await feeDistributor.checkpointToken(ethers.ZeroAddress);
           await feeDistributor.checkpointTotalSupply();
           await time.increase(DAY);
         }
       }
 
       await time.increase(WEEK);
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       const initBalanceAlice = await alice.getBalance();
       let tx = await feeDistributor
         .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       let receipt = await tx.wait();
       let gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
       const balanceAlice = await alice.getBalance();
       const diff = balanceAlice
-        .sub(ethers.utils.parseEther("21"))
+        .sub(ethers.parseEther("21"))
         .sub(initBalanceAlice)
         .add(gas)
         .abs();
@@ -179,9 +177,9 @@ describe("FeeDistributor", () => {
     });
 
     it("test_token_deposited_during", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
-      await coinA._mintForTesting(bob.address, ethers.utils.parseEther("100"));
+      await coinA._mintForTesting(bob.address, ethers.parseEther("100"));
 
       await time.increase(WEEK);
       await votingEscrow
@@ -198,7 +196,7 @@ describe("FeeDistributor", () => {
         factory.address,
         await time.latest()
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -215,7 +213,7 @@ describe("FeeDistributor", () => {
         for (let j = 0; j < 7; j++) {
           await coinA
             .connect(bob)
-            .transfer(feeDistributor.address, ethers.utils.parseEther("1"));
+            .transfer(feeDistributor.address, ethers.parseEther("1"));
           await feeDistributor.checkpointToken(coinA.address);
           await feeDistributor.checkpointTotalSupply();
           await time.increase(DAY);
@@ -228,14 +226,14 @@ describe("FeeDistributor", () => {
 
       const balanceAlice = await coinA.balanceOf(alice.address);
       const diff = Math.abs(
-        balanceAlice.sub(ethers.utils.parseEther("21")).toNumber()
+        balanceAlice.sub(ethers.parseEther("21")).toNumber()
       );
       expect(diff).to.be.lessThan(10);
     });
 
     it("test_eth_deposited_before", async function () {
       const [alice, bob] = await ethers.getSigners();
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
 
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
 
@@ -255,22 +253,22 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       await sendEther(feeDistributor.address, "10", bob);
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       await time.increase(WEEK);
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       const initBalanceAlice = await alice.getBalance();
       let tx = await feeDistributor
         .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       let receipt = await tx.wait();
       let gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
 
       const balanceAlice = await alice.getBalance();
       const diff = balanceAlice
-        .sub(ethers.utils.parseEther("10"))
+        .sub(ethers.parseEther("10"))
         .sub(initBalanceAlice)
         .add(gas)
         .abs();
@@ -279,12 +277,12 @@ describe("FeeDistributor", () => {
 
     it("test_token_deposited_before", async function () {
       const [alice, bob] = await ethers.getSigners();
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
 
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
       await coinA
         .connect(bob)
-        ._mintForTesting(bob.address, ethers.utils.parseEther("100"));
+        ._mintForTesting(bob.address, ethers.parseEther("100"));
 
       await votingEscrow
         .connect(alice)
@@ -302,7 +300,7 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -317,19 +315,19 @@ describe("FeeDistributor", () => {
 
       await coinA
         .connect(bob)
-        .transfer(feeDistributor.address, ethers.utils.parseEther("10"));
+        .transfer(feeDistributor.address, ethers.parseEther("10"));
       await feeDistributor.checkpointToken(coinA.address);
       await time.increase(WEEK);
       await feeDistributor.checkpointToken(coinA.address);
       await feeDistributor.connect(alice)["claim(address)"](coinA.address);
 
       const balanceAlice = await coinA.balanceOf(alice.address);
-      const diff = balanceAlice.sub(ethers.utils.parseEther("10")).abs();
+      const diff = balanceAlice.sub(ethers.parseEther("10")).abs();
       expect(diff).to.be.lessThan(10);
     });
 
     it("test_eth_deposited_twice", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
 
       await token.approve(votingEscrow.address, amount.mul(10));
 
@@ -359,24 +357,24 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       await sendEther(feeDistributor.address, "10", bob);
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
 
       await time.increase(WEEK);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
 
       const initBalanceAlice = await alice.getBalance();
       let tx = await feeDistributor
         .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       let receipt = await tx.wait();
       let gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
 
       const tokensToExclude = await feeDistributor.tokensPerWeek(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         excludeTime
       );
 
@@ -390,10 +388,10 @@ describe("FeeDistributor", () => {
     });
 
     it("test_token_deposited_twice", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
 
       await token.approve(votingEscrow.address, amount.mul(10));
-      await coinA._mintForTesting(bob.address, ethers.utils.parseEther("100"));
+      await coinA._mintForTesting(bob.address, ethers.parseEther("100"));
 
       const currentTimestamp = await time.latest();
       await votingEscrow.createLock(amount, currentTimestamp + 4 * WEEK);
@@ -421,7 +419,7 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -436,7 +434,7 @@ describe("FeeDistributor", () => {
 
       await coinA
         .connect(bob)
-        .transfer(feeDistributor.address, ethers.utils.parseEther("10"));
+        .transfer(feeDistributor.address, ethers.parseEther("10"));
       await feeDistributor.checkpointToken(coinA.address);
 
       await time.increase(WEEK);
@@ -459,7 +457,7 @@ describe("FeeDistributor", () => {
     });
 
     it("test_eth_deposited_parallel", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       const initBalanceAlice = await alice.getBalance();
       const initBalanceBob = await bob.getBalance();
 
@@ -515,27 +513,23 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       await sendEther(feeDistributor.address, "10", charlie);
-      await feeDistributor
-        .connect(charlie)
-        .checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.connect(charlie).checkpointToken(ethers.ZeroAddress);
 
       await time.increase(WEEK);
 
-      await feeDistributor
-        .connect(charlie)
-        .checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.connect(charlie).checkpointToken(ethers.ZeroAddress);
 
       let txAlice = await feeDistributor
         .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       let receiptAlice = await txAlice.wait();
       let gasAlice = receiptAlice.effectiveGasPrice.mul(receiptAlice.gasUsed);
       let txBob = await feeDistributor
         .connect(bob)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       let receiptBob = await txBob.wait();
       let gasBob = receiptBob.effectiveGasPrice.mul(receiptBob.gasUsed);
 
@@ -568,19 +562,16 @@ describe("FeeDistributor", () => {
           .add(gasBob)
           .sub(initBalanceAlice)
           .sub(initBalanceBob)
-      ).to.be.closeTo(ethers.utils.parseEther("10"), 20);
+      ).to.be.closeTo(ethers.parseEther("10"), 20);
     });
 
     it("test_token_deposited_parallel", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
 
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
       await token.connect(bob).approve(votingEscrow.address, amount.mul(10));
       await token.connect(alice).transfer(bob.address, amount);
-      await coinA._mintForTesting(
-        charlie.address,
-        ethers.utils.parseEther("100")
-      );
+      await coinA._mintForTesting(charlie.address, ethers.parseEther("100"));
 
       const currentTimestamp = await time.latest();
       await votingEscrow
@@ -605,7 +596,7 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -620,7 +611,7 @@ describe("FeeDistributor", () => {
 
       await coinA
         .connect(charlie)
-        .transfer(feeDistributor.address, ethers.utils.parseEther("10"));
+        .transfer(feeDistributor.address, ethers.parseEther("10"));
       await feeDistributor.checkpointToken(coinA.address);
 
       await time.increase(WEEK);
@@ -635,7 +626,7 @@ describe("FeeDistributor", () => {
 
       expect(balanceAlice).to.equal(balanceBob);
       expect(balanceAlice.add(balanceBob)).to.be.closeTo(
-        ethers.utils.parseEther("10"),
+        ethers.parseEther("10"),
         20
       );
     });

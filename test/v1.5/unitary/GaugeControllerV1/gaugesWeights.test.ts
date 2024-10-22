@@ -5,8 +5,8 @@ import {
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { Contract, BigNumber } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import Constants from "../../Constants";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import Constants from "../../../lib/Constants";
 
 describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
@@ -117,7 +117,7 @@ describe("GaugeControllerV1", function () {
         0
       );
       const relativeWeight2 = await gaugeController.gaugeRelativeWeight(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         184681 // Just a random number
       );
       expect(relativeWeight1).to.be.eq(WEIGHT);

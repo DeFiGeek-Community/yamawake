@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 const NUMBER_OF_ATTEMPTS = 30;
 const SCALE = BigNumber.from((1e20).toString());
@@ -40,7 +40,7 @@ describe("Minter components", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await Token.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -48,30 +48,26 @@ describe("Minter components", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
       votingEscrow.address,
     ]);
-    await gaugeController.deployed();
+    await gaugeController.waitForDeployment();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
-    await minter.deployed();
+    await minter.waitForDeployment();
 
     const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
       INFLATION_DELAY
     );
     gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
-    await gauge.deployed();
+    await gauge.waitForDeployment();
 
     await token.setMinter(minter.address);
 
-    await gaugeController.addGauge(
-      gauge.address,
-      0,
-      ethers.utils.parseEther("10")
-    );
+    await gaugeController.addGauge(gauge.address, 0, ethers.parseEther("10"));
   });
 
   afterEach(async () => {

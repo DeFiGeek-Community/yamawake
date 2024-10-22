@@ -6,13 +6,13 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther, deploySampleSaleTemplate } from "../../../scenarioHelper";
 
 describe("FeeDistributor", () => {
   const DAY = 86400;
   const WEEK = DAY * 7;
-  const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+  const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
   let snapshot: SnapshotRestorer;
   let alice: SignerWithAddress,
@@ -41,10 +41,10 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -52,23 +52,21 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
 
-    await coinA._mintForTesting(dan.address, ethers.utils.parseEther("10"));
+    await coinA._mintForTesting(dan.address, ethers.parseEther("10"));
 
-    await coinA
-      .connect(dan)
-      .approve(factory.address, ethers.utils.parseEther("10"));
+    await coinA.connect(dan).approve(factory.address, ethers.parseEther("10"));
   });
 
   afterEach(async () => {
@@ -76,7 +74,7 @@ describe("FeeDistributor", () => {
   });
 
   describe("test_claim_multiple_tokens", () => {
-    const amount = ethers.utils.parseEther("1000");
+    const amount = ethers.parseEther("1000");
     it("test_claim_multiple", async function () {
       // ETHとcoinAの一括クレームが個別にクレームした場合と同じ残高になることを確認
       for (let acct of [alice, bob, charlie]) {
@@ -98,7 +96,7 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -110,17 +108,14 @@ describe("FeeDistributor", () => {
       );
 
       await sendEther(feeDistributor.address, "10", alice);
-      await coinA._mintForTesting(
-        auction.address,
-        ethers.utils.parseEther("10")
-      );
+      await coinA._mintForTesting(auction.address, ethers.parseEther("10"));
       // Calling the mock function to add coinA to the reward list and transfer coinA from auction to feeDistributor
       await auction.withdrawRaisedToken(coinA.address);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       await feeDistributor.checkpointToken(coinA.address);
       await time.increase(WEEK);
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       await feeDistributor.checkpointToken(coinA.address);
 
       const snapshot = await takeSnapshot();
@@ -129,8 +124,8 @@ describe("FeeDistributor", () => {
         .connect(alice)
         .claimMultipleTokens(
           alice.address,
-          [ethers.constants.AddressZero, coinA.address].concat(
-            Array(18).fill(ethers.constants.AddressZero)
+          [ethers.ZeroAddress, coinA.address].concat(
+            Array(18).fill(ethers.ZeroAddress)
           )
         );
       let receipt = await tx.wait();
@@ -144,7 +139,7 @@ describe("FeeDistributor", () => {
 
       let tx1 = await feeDistributor
         .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       let receipt1 = await tx1.wait();
       let gas1 = receipt1.effectiveGasPrice.mul(receipt1.gasUsed);
       let tx2 = await feeDistributor
@@ -179,7 +174,7 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
         factory,
@@ -191,33 +186,28 @@ describe("FeeDistributor", () => {
       );
 
       await sendEther(feeDistributor.address, "10", alice);
-      await coinA._mintForTesting(
-        auction.address,
-        ethers.utils.parseEther("10")
-      );
+      await coinA._mintForTesting(auction.address, ethers.parseEther("10"));
       // Calling the mock function to add coinA to the reward list and transfer coinA from auction to feeDistributor
       await auction.withdrawRaisedToken(coinA.address);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       await feeDistributor.checkpointToken(coinA.address);
       await time.increase(WEEK);
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       await feeDistributor.checkpointToken(coinA.address);
 
       const expected = await feeDistributor
         .connect(alice)
-        .callStatic["claim(address)"](ethers.constants.AddressZero);
+        .callStatic["claim(address)"](ethers.ZeroAddress);
 
       await expect(
         feeDistributor
           .connect(alice)
           .claimMultipleTokens(
             alice.address,
-            [
-              ethers.constants.AddressZero,
-              ethers.constants.AddressZero,
-              ethers.constants.AddressZero,
-            ].concat(Array(17).fill(ethers.constants.AddressZero))
+            [ethers.ZeroAddress, ethers.ZeroAddress, ethers.ZeroAddress].concat(
+              Array(17).fill(ethers.ZeroAddress)
+            )
           )
       ).to.changeEtherBalance(alice, expected);
     });

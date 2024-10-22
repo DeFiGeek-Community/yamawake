@@ -5,7 +5,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("VotingEscrow", () => {
   let votingEscrow: Contract;
@@ -19,7 +19,7 @@ describe("VotingEscrow", () => {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -27,7 +27,7 @@ describe("VotingEscrow", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     accounts = await ethers.getSigners();
   });

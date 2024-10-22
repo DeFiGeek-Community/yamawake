@@ -6,8 +6,8 @@ import {
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { Contract, BigNumber } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import Constants from "../../Constants";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import Constants from "../../../lib/Constants";
 
 describe("Gauge checkpoint", function () {
   const DAY = 86400;
@@ -82,7 +82,7 @@ describe("Gauge checkpoint", function () {
       */
       await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
       await votingEscrow.createLock(
-        ethers.utils.parseEther("1000"),
+        ethers.parseEther("1000"),
         (await time.latest()) + WEEK * 52
       );
     });
@@ -142,7 +142,7 @@ describe("Gauge checkpoint", function () {
       await time.increaseTo(tokenInflationStarts);
       await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
       await votingEscrow.createLock(
-        ethers.utils.parseEther("1000"),
+        ethers.parseEther("1000"),
         (await time.latest()) + WEEK * 52 * 3
       );
     });
@@ -195,7 +195,7 @@ describe("Gauge checkpoint", function () {
     it("test_user_checkpoint_checkpoints_with_many_ve_activity", async function () {
       const start_time: BigNumber = await gauge.timeCursor();
       for (let i = 0; i < 100; i++) {
-        await votingEscrow.increaseAmount(ethers.utils.parseEther("1"));
+        await votingEscrow.increaseAmount(ethers.parseEther("1"));
       }
       await time.increase(WEEK * 4);
       await gauge.connect(accounts[0]).userCheckpoint(accounts[0].address);

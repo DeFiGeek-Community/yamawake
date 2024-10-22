@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 /* 
 Gauge, Minter, VotingEscrowのインテグレーションテスト
@@ -88,7 +88,7 @@ describe("Gauge", function () {
     const Gauge = await ethers.getContractFactory("Gauge");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -96,16 +96,16 @@ describe("Gauge", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
       votingEscrow.address,
     ]);
-    await gaugeController.deployed();
+    await gaugeController.waitForDeployment();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
-    await minter.deployed();
+    await minter.waitForDeployment();
 
     // Set minter for the token
     await token.setMinter(minter.address);
@@ -114,13 +114,13 @@ describe("Gauge", function () {
       INFLATION_DELAY
     );
     gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
-    await gauge.deployed();
+    await gauge.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       // ensure accounts[:5] all have tokens that may be locked
       await token
         .connect(accounts[0])
-        .transfer(accounts[i].address, ethers.utils.parseEther("10000000"));
+        .transfer(accounts[i].address, ethers.parseEther("10000000"));
       await token
         .connect(accounts[i])
         .approve(votingEscrow.address, two_to_the_256_minus_1);
@@ -133,7 +133,7 @@ describe("Gauge", function () {
     await votingEscrow
       .connect(accounts[0])
       .createLock(
-        ethers.utils.parseEther("10000000"),
+        ethers.parseEther("10000000"),
         (await time.latest()) + YEAR * 2
       );
 

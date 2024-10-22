@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 const DAY = 86400;
@@ -36,10 +36,10 @@ describe("FeeDistributor", function () {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -47,17 +47,17 @@ describe("FeeDistributor", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
   });
 
   afterEach(async () => {
@@ -65,16 +65,13 @@ describe("FeeDistributor", function () {
   });
 
   it("should not increase balance by claiming multiple times but can claim the next week", async function () {
-    await token.transfer(accounts[1].address, ethers.utils.parseEther("1"));
+    await token.transfer(accounts[1].address, ethers.parseEther("1"));
     await token
       .connect(accounts[1])
-      .approve(votingEscrow.address, ethers.utils.parseEther("1"));
+      .approve(votingEscrow.address, ethers.parseEther("1"));
     await votingEscrow
       .connect(accounts[1])
-      .createLock(
-        ethers.utils.parseEther("1"),
-        (await time.latest()) + WEEK * 8
-      );
+      .createLock(ethers.parseEther("1"), (await time.latest()) + WEEK * 8);
 
     // 翌々週の頭まで時間を進める
     const beginningOfWeekAfterNext =
@@ -85,25 +82,25 @@ describe("FeeDistributor", function () {
     await sendEther(feeDistributor.address, "1", accounts[0]);
     await feeDistributor
       .connect(accounts[0])
-      .checkpointToken(ethers.constants.AddressZero);
+      .checkpointToken(ethers.ZeroAddress);
     await feeDistributor
       .connect(accounts[1])
-      ["claim(address)"](ethers.constants.AddressZero);
+      ["claim(address)"](ethers.ZeroAddress);
 
     const tokenLastLastWeek1 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext - WEEK * 2
     );
     const tokenLastWeek1 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext - WEEK
     );
     const tokenThisWeek1 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext
     );
     const tokenNextWeek1 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext + WEEK
     );
     const balanceAlice1 = await ethers.provider.getBalance(accounts[1].address);
@@ -119,25 +116,25 @@ describe("FeeDistributor", function () {
     await sendEther(feeDistributor.address, "1", accounts[0]);
     await feeDistributor
       .connect(accounts[0])
-      .checkpointToken(ethers.constants.AddressZero);
+      .checkpointToken(ethers.ZeroAddress);
     await feeDistributor
       .connect(accounts[1])
-      ["claim(address)"](ethers.constants.AddressZero);
+      ["claim(address)"](ethers.ZeroAddress);
 
     const tokenLastLastWeek2 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext - WEEK * 2
     );
     const tokenLastWeek2 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext - WEEK
     );
     const tokenThisWeek2 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext
     );
     const tokenNextWeek2 = await feeDistributor.tokensPerWeek(
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       beginningOfWeekAfterNext + WEEK
     );
     const balanceAlice2 = await ethers.provider.getBalance(accounts[1].address);
@@ -153,18 +150,15 @@ describe("FeeDistributor", function () {
     // チェックポイントは不要
     await feeDistributor
       .connect(accounts[1])
-      ["claim(address)"](ethers.constants.AddressZero);
+      ["claim(address)"](ethers.ZeroAddress);
     const balanceAlice3 = await ethers.provider.getBalance(accounts[1].address);
     expect(balanceAlice3).to.be.above(balanceAlice2);
   });
 
   // トークンが遅れて追加された場合に一度で正しくクレームできるかの確認
   it("should be fully claimed in a single claim", async function () {
-    await coinA._mintForTesting(
-      accounts[0].address,
-      ethers.utils.parseEther("500")
-    );
-    const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+    await coinA._mintForTesting(accounts[0].address, ethers.parseEther("500"));
+    const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
     const auction = await deploySampleSaleTemplate(
       factory,
       feeDistributor,
@@ -175,16 +169,13 @@ describe("FeeDistributor", function () {
     );
 
     // ユーザ1のロック
-    await token.transfer(accounts[1].address, ethers.utils.parseEther("1"));
+    await token.transfer(accounts[1].address, ethers.parseEther("1"));
     await token
       .connect(accounts[1])
-      .approve(votingEscrow.address, ethers.utils.parseEther("1"));
+      .approve(votingEscrow.address, ethers.parseEther("1"));
     await votingEscrow
       .connect(accounts[1])
-      .createLock(
-        ethers.utils.parseEther("1"),
-        (await time.latest()) + WEEK * 61
-      );
+      .createLock(ethers.parseEther("1"), (await time.latest()) + WEEK * 61);
 
     // 60週間後に時間を進める
     await time.increaseTo((await time.latest()) + 60 * WEEK);
@@ -196,10 +187,7 @@ describe("FeeDistributor", function () {
     await auction.connect(accounts[0]).withdrawRaisedToken(coinA.address);
 
     // Feeとして100 coinAを送信し分配
-    await coinA.transfer(
-      feeDistributor.address,
-      ethers.utils.parseEther("100")
-    );
+    await coinA.transfer(feeDistributor.address, ethers.parseEther("100"));
 
     // <--- 自動マイニングの再開
     await network.provider.send("evm_setAutomine", [true]);
@@ -226,7 +214,7 @@ describe("FeeDistributor", function () {
     //   );
     // }
 
-    expect(user1Balance).to.be.eq(ethers.utils.parseEther("100"));
+    expect(user1Balance).to.be.eq(ethers.parseEther("100"));
     expect(feeDistributorBalance).to.be.eq(0);
   });
 });

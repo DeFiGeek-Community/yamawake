@@ -1,13 +1,22 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { BigNumber, Contract } from "ethers";
+import { ethers, network } from "hardhat";
+import { BigNumber } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate } from "../../../scenarioHelper";
+import {
+  Distributor,
+  Factory,
+  FeeDistributor,
+  MockToken,
+  SampleTemplate,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 const ACCOUNT_NUM = 5;
 const MAX_EXAMPLES = 50;
@@ -15,11 +24,8 @@ const STATEFUL_STEP_COUNT = 30;
 const FEE_TOKEN_NUM = 2;
 const WEEK = 86400 * 7;
 const YEAR = 86400 * 365;
-const two_to_the_256_minus_1 = BigNumber.from("2")
-  .pow(BigNumber.from("256"))
-  .sub(BigNumber.from("1"));
 const MOUNT_DECIMALS = 3;
-const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
 // Helper functions to generate random variables ----->
 function randomBigValue(min: number, max: number): BigNumber {
@@ -60,19 +66,19 @@ FeeDistributorが全ての残高を報酬として送金完了していること
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
   let admin: SignerWithAddress; // FeeDistributor Admin
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let distributor: Contract;
-  let feeCoin: Contract;
-  let token: Contract;
-  let auction: Contract;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let distributor: FeeDistributor;
+  let feeCoin: MockToken;
+  let token: YMWK;
+  let auction: SampleTemplate;
 
   let lockedUntil: { [key: string]: number } = {};
   let fees: { [key: number]: BigNumber } = {}; // block number -> amount
   let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
   let userGases: { [key: string]: BigNumber }; // address -> total gas fee
   let initialEthBalance: { [key: string]: BigNumber };
-  let totalFees: BigNumber = ethers.utils.parseEther("1");
+  let totalFees: BigNumber = ethers.parseEther("1");
 
   let tokenAddresses: string[];
   let stToken: string;
@@ -90,7 +96,7 @@ describe("FeeDistributor", function () {
     userClaims = {};
     userGases = {};
     initialEthBalance = {};
-    totalFees = ethers.utils.parseEther("1");
+    totalFees = ethers.parseEther("1");
 
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
@@ -102,30 +108,30 @@ describe("FeeDistributor", function () {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     feeCoin = await Token.deploy("Test Token", "TST", 18);
-    await feeCoin.deployed();
+    await feeCoin.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       // ensure accounts[:5] all have tokens that may be locked
       await token
         .connect(accounts[0])
-        .transfer(accounts[i].address, ethers.utils.parseEther("10000000"));
+        .transfer(accounts[i].address, ethers.parseEther("10000000"));
       await token
         .connect(accounts[i])
-        .approve(votingEscrow.address, two_to_the_256_minus_1);
+        .approve(votingEscrow.target, ethers.MaxUint256);
 
       userClaims[accounts[i].address] = [];
     }
@@ -134,14 +140,14 @@ describe("FeeDistributor", function () {
     await votingEscrow
       .connect(accounts[0])
       .createLock(
-        ethers.utils.parseEther("10000000"),
+        ethers.parseEther("10000000"),
         (await time.latest()) + YEAR * 2
       );
 
     lockedUntil = {
-      [accounts[0].address]: (
+      [accounts[0].address]: Number(
         await votingEscrow.lockedEnd(accounts[0].address)
-      ).toNumber(),
+      ),
     };
 
     // a week later we deploy the fee distributor
@@ -149,13 +155,13 @@ describe("FeeDistributor", function () {
     await time.increase(WEEK);
 
     distributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
-    await distributor.deployed();
+    await distributor.waitForDeployment();
 
-    tokenAddresses = [ethers.constants.AddressZero, feeCoin.address];
+    tokenAddresses = [ethers.ZeroAddress, String(feeCoin.target)];
 
     auction = await deploySampleSaleTemplate(
       factory,
@@ -167,11 +173,11 @@ describe("FeeDistributor", function () {
     );
 
     // Calling the mock function to add coinA to the reward list
-    await auction.connect(admin).withdrawRaisedToken(feeCoin.address);
+    await auction.connect(admin).withdrawRaisedToken(feeCoin.target);
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       initialEthBalance[accounts[i].address] = await accounts[i].getBalance();
-      userGases[accounts[i].address] = ethers.BigNumber.from("0");
+      userGases[accounts[i].address] = 0n;
     }
   });
 
@@ -337,6 +343,7 @@ describe("FeeDistributor", function () {
     if (await _checkActiveLock(stAcct)) {
       let tx = await votingEscrow.connect(stAcct).increaseAmount(stAmount);
       let receipt = await tx.wait();
+
       userGases[stAcct.address] = userGases[stAcct.address].add(
         receipt.effectiveGasPrice.mul(receipt.gasUsed)
       );
@@ -369,11 +376,11 @@ describe("FeeDistributor", function () {
     let tx;
     let newClaimed;
 
-    if (stToken === ethers.constants.AddressZero) {
+    if (stToken === ethers.ZeroAddress) {
       claimed = await ethers.provider.getBalance(stAcct.address);
       tx = await distributor
         .connect(stAcct)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
       const receipt = await tx.wait();
       const gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
       userGases[stAcct.address] = userGases[stAcct.address].add(gas);
@@ -422,7 +429,7 @@ describe("FeeDistributor", function () {
     stTime.gt(0) && (await time.increase(stTime));
 
     let tx;
-    if (stToken === ethers.constants.AddressZero) {
+    if (stToken === ethers.ZeroAddress) {
       tx = await admin.sendTransaction({
         to: distributor.address,
         value: stAmount,
@@ -466,7 +473,7 @@ describe("FeeDistributor", function () {
     stTime.gt(0) && (await time.increase(stTime));
 
     let tx;
-    if (stToken === ethers.constants.AddressZero) {
+    if (stToken === ethers.ZeroAddress) {
       tx = await admin.sendTransaction({
         to: distributor.address,
         value: stAmount,
@@ -491,10 +498,7 @@ describe("FeeDistributor", function () {
     const lastTokenTime = await distributor.lastTokenTime(stToken);
     if (lastTokenTime.eq(0) || lastTokenTime.eq(startTime)) {
       //if no token checkpoint occured, add 100,000 tokens prior to teardown
-      await ruleTransferFees(
-        ethers.utils.parseEther("100000"),
-        BigNumber.from("0")
-      );
+      await ruleTransferFees(ethers.parseEther("100000"), BigNumber.from("0"));
     }
 
     // Need two checkpoints to get tokens fully distributed
@@ -587,7 +591,7 @@ describe("FeeDistributor", function () {
     // }
     // console.log(``);
     // console.log(`[Coin balance of Distributor]`);
-    // if (stToken === ethers.constants.AddressZero) {
+    // if (stToken === ethers.ZeroAddress) {
     //   console.log(
     //     "Ether: ",
     //     (await ethers.provider.getBalance(distributor.address)).toString()
@@ -603,7 +607,7 @@ describe("FeeDistributor", function () {
     // -------------------------------------------
 
     for (const acct of accounts) {
-      if (stToken === ethers.constants.AddressZero) {
+      if (stToken === ethers.ZeroAddress) {
         expect(await ethers.provider.getBalance(acct.address)).to.equal(
           tokensPerUserPerWeek[acct.address]
             .reduce(
@@ -624,7 +628,7 @@ describe("FeeDistributor", function () {
     }
 
     // Check if all fees are distributed
-    if (stToken === ethers.constants.AddressZero) {
+    if (stToken === ethers.ZeroAddress) {
       expect(await ethers.provider.getBalance(distributor.address)).to.be.lt(
         100
       );

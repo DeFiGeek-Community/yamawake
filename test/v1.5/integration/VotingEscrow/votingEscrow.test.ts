@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("Voting Powers Test", function () {
   // Test voting power in the following scenario.
@@ -61,7 +61,7 @@ describe("Voting Powers Test", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -69,7 +69,7 @@ describe("Voting Powers Test", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     [alice, bob] = await ethers.getSigners();
   });
@@ -79,7 +79,7 @@ describe("Voting Powers Test", function () {
   });
 
   it("test voting powers", async function () {
-    const amount: BigNumber = ethers.utils.parseEther("1000");
+    const amount: BigNumber = ethers.parseEther("1000");
     await token.connect(alice).transfer(bob.address, amount);
     const stages: { [key: string]: Stage | Stage[] } = {};
 

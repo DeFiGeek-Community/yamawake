@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySaleTemplateV1_5 } from "../../../scenarioHelper";
 
 const ACCOUNT_NUM = 5;
@@ -77,7 +77,7 @@ describe("TemplateV1.5", function () {
   let userGases: { [key: string]: BigNumber }; // address -> total gas fee
   let contributions: { [key: string]: BigNumber }; // address -> total contribution
   let initialEthBalance: { [key: string]: BigNumber };
-  let totalFees: BigNumber = ethers.utils.parseEther("0");
+  let totalFees: BigNumber = ethers.parseEther("0");
   let auctions: Contract[];
   let activeAuctions: Contract[];
   let veEventsbyUser: { [key: string]: { [key: number]: string } };
@@ -97,7 +97,7 @@ describe("TemplateV1.5", function () {
     userGases = {};
     initialEthBalance = {};
     contributions = {};
-    totalFees = ethers.utils.parseEther("0");
+    totalFees = ethers.parseEther("0");
 
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
@@ -109,10 +109,10 @@ describe("TemplateV1.5", function () {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     feeCoin = await Token.deploy("Test Token", "TST", 18);
-    await feeCoin.deployed();
+    await feeCoin.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -120,16 +120,16 @@ describe("TemplateV1.5", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       // ensure accounts[:5] all have tokens that may be locked
       await token
         .connect(accounts[0])
-        .transfer(accounts[i].address, ethers.utils.parseEther("10000000"));
+        .transfer(accounts[i].address, ethers.parseEther("10000000"));
       await token
         .connect(accounts[i])
         .approve(votingEscrow.address, two_to_the_256_minus_1);
@@ -141,7 +141,7 @@ describe("TemplateV1.5", function () {
     await votingEscrow
       .connect(accounts[0])
       .createLock(
-        ethers.utils.parseEther("10000000"),
+        ethers.parseEther("10000000"),
         (await time.latest()) + YEAR * 2
       );
 
@@ -160,20 +160,20 @@ describe("TemplateV1.5", function () {
       factory.address,
       await time.latest()
     );
-    await distributor.deployed();
+    await distributor.waitForDeployment();
 
     await feeCoin
       .connect(admin)
-      ._mintForTesting(admin.address, ethers.utils.parseEther("1"));
+      ._mintForTesting(admin.address, ethers.parseEther("1"));
     await feeCoin
       .connect(admin)
-      .approve(factory.address, ethers.utils.parseEther("1"));
+      .approve(factory.address, ethers.parseEther("1"));
     let auctionObj = await deploySaleTemplateV1_5(
       factory,
       distributor,
       token,
       feeCoin.address,
-      ethers.utils.parseEther("1"),
+      ethers.parseEther("1"),
       (await time.latest()) + DAY,
       DAY,
       0,
@@ -435,7 +435,7 @@ describe("TemplateV1.5", function () {
     stTime.gt(0) && (await time.increase(stTime));
 
     // For debug ---
-    // const t0: number = (await distributor.startTime(ethers.constants.AddressZero)).toNumber();
+    // const t0: number = (await distributor.startTime(ethers.ZeroAddress)).toNumber();
     // const ue = await distributor.userEpochOf(stAcct.address);
     // const up = await votingEscrow.userPointHistory(stAcct.address, ue);
     // console.log(`Week:
@@ -451,7 +451,7 @@ describe("TemplateV1.5", function () {
       // veSupplyの同期が20週間以上遅れているとzero divisionエラーでrevert
       tx = await distributor
         .connect(stAcct)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
     } catch (e: any) {
       // RevertしたTXのガスコストを考慮
       const latestBlock = await ethers.provider.getBlock("latest");
@@ -470,7 +470,7 @@ describe("TemplateV1.5", function () {
       claimed = await ethers.provider.getBalance(stAcct.address);
       tx = await distributor
         .connect(stAcct)
-        ["claim(address)"](ethers.constants.AddressZero);
+        ["claim(address)"](ethers.ZeroAddress);
     }
     const receipt = await tx.wait();
     const gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
@@ -599,17 +599,13 @@ describe("TemplateV1.5", function () {
     // Need two checkpoints to get tokens fully distributed
     // Because tokens for current week are obtained in the next week
     // And that is by design
-    await distributor
-      .connect(admin)
-      .checkpointToken(ethers.constants.AddressZero);
+    await distributor.connect(admin).checkpointToken(ethers.ZeroAddress);
     await ethers.provider.send("evm_increaseTime", [WEEK * 2]);
-    await distributor
-      .connect(admin)
-      .checkpointToken(ethers.constants.AddressZero);
+    await distributor.connect(admin).checkpointToken(ethers.ZeroAddress);
 
     for (const acct of accounts) {
       // For debug --->
-      //   const t0: number = (await distributor.startTime(ethers.constants.AddressZero).toNumber();
+      //   const t0: number = (await distributor.startTime(ethers.ZeroAddress).toNumber();
       //   const ue = await distributor.userEpochOf(acct.address);
       //   const up = await votingEscrow.userPointHistory(acct.address, ue);
       //   console.log(`Week:
@@ -622,7 +618,7 @@ describe("TemplateV1.5", function () {
       const thisWeek = Math.floor((await time.latest()) / WEEK) * WEEK;
       let userTimeCursor = await distributor.timeCursorOf(
         acct.address,
-        ethers.constants.AddressZero
+        ethers.ZeroAddress
       );
       if (userTimeCursor.gt(0) && userTimeCursor.lt(thisWeek)) {
         // console.log(
@@ -635,7 +631,7 @@ describe("TemplateV1.5", function () {
     }
 
     const t0: number = (
-      await distributor.startTime(ethers.constants.AddressZero)
+      await distributor.startTime(ethers.ZeroAddress)
     ).toNumber();
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
@@ -644,7 +640,7 @@ describe("TemplateV1.5", function () {
 
     for (let w = t0; w < t1 + WEEK; w += WEEK) {
       const tokensPerWeek: BigNumber = await distributor.tokensPerWeek(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         w
       );
       tokensPerWeeks.push(tokensPerWeek);

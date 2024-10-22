@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 const WEEK = 86400 * 7;
 
@@ -24,7 +24,7 @@ describe("Voting Escrow tests", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -32,11 +32,11 @@ describe("Voting Escrow tests", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     await token
       .connect(accounts[0])
-      .approve(votingEscrow.address, ethers.utils.parseEther("1"));
+      .approve(votingEscrow.address, ethers.parseEther("1"));
   });
 
   afterEach(async () => {
@@ -54,7 +54,7 @@ describe("Voting Escrow tests", function () {
       const expectedUnlock = (await time.latest()) + st_initial;
       await votingEscrow
         .connect(accounts[0])
-        .createLock(ethers.utils.parseEther("1"), expectedUnlock);
+        .createLock(ethers.parseEther("1"), expectedUnlock);
 
       const actualUnlock = (await votingEscrow.locked(accounts[0].address))[1];
 
@@ -84,7 +84,7 @@ describe("Voting Escrow tests", function () {
         await votingEscrow
           .connect(accounts[0])
           .createLock(
-            ethers.utils.parseEther("1"),
+            ethers.parseEther("1"),
             (await time.latest()) + st_initial
           );
 

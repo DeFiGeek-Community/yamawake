@@ -29,7 +29,7 @@ async function main() {
   const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
   const feeDistributor = FeeDistributor.attach(feeDistributorAddress);
   const startTime = (
-    await feeDistributor.startTime(ethers.constants.AddressZero)
+    await feeDistributor.startTime(ethers.ZeroAddress)
   ).toNumber();
   await run(`verify:verify`, {
     address: feeDistributorAddress,

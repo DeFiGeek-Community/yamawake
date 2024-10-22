@@ -6,8 +6,8 @@ import {
   SnapshotRestorer,
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import Constants from "../../Constants";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import Constants from "../../../lib/Constants";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 /*
   長期間アクティビティがない状態からのリカバリーをテスト
@@ -38,7 +38,7 @@ describe("Gauge", function () {
     const Gauge = await ethers.getContractFactory("Gauge");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -46,22 +46,22 @@ describe("Gauge", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
       votingEscrow.address,
     ]);
-    await gaugeController.deployed();
+    await gaugeController.waitForDeployment();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
-    await minter.deployed();
+    await minter.waitForDeployment();
 
     const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
       INFLATION_DELAY
     );
     gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
-    await gauge.deployed();
+    await gauge.waitForDeployment();
   });
 
   afterEach(async () => {

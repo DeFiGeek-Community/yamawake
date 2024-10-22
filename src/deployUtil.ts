@@ -81,9 +81,9 @@ export async function deployProxy(contractName: string, opts: Options) {
   });
 
   const _Contract: Contract = await upgrades.deployProxy(_Factory, opts.args);
-  await _Contract.deployed();
+  await _Contract.waitForDeployment();
   const implAddress = await upgrades.erc1967.getImplementationAddress(
-    _Contract.address
+    String(_Contract.target)
   );
   if (opts.log)
     console.log(
@@ -92,12 +92,9 @@ export async function deployProxy(contractName: string, opts: Options) {
       } by ${await opts.signer.getAddress()}`
     );
   writeFileSync(
-    `deployments/${hre.network.name}/${contractName}`,
-    _Contract.address
+    `deployments/${network.name}/${contractName}`,
+    String(_Contract.target)
   );
-  writeFileSync(
-    `deployments/${hre.network.name}/Impl${contractName}`,
-    implAddress
-  );
+  writeFileSync(`deployments/${network.name}/Impl${contractName}`, implAddress);
   return _Contract;
 }

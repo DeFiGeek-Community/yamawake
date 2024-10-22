@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySaleTemplateV1_5, sendEther } from "../../../scenarioHelper";
 
 describe("Template V1.5", () => {
@@ -37,10 +37,10 @@ describe("Template V1.5", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -48,17 +48,17 @@ describe("Template V1.5", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -76,7 +76,7 @@ describe("Template V1.5", () => {
     /*
       0) 必要なオークショントークンをAliceに付与すし、factoryに対して必要金額をApproveする
     */
-    const auctionAmount = ethers.utils.parseEther("100");
+    const auctionAmount = ethers.parseEther("100");
     await coinA._mintForTesting(alice.address, auctionAmount);
     await coinA.approve(factory.address, auctionAmount);
 
@@ -112,13 +112,13 @@ describe("Template V1.5", () => {
     ).to.changeEtherBalances(
       [alice.address, auction.address, feeDistributor.address],
       [
-        ethers.utils.parseEther("99"),
-        ethers.utils.parseEther("-100"),
-        ethers.utils.parseEther("1"),
+        ethers.parseEther("99"),
+        ethers.parseEther("-100"),
+        ethers.parseEther("1"),
       ]
     );
-    expect(
-      await feeDistributor.lastTokenTime(ethers.constants.AddressZero)
-    ).to.be.eq(await time.latest());
+    expect(await feeDistributor.lastTokenTime(ethers.ZeroAddress)).to.be.eq(
+      await time.latest()
+    );
   });
 });

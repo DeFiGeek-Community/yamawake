@@ -6,11 +6,11 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 describe("FeeDistributor", () => {
-  const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+  const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
@@ -35,10 +35,10 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -46,10 +46,10 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -67,7 +67,7 @@ describe("FeeDistributor", () => {
         factory.address,
         await time.latest()
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
       accounts = await ethers.getSigners();
     });
 
@@ -110,7 +110,7 @@ describe("FeeDistributor", () => {
       // Alice should receive 1 Ether
       expect(await ethers.provider.getBalance(alice.address)).to.eq(
         initialEthAlice
-          .add(ethers.utils.parseEther("1"))
+          .add(ethers.parseEther("1"))
           .sub(receipt.effectiveGasPrice.mul(receipt.gasUsed))
       );
       // Tokens other than Ether should not be transfered by killing contract
@@ -146,7 +146,7 @@ describe("FeeDistributor", () => {
       // Alice should receive 1 Ether
       expect(await ethers.provider.getBalance(alice.address)).to.eq(
         initialEthAlice
-          .add(ethers.utils.parseEther("2"))
+          .add(ethers.parseEther("2"))
           .sub(receipt1.effectiveGasPrice.mul(receipt1.gasUsed))
           .sub(receipt2.effectiveGasPrice.mul(receipt2.gasUsed))
       );

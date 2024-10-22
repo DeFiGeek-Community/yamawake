@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("FeeDistributor", () => {
   const DAY = 86400;
@@ -39,12 +39,12 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coins = [];
     for (let i = 0; i < MAX_COIN; i++) {
       coins.push(await Token.deploy(`Coin ${i}`, `USD${i}`, 18));
-      await coins[i].deployed();
+      await coins[i].waitForDeployment();
     }
 
     votingEscrow = await VotingEscrow.deploy(
@@ -53,17 +53,17 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     distributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await distributor.deployed();
+    await distributor.waitForDeployment();
   });
 
   afterEach(async () => {
@@ -74,7 +74,7 @@ describe("FeeDistributor", () => {
     beforeEach(async function () {
       await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
       await votingEscrow.createLock(
-        ethers.utils.parseEther("1000"),
+        ethers.parseEther("1000"),
         (await time.latest()) + WEEK * 52
       );
     });
@@ -117,9 +117,7 @@ describe("FeeDistributor", () => {
     it("test_claim_checkpoints_total_supply", async function () {
       const start_time = (await distributor.timeCursor()).toNumber();
 
-      await distributor
-        .connect(alice)
-        ["claim(address)"](ethers.constants.AddressZero);
+      await distributor.connect(alice)["claim(address)"](ethers.ZeroAddress);
 
       expect((await distributor.timeCursor()).toNumber()).to.equal(
         start_time + WEEK

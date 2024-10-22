@@ -6,7 +6,7 @@ import {
   SnapshotRestorer,
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("Minter", function () {
   let accounts: SignerWithAddress[];
@@ -39,7 +39,7 @@ describe("Minter", function () {
     const Gauge = await ethers.getContractFactory("Gauge");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -47,22 +47,22 @@ describe("Minter", function () {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     gaugeController = await upgrades.deployProxy(GaugeController, [
       token.address,
       votingEscrow.address,
     ]);
-    await gaugeController.deployed();
+    await gaugeController.waitForDeployment();
 
     minter = await Minter.deploy(token.address, gaugeController.address);
-    await minter.deployed();
+    await minter.waitForDeployment();
 
     const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
       INFLATION_DELAY
     );
     gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
-    await gauge.deployed();
+    await gauge.waitForDeployment();
 
     // Set minter for the token
     await token.setMinter(minter.address);
@@ -79,10 +79,10 @@ describe("Minter", function () {
 
     // YMWKを各アカウントに配布し、votingEscrowからの使用をapprove
     for (const account of accounts) {
-      await token.transfer(account.address, ethers.utils.parseEther("1"));
+      await token.transfer(account.address, ethers.parseEther("1"));
       await token
         .connect(account)
-        .approve(votingEscrow.address, ethers.utils.parseEther("1"));
+        .approve(votingEscrow.address, ethers.parseEther("1"));
     }
   });
 
@@ -112,10 +112,7 @@ describe("Minter", function () {
     it("test_mint", async () => {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(
-          ethers.utils.parseEther("1"),
-          (await time.latest()) + MONTH
-        );
+        .createLock(ethers.parseEther("1"), (await time.latest()) + MONTH);
 
       await ethers.provider.send("evm_increaseTime", [MONTH]);
 
@@ -137,7 +134,7 @@ describe("Minter", function () {
 
       await votingEscrow
         .connect(accounts[1])
-        .createLock(ethers.utils.parseEther("1"), moment);
+        .createLock(ethers.parseEther("1"), moment);
 
       await time.increaseTo(moment);
 
@@ -158,10 +155,7 @@ describe("Minter", function () {
     it("test_mint_multiple_same_gauge", async () => {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(
-          ethers.utils.parseEther("1"),
-          (await time.latest()) + MONTH * 2
-        );
+        .createLock(ethers.parseEther("1"), (await time.latest()) + MONTH * 2);
       await ethers.provider.send("evm_increaseTime", [MONTH]);
 
       await minter.connect(accounts[1]).mint(gauge.address);
@@ -186,10 +180,7 @@ describe("Minter", function () {
     it("test_mint_after_withdraw", async () => {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(
-          ethers.utils.parseEther("1"),
-          (await time.latest()) + WEEK * 2
-        );
+        .createLock(ethers.parseEther("1"), (await time.latest()) + WEEK * 2);
 
       await ethers.provider.send("evm_increaseTime", [WEEK * 2]);
 
@@ -203,7 +194,7 @@ describe("Minter", function () {
     it("test_mint_multiple_after_withdraw", async () => {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(ethers.utils.parseEther("1"), (await time.latest()) + WEEK);
+        .createLock(ethers.parseEther("1"), (await time.latest()) + WEEK);
 
       await ethers.provider.send("evm_increaseTime", [WEEK]);
       await votingEscrow.connect(accounts[1]).withdraw();
@@ -240,10 +231,7 @@ describe("Minter", function () {
     it("test_mint_before_inflation_begins", async function () {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(
-          ethers.utils.parseEther("1"),
-          (await time.latest()) + MONTH
-        );
+        .createLock(ethers.parseEther("1"), (await time.latest()) + MONTH);
       const startEpochTime = await token.startEpochTime();
       const currentTime = BigNumber.from(await time.latest());
       const timeToSleep = startEpochTime.sub(currentTime).sub(5);
@@ -274,10 +262,7 @@ describe("Minter", function () {
     it("test_mintFor_function", async () => {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(
-          ethers.utils.parseEther("1"),
-          (await time.latest()) + MONTH
-        );
+        .createLock(ethers.parseEther("1"), (await time.latest()) + MONTH);
 
       await ethers.provider.send("evm_increaseTime", [MONTH]);
 
@@ -302,10 +287,7 @@ describe("Minter", function () {
     it("test_mintForFail_function", async () => {
       await votingEscrow
         .connect(accounts[1])
-        .createLock(
-          ethers.utils.parseEther("1"),
-          (await time.latest()) + MONTH
-        );
+        .createLock(ethers.parseEther("1"), (await time.latest()) + MONTH);
 
       await ethers.provider.send("evm_increaseTime", [MONTH]);
 

@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther } from "../../../scenarioHelper";
 
 describe("FeeDistributor", () => {
@@ -36,10 +36,10 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -47,17 +47,17 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -76,7 +76,7 @@ describe("FeeDistributor", () => {
       E時点で1, 2の報酬がクレームできることを確認
     */
     it("test_tokenCheckpoint", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
 
       await token.transfer(alice.address, amount);
       await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
@@ -96,34 +96,32 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
 
       await time.increase(WEEK);
       await sendEther(feeDistributor.address, "10", admin);
       await time.increase(WEEK);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
 
       await time.increase(WEEK);
 
       const week1Timestamp = Math.floor((await time.latest()) / WEEK) * WEEK;
 
       const feeFirstWeek = await feeDistributor.tokensPerWeek(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         week1Timestamp - WEEK * 2
       );
       const feeSecondWeek = await feeDistributor.tokensPerWeek(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         week1Timestamp - WEEK
       );
       const totalFee = feeFirstWeek.add(feeSecondWeek);
 
       await expect(
-        feeDistributor
-          .connect(alice)
-          ["claim(address)"](ethers.constants.AddressZero)
+        feeDistributor.connect(alice)["claim(address)"](ethers.ZeroAddress)
       ).to.changeEtherBalance(alice.address, totalFee);
     });
   });

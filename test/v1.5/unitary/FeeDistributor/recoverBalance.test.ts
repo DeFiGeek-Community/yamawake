@@ -6,11 +6,11 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 
 describe("FeeDistributor", () => {
-  const TEMPLATE_NAME = ethers.utils.formatBytes32String("SampleTemplate");
+  const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
@@ -35,10 +35,10 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -46,10 +46,10 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -67,7 +67,7 @@ describe("FeeDistributor", () => {
         factory.address,
         await time.latest()
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
       accounts = await ethers.getSigners();
     });
 
@@ -96,12 +96,12 @@ describe("FeeDistributor", () => {
       const initialEthAlice = await ethers.provider.getBalance(alice.address);
       const tx = await feeDistributor
         .connect(alice)
-        .recoverBalance(ethers.constants.AddressZero);
+        .recoverBalance(ethers.ZeroAddress);
       const receipt = await tx.wait();
 
       expect(await ethers.provider.getBalance(alice.address)).to.eq(
         initialEthAlice
-          .add(ethers.utils.parseEther("1"))
+          .add(ethers.parseEther("1"))
           .sub(receipt.effectiveGasPrice.mul(receipt.gasUsed))
       );
 

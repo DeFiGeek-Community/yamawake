@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther } from "../../../scenarioHelper";
 
 describe("FeeDistributor", () => {
@@ -36,10 +36,10 @@ describe("FeeDistributor", () => {
     const Factory = await ethers.getContractFactory("Factory");
 
     token = await YMWK.deploy();
-    await token.deployed();
+    await token.waitForDeployment();
 
     coinA = await Token.deploy("Coin A", "USDA", 18);
-    await coinA.deployed();
+    await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
       token.address,
@@ -47,17 +47,17 @@ describe("FeeDistributor", () => {
       "vetoken",
       "v1"
     );
-    await votingEscrow.deployed();
+    await votingEscrow.waitForDeployment();
 
     factory = await Factory.deploy();
-    await factory.deployed();
+    await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
       votingEscrow.address,
       factory.address,
       await time.latest()
     );
-    await feeDistributor.deployed();
+    await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -78,27 +78,27 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       const week1Timestamp = Math.floor((await time.latest()) / WEEK) * WEEK;
 
       await time.increase(WEEK);
       await sendEther(feeDistributor.address, "10", admin);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       const week2Timestamp = Math.floor((await time.latest()) / WEEK) * WEEK;
 
       const tokenPerWeek1 = await feeDistributor.tokensPerWeek(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         week1Timestamp
       );
       const tokenPerWeek2 = await feeDistributor.tokensPerWeek(
-        ethers.constants.AddressZero,
+        ethers.ZeroAddress,
         week2Timestamp
       );
       expect(tokenPerWeek1).to.be.eq(0);
-      expect(tokenPerWeek2).to.be.eq(ethers.utils.parseEther("10"));
+      expect(tokenPerWeek2).to.be.eq(ethers.parseEther("10"));
     });
 
     // チェックポイントの間隔が20週間を超える場合の週ごとの報酬が
@@ -116,22 +116,22 @@ describe("FeeDistributor", () => {
         factory.address,
         startTime
       );
-      await feeDistributor.deployed();
+      await feeDistributor.waitForDeployment();
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
 
       const localSnapshot = await takeSnapshot();
 
       await time.increase(WEEK * 30);
       await sendEther(feeDistributor.address, "10", admin);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       let latestWeekTimestamp = Math.floor((await time.latest()) / WEEK) * WEEK;
 
       let fee = BigNumber.from("0");
       for (let i = 0; i < 30; i++) {
         fee = await feeDistributor.tokensPerWeek(
-          ethers.constants.AddressZero,
+          ethers.ZeroAddress,
           latestWeekTimestamp - WEEK * i
         );
         if (i === 1) {
@@ -149,13 +149,13 @@ describe("FeeDistributor", () => {
       await time.increase(WEEK * 20);
       await sendEther(feeDistributor.address, "10", admin);
 
-      await feeDistributor.checkpointToken(ethers.constants.AddressZero);
+      await feeDistributor.checkpointToken(ethers.ZeroAddress);
       latestWeekTimestamp = Math.floor((await time.latest()) / WEEK) * WEEK;
 
       fee = BigNumber.from("0");
       for (let i = 0; i < 21; i++) {
         fee = await feeDistributor.tokensPerWeek(
-          ethers.constants.AddressZero,
+          ethers.ZeroAddress,
           latestWeekTimestamp - WEEK * i
         );
         expect(fee).to.be.eq(fees[i]);
