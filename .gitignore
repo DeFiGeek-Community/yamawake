@@ -145,4 +145,7 @@ cache
 .saleTemplateName
 deployments/localhost/*
 deployments/localhost_l2/*
+!deployments/localhost/.keep
+deployments/hardhat/*
+!deployments/hardhat/.keep
 

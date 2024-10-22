@@ -6,6 +6,7 @@ import "@nomicfoundation/hardhat-verify";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
+import "@openzeppelin/hardhat-upgrades";
 
 const { INFURA_API_TOKEN, ETHERSCAN_API_KEY, BASESCAN_API_KEY, FOUNDATION_PRIVATE_KEY } =
   process.env;
@@ -60,7 +61,7 @@ const config: HardhatUserConfig = {
       accounts: {
         count: 110,
         initialIndex: 0,
-        accountsBalance: "2000000000000000000000",
+        accountsBalance: "200000000000000000000000",
       },
       tags: ["test", "receiver", "local"],
     },
@@ -91,6 +92,9 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: true,
+  },
+  mocha: {
+    timeout: 100000,
   },
 };
 
