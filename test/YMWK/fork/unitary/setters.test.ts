@@ -4,12 +4,12 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { YMWK } from "../../../../typechain-types";
 
 describe("YMWK", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {

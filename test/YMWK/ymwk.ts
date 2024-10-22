@@ -6,7 +6,7 @@ import {
   takeSnapshot,
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { sendEther, deploySaleTemplate, timeTravel } from "./scenarioHelper";
+import { sendEther, deploySaleTemplate } from "../scenarioHelper";
 
 describe("YMWK", function () {
   let snapshot: SnapshotRestorer;
@@ -127,7 +127,7 @@ describe("YMWK", function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
       const [owner, addr1, addr2] = await ethers.getSigners();
       await ymwk.setMinter(addr1.address);
-      await timeTravel(YEAR + 1);
+      await time.increase(YEAR + 1);
       await ymwk.updateMiningParameters();
       const availableSupply = await ymwk.availableSupply();
       const totalSupply = await ymwk.totalSupply();
@@ -164,7 +164,7 @@ describe("YMWK", function () {
     it("updateMiningParameters_fail_1", async function () {
       const { ymwk } = await loadFixture(deployYMWKFixture);
       await expect(ymwk.updateMiningParameters()).to.be.reverted;
-      await timeTravel(YEAR);
+      await time.increase(YEAR);
       await expect(ymwk.updateMiningParameters()).to.not.be.reverted;
     });
 
@@ -175,7 +175,7 @@ describe("YMWK", function () {
       const rateDenominator = 10n ** 18n;
       const { ymwk } = await loadFixture(deployYMWKFixture);
 
-      await timeTravel(YEAR);
+      await time.increase(YEAR);
 
       const startTime = await time.latest();
 
@@ -185,7 +185,7 @@ describe("YMWK", function () {
       await expect(currentRate.toString()).to.be.equal(firstYearInfration);
       let localRate = firstYearInfration;
       for (let i = 1n; i < 236; i++) {
-        await timeTravel(YEAR);
+        await time.increase(YEAR);
         await ymwk.updateMiningParameters();
         currentRate = await ymwk.rate();
         localRate = (localRate * rateDenominator) / reductionRate;

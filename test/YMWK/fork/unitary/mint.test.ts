@@ -6,7 +6,7 @@ import {
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import Constants from "../../Constants";
+import Constants from "../../../lib/Constants";
 import { YMWK } from "../../../../typechain-types";
 
 describe("YMWK", function () {

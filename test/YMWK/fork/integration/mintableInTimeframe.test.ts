@@ -8,7 +8,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { abs } from "../../../helper";
-import Constants from "../../Constants";
+import Constants from "../../../lib/Constants";
 import { YMWK } from "../../../../typechain-types";
 
 // Constants
