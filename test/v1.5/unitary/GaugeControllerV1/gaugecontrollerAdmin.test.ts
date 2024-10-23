@@ -4,12 +4,12 @@ import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { Contract } from "ethers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { GaugeControllerV1 } from "../../../../typechain-types";
 
 describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
-  let gaugeController: Contract;
+  let gaugeController: GaugeControllerV1;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -24,15 +24,15 @@ describe("GaugeControllerV1", function () {
     // Contract deployments
     const token = await Token.deploy();
     const votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as GaugeControllerV1;
   });
 
   afterEach(async () => {

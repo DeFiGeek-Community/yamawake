@@ -1,21 +1,22 @@
 import { ethers, upgrades } from "hardhat";
+import { AddressLike } from "ethers";
 import { expect } from "chai";
 import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { Contract, BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import Constants from "../../../lib/Constants";
+import { GaugeControllerV1 } from "../../../../typechain-types";
 
 describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
-  let gaugeController: Contract;
-  let threeGauges: string[];
+  let gaugeController: GaugeControllerV1;
+  let threeGauges: AddressLike[];
   let snapshot: SnapshotRestorer;
 
   const GAUGE_WEIGHTS = Constants.GAUGE_WEIGHTS;
-  const WEIGHT = BigNumber.from(10).pow(18);
+  const WEIGHT = BigInt(1e18);
   const DAY = 86400;
   const YEAR = DAY * 365;
   const INFLATION_DELAY = YEAR;
@@ -33,27 +34,26 @@ describe("GaugeControllerV1", function () {
     // Contract deployments
     const token = await Token.deploy();
     const votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as GaugeControllerV1;
 
-    const minter = await Minter.deploy(token.address, gaugeController.address);
+    const minter = await Minter.deploy(token.target, gaugeController.target);
 
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
     const LiquidityGauge = await ethers.getContractFactory("Gauge");
     const lg1 = await LiquidityGauge.deploy(
-      minter.address,
+      minter.target,
       tokenInflationStarts
     );
-    threeGauges = [lg1.address, lg1.address, lg1.address];
+    threeGauges = [lg1.target, lg1.target, lg1.target];
   });
 
   afterEach(async () => {
@@ -64,9 +64,13 @@ describe("GaugeControllerV1", function () {
     複数のGaugeの追加ができないことを確認
     */
     it("test_add_gauges", async function () {
-      await gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0]);
+      await gaugeController.addGauge(
+        threeGauges[0],
+        0,
+        GAUGE_WEIGHTS[0].toString()
+      );
       await expect(
-        gaugeController.addGauge(threeGauges[1], 0, GAUGE_WEIGHTS[0])
+        gaugeController.addGauge(threeGauges[1], 0, GAUGE_WEIGHTS[0].toString())
       ).to.be.revertedWith("Only veYMWK Gauge can be added for V1");
     });
 
@@ -76,7 +80,11 @@ describe("GaugeControllerV1", function () {
     it("test_n_gauges", async function () {
       expect(await gaugeController.nGauges()).to.equal(0);
 
-      await gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0]);
+      await gaugeController.addGauge(
+        threeGauges[0],
+        0,
+        GAUGE_WEIGHTS[0].toString()
+      );
 
       expect(await gaugeController.nGauges()).to.equal(1);
     });
@@ -85,9 +93,13 @@ describe("GaugeControllerV1", function () {
     同じGaugeを追加しようとしても、1つしか登録できない旨のエラーを返すことを確認
     */
     it("test_n_gauges_same_gauge", async function () {
-      await gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0]);
+      await gaugeController.addGauge(
+        threeGauges[0],
+        0,
+        GAUGE_WEIGHTS[0].toString()
+      );
       await expect(
-        gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0])
+        gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0].toString())
       ).to.be.revertedWith("Only veYMWK Gauge can be added for V1");
     });
 
@@ -102,7 +114,11 @@ describe("GaugeControllerV1", function () {
     gaugeRelativeWeight(相対Weight)は引数に関わらず固定値1e18を返却することを確認
     */
     it("test_gauge_types", async function () {
-      await gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0]);
+      await gaugeController.addGauge(
+        threeGauges[0],
+        0,
+        GAUGE_WEIGHTS[0].toString()
+      );
       expect(await gaugeController.gaugeTypes(threeGauges[0])).to.equal(0);
     });
 
@@ -110,7 +126,11 @@ describe("GaugeControllerV1", function () {
     gaugeRelativeWeight(相対Weight)は引数に関わらず固定値1e18を返却することを確認
     */
     it("test_relative_weight", async function () {
-      await gaugeController.addGauge(threeGauges[0], 0, GAUGE_WEIGHTS[0]);
+      await gaugeController.addGauge(
+        threeGauges[0],
+        0,
+        GAUGE_WEIGHTS[0].toString()
+      );
 
       const relativeWeight1 = await gaugeController.gaugeRelativeWeight(
         threeGauges[0],
