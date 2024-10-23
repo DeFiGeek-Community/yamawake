@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -8,6 +7,14 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther, deploySampleSaleTemplate } from "../../../scenarioHelper";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  SampleTemplate,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 describe("FeeDistributor", () => {
   const DAY = 86400;
@@ -16,12 +23,12 @@ describe("FeeDistributor", () => {
   let snapshot: SnapshotRestorer;
   let alice: SignerWithAddress, bob: SignerWithAddress;
 
-  let feeDistributor: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let auction: Contract;
-  let token: Contract;
-  let coinA: Contract;
+  let feeDistributor: FeeDistributor;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let auction: SampleTemplate;
+  let token: YMWK;
+  let coinA: MockToken;
 
   beforeEach(async function () {
     snapshot = await takeSnapshot();
@@ -43,7 +50,7 @@ describe("FeeDistributor", () => {
     await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -54,15 +61,15 @@ describe("FeeDistributor", () => {
     await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
     await feeDistributor.waitForDeployment();
 
     await coinA._mintForTesting(bob.address, ethers.parseEther("10"));
 
-    await coinA.connect(bob).approve(factory.address, ethers.parseEther("10"));
+    await coinA.connect(bob).approve(factory.target, ethers.parseEther("10"));
   });
 
   afterEach(async () => {
@@ -78,8 +85,8 @@ describe("FeeDistributor", () => {
         alice
       );
       feeDistributor = await FeeDistributor.deploy(
-        votingEscrow.address,
-        factory.address,
+        votingEscrow.target,
+        factory.target,
         startTime
       );
       await feeDistributor.waitForDeployment();
@@ -93,14 +100,14 @@ describe("FeeDistributor", () => {
         bob
       );
 
-      await sendEther(feeDistributor.address, "10", alice);
-      await coinA._mintForTesting(auction.address, ethers.parseEther("10"));
+      await sendEther(feeDistributor.target, "10", alice);
+      await coinA._mintForTesting(auction.target, ethers.parseEther("10"));
       // Calling the mock function to add coinA to the reward list and transfer coinA from auction to feeDistributor
-      await auction.withdrawRaisedToken(coinA.address);
+      await auction.withdrawRaisedToken(coinA.target);
 
       expect(await feeDistributor.getTokens()).to.deep.equal([
         ethers.ZeroAddress,
-        coinA.address,
+        coinA.target,
       ]);
     });
   });

@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -8,6 +7,14 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  SampleTemplate,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 describe("FeeDistributor", () => {
   const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
@@ -17,12 +24,12 @@ describe("FeeDistributor", () => {
     charlie: SignerWithAddress,
     dan: SignerWithAddress;
 
-  let feeDistributor: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let auction: Contract;
-  let token: Contract;
-  let coinA: Contract;
+  let feeDistributor: FeeDistributor;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let auction: SampleTemplate;
+  let token: YMWK;
+  let coinA: MockToken;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -41,7 +48,7 @@ describe("FeeDistributor", () => {
     await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -63,8 +70,8 @@ describe("FeeDistributor", () => {
         alice
       );
       feeDistributor = await FeeDistributor.deploy(
-        votingEscrow.address,
-        factory.address,
+        votingEscrow.target,
+        factory.target,
         await time.latest()
       );
       await feeDistributor.waitForDeployment();
@@ -86,10 +93,10 @@ describe("FeeDistributor", () => {
         dan
       );
 
-      await sendEther(feeDistributor.address, "1", bob);
-      await coinA.connect(dan)._mintForTesting(feeDistributor.address, 31337);
+      await sendEther(feeDistributor.target, "1", bob);
+      await coinA.connect(dan)._mintForTesting(feeDistributor.target, 31337);
       // Calling the mock function to add coinA to the reward list
-      await auction.withdrawRaisedToken(coinA.address);
+      await auction.withdrawRaisedToken(coinA.target);
 
       expect(await feeDistributor.admin()).to.equal(alice.address);
 
@@ -100,12 +107,12 @@ describe("FeeDistributor", () => {
       const receipt = await tx.wait();
 
       expect(await ethers.provider.getBalance(alice.address)).to.eq(
-        initialEthAlice
-          .add(ethers.parseEther("1"))
-          .sub(receipt.effectiveGasPrice.mul(receipt.gasUsed))
+        initialEthAlice +
+          ethers.parseEther("1") -
+          receipt!.gasPrice * receipt!.gasUsed
       );
 
-      await feeDistributor.connect(alice).recoverBalance(coinA.address);
+      await feeDistributor.connect(alice).recoverBalance(coinA.target);
       expect(await coinA.balanceOf(alice.address)).to.equal(31337);
     });
 
@@ -118,16 +125,16 @@ describe("FeeDistributor", () => {
         TEMPLATE_NAME,
         dan
       );
-      await coinA._mintForTesting(feeDistributor.address, 31337);
+      await coinA._mintForTesting(feeDistributor.target, 31337);
       // Calling the mock function to add coinA to the reward list
-      await auction.withdrawRaisedToken(coinA.address);
+      await auction.withdrawRaisedToken(coinA.target);
 
       await feeDistributor.connect(alice).killMe();
 
       expect(await feeDistributor.admin()).to.equal(alice.address);
 
       expect(await coinA.balanceOf(alice.address)).to.equal(0);
-      await feeDistributor.connect(alice).recoverBalance(coinA.address);
+      await feeDistributor.connect(alice).recoverBalance(coinA.target);
       expect(await coinA.balanceOf(alice.address)).to.equal(31337);
     });
   });
