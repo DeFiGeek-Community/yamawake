@@ -1,12 +1,18 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 describe("FeeDistributor", () => {
   const DAY = 86400;
@@ -18,11 +24,11 @@ describe("FeeDistributor", () => {
     bob: SignerWithAddress,
     charlie: SignerWithAddress;
 
-  let distributor: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let token: Contract;
-  let coins: Contract[];
+  let distributor: FeeDistributor;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let token: YMWK;
+  let coins: MockToken[];
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -48,7 +54,7 @@ describe("FeeDistributor", () => {
     }
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -59,8 +65,8 @@ describe("FeeDistributor", () => {
     await factory.waitForDeployment();
 
     distributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
     await distributor.waitForDeployment();
@@ -72,7 +78,7 @@ describe("FeeDistributor", () => {
 
   describe("test_checkpoints", () => {
     beforeEach(async function () {
-      await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
+      await token.approve(votingEscrow.target, ethers.MaxUint256);
       await votingEscrow.createLock(
         ethers.parseEther("1000"),
         (await time.latest()) + WEEK * 52
@@ -96,10 +102,10 @@ describe("FeeDistributor", () => {
     });
 
     it("test_advance_time_cursor", async function () {
-      const startTime = (await distributor.timeCursor()).toNumber();
+      const startTime = Number(await distributor.timeCursor());
       await time.increaseTo(startTime + YEAR);
       await distributor.checkpointTotalSupply();
-      const newTimeCursor = (await distributor.timeCursor()).toNumber();
+      const newTimeCursor = await distributor.timeCursor();
 
       expect(newTimeCursor).to.equal(startTime + WEEK * 53);
       expect(await distributor.veSupply(startTime + WEEK * 52)).to.equal(0);
@@ -115,13 +121,11 @@ describe("FeeDistributor", () => {
     });
 
     it("test_claim_checkpoints_total_supply", async function () {
-      const start_time = (await distributor.timeCursor()).toNumber();
+      const start_time = Number(await distributor.timeCursor());
 
       await distributor.connect(alice)["claim(address)"](ethers.ZeroAddress);
 
-      expect((await distributor.timeCursor()).toNumber()).to.equal(
-        start_time + WEEK
-      );
+      expect(await distributor.timeCursor()).to.equal(start_time + WEEK);
     });
   });
 });

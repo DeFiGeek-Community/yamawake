@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import type { TransactionReceipt } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -192,11 +191,11 @@ describe("FeeDistributor", function () {
 
     if (lockedUntil[stAcct.address] < currentTime) {
       let tx = await votingEscrow.connect(stAcct).withdraw();
-      let receipt = (await tx.wait()) as TransactionReceipt;
+      let receipt = await tx.wait();
 
       userGases[stAcct.address] =
         userGases[stAcct.address] +
-        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+        (receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       delete lockedUntil[stAcct.address];
       return false;
     }
@@ -244,11 +243,11 @@ describe("FeeDistributor", function () {
     if (!(await _checkActiveLock(stAcct))) {
       const until = (Math.floor((await time.latest()) / WEEK) + stWeeks) * WEEK;
       let tx = await votingEscrow.connect(stAcct).createLock(stAmount, until);
-      let receipt = (await tx.wait()) as TransactionReceipt;
+      let receipt = await tx.wait();
 
       userGases[stAcct.address] =
         userGases[stAcct.address] +
-        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+        (receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       lockedUntil[stAcct.address] = until;
     }
   }
@@ -297,11 +296,11 @@ describe("FeeDistributor", function () {
         Math.floor(((await time.latest()) + YEAR * 4) / WEEK) * WEEK
       );
       let tx = await votingEscrow.connect(stAcct).increaseUnlockTime(newUntil);
-      let receipt = (await tx.wait()) as TransactionReceipt;
+      let receipt = await tx.wait();
 
       userGases[stAcct.address] =
         userGases[stAcct.address] +
-        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+        (receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       lockedUntil[stAcct.address] = newUntil;
     }
   }
@@ -340,10 +339,10 @@ describe("FeeDistributor", function () {
 
     if (await _checkActiveLock(stAcct)) {
       let tx = await votingEscrow.connect(stAcct).increaseAmount(stAmount);
-      let receipt = (await tx.wait()) as TransactionReceipt;
+      let receipt = await tx.wait();
       userGases[stAcct.address] =
         userGases[stAcct.address] +
-        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+        (receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
     }
   }
 
@@ -379,9 +378,9 @@ describe("FeeDistributor", function () {
       tx = await distributor
         .connect(stAcct)
         ["claim(address)"](ethers.ZeroAddress);
-      receipt = (await tx.wait()) as TransactionReceipt;
+      receipt = await tx.wait();
 
-      const gas = receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n;
+      const gas = receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n;
       userGases[stAcct.address] = userGases[stAcct.address] + gas;
 
       newClaimed =
@@ -389,15 +388,15 @@ describe("FeeDistributor", function () {
     } else {
       claimed = await feeCoin.balanceOf(stAcct.address);
       tx = await distributor.connect(stAcct)["claim(address)"](stToken);
-      receipt = (await tx.wait()) as TransactionReceipt;
+      receipt = await tx.wait();
       userGases[stAcct.address] =
         userGases[stAcct.address] +
-        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+        (receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
       newClaimed = (await feeCoin.balanceOf(stAcct.address)) - claimed;
-      receipt.blockNumber;
+      receipt!.blockNumber;
     }
 
-    userClaims[stAcct.address][receipt.blockNumber] = [
+    userClaims[stAcct.address][receipt!.blockNumber] = [
       newClaimed,
       await distributor.timeCursorOf(stToken, stAcct.address),
     ];
@@ -435,19 +434,19 @@ describe("FeeDistributor", function () {
         to: distributor.target,
         value: stAmount,
       });
-      receipt = (await tx.wait()) as TransactionReceipt;
+      receipt = await tx.wait();
     } else {
       const Token = await ethers.getContractFactory("MockToken");
       const token = Token.attach(stToken) as MockToken;
       tx = await token
         .connect(admin)
         ._mintForTesting(distributor.target, stAmount);
-      receipt = (await tx.wait()) as TransactionReceipt;
+      receipt = await tx.wait();
     }
 
     await distributor.connect(admin).checkpointToken(stToken);
 
-    fees[receipt.blockNumber] = stAmount;
+    fees[receipt!.blockNumber] = stAmount;
     totalFees = totalFees + stAmount;
   }
 
@@ -483,17 +482,17 @@ describe("FeeDistributor", function () {
         to: distributor.target,
         value: stAmount,
       });
-      receipt = (await tx.wait()) as TransactionReceipt;
+      receipt = await tx.wait();
     } else {
       const Token = await ethers.getContractFactory("MockToken");
       const token = Token.attach(stToken) as MockToken;
       tx = await token
         .connect(admin)
         ._mintForTesting(distributor.target, stAmount);
-      receipt = (await tx.wait()) as TransactionReceipt;
+      receipt = await tx.wait();
     }
 
-    fees[receipt.blockNumber] = stAmount;
+    fees[receipt!.blockNumber] = stAmount;
     totalFees = totalFees + stAmount;
   }
 
@@ -518,10 +517,10 @@ describe("FeeDistributor", function () {
 
     for (const acct of accounts) {
       let tx = await distributor.connect(acct)["claim(address)"](stToken);
-      let receipt = (await tx.wait()) as TransactionReceipt;
+      let receipt = await tx.wait();
       userGases[acct.address] =
         userGases[acct.address] +
-        (receipt.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
+        (receipt?.gasPrice ? receipt.gasPrice * receipt.gasUsed : 0n);
     }
 
     const t0: number = Number(await distributor.startTime(stToken));

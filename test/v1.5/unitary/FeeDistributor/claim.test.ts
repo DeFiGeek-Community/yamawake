@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -8,17 +7,24 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther } from "../../../scenarioHelper";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 describe("FeeDistributor", () => {
   const DAY = 86400;
   const WEEK = DAY * 7;
 
   let admin: SignerWithAddress, alice: SignerWithAddress;
-  let feeDistributor: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let token: Contract;
-  let coinA: Contract;
+  let feeDistributor: FeeDistributor;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let token: YMWK;
+  let coinA: MockToken;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -42,7 +48,7 @@ describe("FeeDistributor", () => {
     await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -53,8 +59,8 @@ describe("FeeDistributor", () => {
     await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
     await feeDistributor.waitForDeployment();
@@ -79,7 +85,7 @@ describe("FeeDistributor", () => {
       const amount = ethers.parseEther("1000");
 
       await token.transfer(alice.address, amount);
-      await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
+      await token.connect(alice).approve(votingEscrow.target, amount * 10n);
 
       await votingEscrow
         .connect(alice)
@@ -92,8 +98,8 @@ describe("FeeDistributor", () => {
         admin
       );
       feeDistributor = await FeeDistributor.deploy(
-        votingEscrow.address,
-        factory.address,
+        votingEscrow.target,
+        factory.target,
         startTime
       );
       await feeDistributor.waitForDeployment();
@@ -101,7 +107,7 @@ describe("FeeDistributor", () => {
       await feeDistributor.checkpointToken(ethers.ZeroAddress);
 
       await time.increase(WEEK);
-      await sendEther(feeDistributor.address, "10", admin);
+      await sendEther(feeDistributor.target, "10", admin);
       await time.increase(WEEK);
 
       await feeDistributor.checkpointToken(ethers.ZeroAddress);
@@ -118,7 +124,7 @@ describe("FeeDistributor", () => {
         ethers.ZeroAddress,
         week1Timestamp - WEEK
       );
-      const totalFee = feeFirstWeek.add(feeSecondWeek);
+      const totalFee = feeFirstWeek + feeSecondWeek;
 
       await expect(
         feeDistributor.connect(alice)["claim(address)"](ethers.ZeroAddress)
