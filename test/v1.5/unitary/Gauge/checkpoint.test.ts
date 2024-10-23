@@ -5,9 +5,9 @@ import {
   SnapshotRestorer,
   time,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { Contract, BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import Constants from "../../../lib/Constants";
+import { Gauge, VotingEscrow, YMWK } from "../../../../typechain-types";
 
 describe("Gauge checkpoint", function () {
   const DAY = 86400;
@@ -15,12 +15,12 @@ describe("Gauge checkpoint", function () {
   const YEAR = DAY * 365;
 
   let accounts: SignerWithAddress[];
-  let gauge: Contract;
-  let token: Contract;
-  let votingEscrow: Contract;
+  let gauge: Gauge;
+  let token: YMWK;
+  let votingEscrow: VotingEscrow;
   let snapshot: SnapshotRestorer;
   const year = Constants.year;
-  const INFLATION_DELAY = BigNumber.from(YEAR);
+  const INFLATION_DELAY = BigInt(year);
 
   beforeEach(async function () {
     snapshot = await takeSnapshot();
@@ -36,22 +36,21 @@ describe("Gauge checkpoint", function () {
     // Contract deployments
     token = await Token.deploy();
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
     const gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
+      token.target,
+      votingEscrow.target,
     ]);
 
-    const minter = await Minter.deploy(token.address, gaugeController.address);
+    const minter = await Minter.deploy(token.target, gaugeController.target);
 
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
-    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
+    const tokenInflationStarts: bigint =
+      (await token.startEpochTime()) + INFLATION_DELAY;
+    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
   });
   afterEach(async () => {
     await snapshot.restore();
@@ -80,7 +79,7 @@ describe("Gauge checkpoint", function () {
       /*
       前提条件: Aliceが52週間1000YMWKをロックする
       */
-      await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
+      await token.approve(votingEscrow.target, ethers.MaxUint256);
       await votingEscrow.createLock(
         ethers.parseEther("1000"),
         (await time.latest()) + WEEK * 52
@@ -107,13 +106,13 @@ describe("Gauge checkpoint", function () {
       インフレスタート後のcheckpointTotalSupplyではtimeCursorが変化することを確認。
     */
     it("test_advance_time_cursor", async function () {
-      const startTime = (await gauge.timeCursor()).toNumber();
-      await time.increase(INFLATION_DELAY.div(2));
+      const startTime = await gauge.timeCursor();
+      await time.increase(INFLATION_DELAY / 2n);
       await gauge.checkpointTotalSupply();
       let newTimeCursor = await gauge.timeCursor();
       expect(newTimeCursor).to.equal(startTime);
 
-      await time.increase(INFLATION_DELAY.div(2));
+      await time.increase(INFLATION_DELAY / 2n);
       await gauge.checkpointTotalSupply();
       newTimeCursor = await gauge.timeCursor();
       expect(newTimeCursor).to.equal(
@@ -125,7 +124,7 @@ describe("Gauge checkpoint", function () {
       インフレスタート前のuserCheckpointではtimeCursorが変化しないことを確認。
     */
     it("test_user_checkpoint_checkpoints_total_supply", async function () {
-      const start_time: BigNumber = await gauge.timeCursor();
+      const start_time: bigint = await gauge.timeCursor();
       await gauge.connect(accounts[0]).userCheckpoint(accounts[0].address);
       expect(await gauge.timeCursor()).to.equal(start_time);
     });
@@ -136,11 +135,10 @@ describe("Gauge checkpoint", function () {
     YMWKインフレーションスタート後のチェックポイントの動き
     */
     beforeEach(async function () {
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
+      const tokenInflationStarts: bigint =
+        (await token.startEpochTime()) + INFLATION_DELAY;
       await time.increaseTo(tokenInflationStarts);
-      await token.approve(votingEscrow.address, ethers.constants.MaxUint256);
+      await token.approve(votingEscrow.target, ethers.MaxUint256);
       await votingEscrow.createLock(
         ethers.parseEther("1000"),
         (await time.latest()) + WEEK * 52 * 3
@@ -165,10 +163,10 @@ describe("Gauge checkpoint", function () {
     });
 
     it("test_advance_time_cursor", async function () {
-      const startTime = (await gauge.timeCursor()).toNumber();
+      const startTime = Number(await gauge.timeCursor());
       await time.increase(YEAR * 3);
       await gauge.checkpointTotalSupply();
-      const newTimeCursor = (await gauge.timeCursor()).toNumber();
+      const newTimeCursor = await gauge.timeCursor();
       expect(newTimeCursor).to.equal(startTime + WEEK * 20);
       expect(await gauge.veSupply(startTime + WEEK * 19)).to.be.above(0);
       expect(await gauge.veSupply(startTime + WEEK * 20)).to.equal(0);
@@ -182,18 +180,18 @@ describe("Gauge checkpoint", function () {
     });
 
     it("test_user_checkpoint_checkpoints_total_supply", async function () {
-      const start_time: BigNumber = await gauge.timeCursor();
+      const start_time = Number(await gauge.timeCursor());
 
       await gauge.connect(accounts[0]).userCheckpoint(accounts[0].address);
 
-      expect(await gauge.timeCursor()).to.equal(start_time.add(WEEK));
+      expect(await gauge.timeCursor()).to.equal(start_time + WEEK);
     });
 
     /*
 
     */
     it("test_user_checkpoint_checkpoints_with_many_ve_activity", async function () {
-      const start_time: BigNumber = await gauge.timeCursor();
+      const start_time = Number(await gauge.timeCursor());
       for (let i = 0; i < 100; i++) {
         await votingEscrow.increaseAmount(ethers.parseEther("1"));
       }
@@ -202,18 +200,18 @@ describe("Gauge checkpoint", function () {
 
       // userPointHistoryを50同期する。timeCursorOfが1週間だけ進んでいることを確認
       expect(await gauge.timeCursorOf(accounts[0].address)).to.equal(
-        start_time.add(WEEK)
+        start_time + WEEK
       );
       // userPointHistoryをさらに50同期する。timeCursorOfが変化していないことを確認
       await gauge.connect(accounts[0]).userCheckpoint(accounts[0].address);
       expect(await gauge.timeCursorOf(accounts[0].address)).to.equal(
-        start_time.add(WEEK)
+        start_time + WEEK
       );
 
       // userPointHistoryの同期が完了しているのでtimeCursorOfが最新に更新されることを確認
       await gauge.connect(accounts[0]).userCheckpoint(accounts[0].address);
       expect(await gauge.timeCursorOf(accounts[0].address)).to.equal(
-        start_time.add(WEEK * 4)
+        start_time + WEEK * 4
       );
     });
   });
