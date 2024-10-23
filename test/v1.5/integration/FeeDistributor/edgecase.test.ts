@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { Contract, BigNumber } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -8,6 +7,14 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate } from "../../../scenarioHelper";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  SampleTemplate,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 const DAY = 86400;
 const WEEK = DAY * 7;
@@ -18,12 +25,12 @@ const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 */
 describe("FeeDistributor", function () {
   let accounts: SignerWithAddress[];
-  let token: Contract;
-  let coinA: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let feeDistributor: Contract;
-  let auction: Contract;
+  let token: YMWK;
+  let coinA: MockToken;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let feeDistributor: FeeDistributor;
+  let auction: SampleTemplate;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -44,7 +51,7 @@ describe("FeeDistributor", function () {
     await coinA._mintForTesting(accounts[0].address, ethers.parseEther("500"));
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -55,8 +62,8 @@ describe("FeeDistributor", function () {
     await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
     await feeDistributor.waitForDeployment();
@@ -82,23 +89,23 @@ describe("FeeDistributor", function () {
     await token.transfer(accounts[1].address, ethers.parseEther("1"));
     await token
       .connect(accounts[1])
-      .approve(votingEscrow.address, ethers.parseEther("1"));
+      .approve(votingEscrow.target, ethers.parseEther("1"));
     await votingEscrow
       .connect(accounts[1])
       .createLock(ethers.parseEther("1"), (await time.latest()) + WEEK * 30);
     // Calling the mock function to add coinA to the reward list
-    await auction.connect(accounts[0]).withdrawRaisedToken(coinA.address);
+    await auction.connect(accounts[0]).withdrawRaisedToken(coinA.target);
 
     // ユーザ2のロック準備
     await token.transfer(accounts[2].address, ethers.parseEther("1"));
     await token
       .connect(accounts[2])
-      .approve(votingEscrow.address, ethers.parseEther("1"));
+      .approve(votingEscrow.target, ethers.parseEther("1"));
 
     // 基準となるチェックポイント作成
-    const startTime: number = (
-      await feeDistributor.startTime(coinA.address)
-    ).toNumber();
+    const startTime: number = Number(
+      await feeDistributor.startTime(coinA.target)
+    );
 
     // 一度自動マイニングをOFF --->
     await network.provider.send("evm_setAutomine", [false]);
@@ -106,10 +113,10 @@ describe("FeeDistributor", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [startTime + WEEK]);
 
     // Feeとして100 coinAを送信
-    await coinA.transfer(feeDistributor.address, ethers.parseEther("100"));
+    await coinA.transfer(feeDistributor.target, ethers.parseEther("100"));
 
     // Feeの分配
-    await feeDistributor.connect(accounts[0]).checkpointToken(coinA.address);
+    await feeDistributor.connect(accounts[0]).checkpointToken(coinA.target);
 
     // ユーザ2が新しくロックを作成
     await votingEscrow
@@ -125,26 +132,26 @@ describe("FeeDistributor", function () {
     await time.increaseTo(startTime + 5 * WEEK);
 
     // Feeとして100 coinAを送信し分配
-    await coinA.transfer(feeDistributor.address, ethers.parseEther("100"));
-    await feeDistributor.connect(accounts[0]).checkpointToken(coinA.address);
+    await coinA.transfer(feeDistributor.target, ethers.parseEther("100"));
+    await feeDistributor.connect(accounts[0]).checkpointToken(coinA.target);
 
     await time.increaseTo(startTime + 7 * WEEK);
 
-    await feeDistributor.connect(accounts[1])["claim(address)"](coinA.address);
-    await feeDistributor.connect(accounts[2])["claim(address)"](coinA.address);
+    await feeDistributor.connect(accounts[1])["claim(address)"](coinA.target);
+    await feeDistributor.connect(accounts[2])["claim(address)"](coinA.target);
 
-    const feeDistributorBalance = await coinA.balanceOf(feeDistributor.address);
+    const feeDistributorBalance = await coinA.balanceOf(feeDistributor.target);
     const user1Balance = await coinA.balanceOf(accounts[1].address);
     const user2Balance = await coinA.balanceOf(accounts[2].address);
 
-    // console.log("FeeDistributor balance: ", feeDistributorBalance.toString());
-    // console.log("User1 balance: ", user1Balance.toString());
-    // console.log("User2 balance: ", user2Balance.toString());
-    // console.log((await feeDistributor.veSupply(startTime)).toString());
-    // console.log((await feeDistributor.veSupply(startTime + WEEK)).toString());
-    // console.log(
-    //   (await feeDistributor.veSupply(startTime + 2 * WEEK)).toString()
-    // );
+    console.log("FeeDistributor balance: ", feeDistributorBalance.toString());
+    console.log("User1 balance: ", user1Balance.toString());
+    console.log("User2 balance: ", user2Balance.toString());
+    console.log((await feeDistributor.veSupply(startTime)).toString());
+    console.log((await feeDistributor.veSupply(startTime + WEEK)).toString());
+    console.log(
+      (await feeDistributor.veSupply(startTime + 2 * WEEK)).toString()
+    );
 
     expect(user1Balance).to.be.eq(user2Balance);
     expect(feeDistributorBalance).to.be.lessThan(10);
