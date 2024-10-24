@@ -1,15 +1,15 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { VotingEscrow, YMWK } from "../../../../typechain-types";
 
 describe("VotingEscrow", () => {
-  let votingEscrow: Contract;
-  let token: Contract;
+  let votingEscrow: VotingEscrow;
+  let token: YMWK;
   let accounts: SignerWithAddress[];
   let snapshot: SnapshotRestorer;
 
@@ -22,7 +22,7 @@ describe("VotingEscrow", () => {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
