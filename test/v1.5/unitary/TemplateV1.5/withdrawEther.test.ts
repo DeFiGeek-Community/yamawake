@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
@@ -8,6 +7,13 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySaleTemplateV1_5, sendEther } from "../../../scenarioHelper";
+import {
+  Factory,
+  FeeDistributor,
+  MockToken,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 describe("Template V1.5", () => {
   const DAY = 86400;
@@ -16,11 +22,11 @@ describe("Template V1.5", () => {
     bob: SignerWithAddress,
     charlie: SignerWithAddress,
     dan: SignerWithAddress;
-  let feeDistributor: Contract;
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let token: Contract;
-  let coinA: Contract;
+  let feeDistributor: FeeDistributor;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let token: YMWK;
+  let coinA: MockToken;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -43,7 +49,7 @@ describe("Template V1.5", () => {
     await coinA.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -54,8 +60,8 @@ describe("Template V1.5", () => {
     await factory.waitForDeployment();
 
     feeDistributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
     await feeDistributor.waitForDeployment();
@@ -78,7 +84,7 @@ describe("Template V1.5", () => {
     */
     const auctionAmount = ethers.parseEther("100");
     await coinA._mintForTesting(alice.address, auctionAmount);
-    await coinA.approve(factory.address, auctionAmount);
+    await coinA.approve(factory.target, auctionAmount);
 
     /*
       1) テンプレートV1.5をデプロイし、factoryに登録後、オークションを開催する
@@ -87,7 +93,7 @@ describe("Template V1.5", () => {
       factory,
       feeDistributor,
       token,
-      coinA.address,
+      String(coinA.target),
       auctionAmount,
       (await time.latest()) + DAY,
       DAY,
@@ -99,7 +105,7 @@ describe("Template V1.5", () => {
       2) オークション開始まで時間を進め、Bobが入札し、オークション終了まで時間を進める
     */
     await time.increase(DAY);
-    await sendEther(auction.address, "100", bob);
+    await sendEther(auction.target, "100", bob);
     await time.increase(DAY);
 
     /*
@@ -110,7 +116,7 @@ describe("Template V1.5", () => {
     await expect(
       auction.connect(alice).withdrawRaisedETH()
     ).to.changeEtherBalances(
-      [alice.address, auction.address, feeDistributor.address],
+      [alice.address, auction.target, feeDistributor.target],
       [
         ethers.parseEther("99"),
         ethers.parseEther("-100"),
