@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
@@ -8,17 +7,24 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import Constants from "../../../lib/Constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Gauge,
+  GaugeControllerV1,
+  Minter,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 /*
   長期間アクティビティがない状態からのリカバリーをテスト
 */
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
-  let gaugeController: Contract;
-  let token: Contract;
-  let votingEscrow: Contract;
-  let gauge: Contract;
-  let minter: Contract;
+  let gaugeController: GaugeControllerV1;
+  let token: YMWK;
+  let votingEscrow: VotingEscrow;
+  let gauge: Gauge;
+  let minter: Minter;
 
   let snapshot: SnapshotRestorer;
   const WEEK = Constants.WEEK;
@@ -41,26 +47,25 @@ describe("Gauge", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
     await votingEscrow.waitForDeployment();
 
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as GaugeControllerV1;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.address, gaugeController.address);
+    minter = await Minter.deploy(token.target, gaugeController.target);
     await minter.waitForDeployment();
 
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
-    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
+    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
     await gauge.waitForDeployment();
   });
 
@@ -74,42 +79,37 @@ describe("Gauge", function () {
     */
     it("should recover from passing more than 250 weeks where no one was active", async function () {
       // Gaugeの追加
-      await gaugeController.addGauge(
-        gauge.address,
-        1,
-        BigNumber.from(10).pow(18)
-      );
+      await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
       // YMWKトークンを送信
       const creatorBalance = await token.balanceOf(accounts[0].address);
-      await token.transfer(accounts[1].address, creatorBalance.div(2));
-      await token.transfer(accounts[2].address, creatorBalance.div(2));
+      await token.transfer(accounts[1].address, creatorBalance / 2n);
+      await token.transfer(accounts[2].address, creatorBalance / 2n);
 
       // YMWKインフレーション開始週頭まで時間を進める
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
+      const tokenInflationStarts =
+        (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
 
       await time.increaseTo(tokenInflationStarts);
       await token.updateMiningParameters();
       const initialRate = await token.rate();
 
       // Aliceのロック
-      let amountAlice = BigNumber.from(10).pow(18).mul(4);
+      let amountAlice = BigInt(1e18) * 4n;
       let durationAlice = YEAR * 4;
       let now = await time.latest();
       await token
         .connect(accounts[1])
-        .approve(votingEscrow.address, amountAlice);
+        .approve(votingEscrow.target, amountAlice);
       const lockedUntilAlice = now + durationAlice;
       await votingEscrow
         .connect(accounts[1])
         .createLock(amountAlice, lockedUntilAlice);
 
       // Bobのロック
-      let amountBob = BigNumber.from(10).pow(18).mul(5);
+      let amountBob = BigInt(1e18) * 5n;
       let durationBob = YEAR * 2;
-      await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
+      await token.connect(accounts[2]).approve(votingEscrow.target, amountBob);
       const lockedUntilBob = now + durationBob;
       await votingEscrow
         .connect(accounts[2])
@@ -121,7 +121,7 @@ describe("Gauge", function () {
         Aliceがcheckpointを2回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
         その後checkpointTotalSupply,checkpointTokenを数回呼ぶと同期が完了することを確認
       */
-      await time.increase(WEEK.mul(250));
+      await time.increase(WEEK * 250n);
       for (let i = 0; i < 5; i++) {
         await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
       }
@@ -134,7 +134,7 @@ describe("Gauge", function () {
       await localSnapshot.restore();
 
       for (let i = 0; i < 5; i++) {
-        await time.increase(WEEK.mul(50));
+        await time.increase(WEEK * 50n);
         await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
       }
 
@@ -156,42 +156,37 @@ describe("Gauge", function () {
     */
     it("should recover from passing more than 500 weeks where 1 user was active", async function () {
       // Gaugeの追加
-      await gaugeController.addGauge(
-        gauge.address,
-        1,
-        BigNumber.from(10).pow(18)
-      );
+      await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
       // YMWKトークンを送信
       const creatorBalance = await token.balanceOf(accounts[0].address);
-      await token.transfer(accounts[1].address, creatorBalance.div(2));
-      await token.transfer(accounts[2].address, creatorBalance.div(2));
+      await token.transfer(accounts[1].address, creatorBalance / 2n);
+      await token.transfer(accounts[2].address, creatorBalance / 2n);
 
       // YMWKインフレーション開始週頭まで時間を進める
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
+      const tokenInflationStarts =
+        (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
 
       await time.increaseTo(tokenInflationStarts);
       await token.updateMiningParameters();
       const initialRate = await token.rate();
 
       // Aliceのロック
-      let amountAlice = BigNumber.from(10).pow(18).mul(4);
+      let amountAlice = BigInt(1e18) * 4n;
       let durationAlice = YEAR * 4;
       let now = await time.latest();
       await token
         .connect(accounts[1])
-        .approve(votingEscrow.address, amountAlice);
+        .approve(votingEscrow.target, amountAlice);
       const lockedUntilAlice = now + durationAlice;
       await votingEscrow
         .connect(accounts[1])
         .createLock(amountAlice, lockedUntilAlice);
 
       // Bobのロック
-      let amountBob = BigNumber.from(10).pow(18).mul(5);
+      let amountBob = BigInt(1e18) * 5n;
       let durationBob = YEAR * 2;
-      await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
+      await token.connect(accounts[2]).approve(votingEscrow.target, amountBob);
       const lockedUntilBob = now + durationBob;
       await votingEscrow
         .connect(accounts[2])
@@ -202,7 +197,7 @@ describe("Gauge", function () {
         Aliceがcheckpointを複数回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
       */
       for (let i = 0; i < 25; i++) {
-        await time.increase(WEEK.mul(20));
+        await time.increase(WEEK * 20n);
         await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
       }
 
@@ -263,17 +258,17 @@ describe("Gauge", function () {
       expect(userTimeCursor4).to.be.eq(await gauge.tokenTimeCursor());
 
       const currentRate = await token.rate();
-      const weekStart = tokenInflationStarts.div(WEEK).mul(WEEK);
+      const weekStart = (tokenInflationStarts / WEEK) * WEEK;
       for (let i = 1; i < 500; i++) {
         const tokenByWeek = await gauge.tokensPerWeek(
-          weekStart.add(WEEK.mul(i))
+          weekStart + WEEK * BigInt(i)
         );
         if (i < 52) {
           // 1年目は週間のトークン報酬額が1年目のレートを元に算出されていることを確認
-          expect(tokenByWeek).to.be.eq(initialRate.mul(3600 * 24 * 7)); // 1054794520547945205033600
+          expect(tokenByWeek).to.be.eq(initialRate * (3600n * 24n * 7n)); // 1054794520547945205033600
         } else if (i > 471) {
           // 最終週の週間トークン報酬額は最新のレートを元に算出されていることを確認
-          expect(tokenByWeek).to.be.eq(currentRate.mul(3600 * 24 * 7)); // 408649008945205477612800
+          expect(tokenByWeek).to.be.eq(currentRate * (3600n * 24n * 7n)); // 408649008945205477612800
         }
 
         // console.log(`Week ${i} ${tokenByWeek.toString()}`);

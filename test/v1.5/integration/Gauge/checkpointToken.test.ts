@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
@@ -8,6 +7,13 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import Constants from "../../../lib/Constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Gauge,
+  GaugeControllerV1,
+  Minter,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 /*
   checkpointTotalSupply, checkpointToken, userCheckpointの
@@ -15,11 +21,11 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 */
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
-  let gaugeController: Contract;
-  let token: Contract;
-  let votingEscrow: Contract;
-  let gauge: Contract;
-  let minter: Contract;
+  let gaugeController: GaugeControllerV1;
+  let token: YMWK;
+  let votingEscrow: VotingEscrow;
+  let gauge: Gauge;
+  let minter: Minter;
 
   let snapshot: SnapshotRestorer;
   const WEEK = Constants.WEEK;
@@ -42,26 +48,25 @@ describe("Gauge", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
     await votingEscrow.waitForDeployment();
 
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as GaugeControllerV1;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.address, gaugeController.address);
+    minter = await Minter.deploy(token.target, gaugeController.target);
     await minter.waitForDeployment();
 
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
-    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
+    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
     await gauge.waitForDeployment();
   });
 
@@ -75,41 +80,36 @@ describe("Gauge", function () {
     */
     it("should make no differenses to rewards regardless of frequency of checkpoint execution", async function () {
       // Gaugeの追加
-      await gaugeController.addGauge(
-        gauge.address,
-        1,
-        BigNumber.from(10).pow(18)
-      );
+      await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
       // YMWKトークンを送信
       const creatorBalance = await token.balanceOf(accounts[0].address);
-      await token.transfer(accounts[1].address, creatorBalance.div(2));
-      await token.transfer(accounts[2].address, creatorBalance.div(2));
+      await token.transfer(accounts[1].address, creatorBalance / 2n);
+      await token.transfer(accounts[2].address, creatorBalance / 2n);
 
       // YMWKインフレーション開始週頭まで時間を進める
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
+      const tokenInflationStarts =
+        (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
 
       await time.increaseTo(tokenInflationStarts);
       await token.updateMiningParameters();
 
       // Aliceのロック
-      let amountAlice = BigNumber.from(10).pow(18).mul(4);
+      let amountAlice = BigInt(1e18) * 4n;
       let durationAlice = YEAR * 4;
       let now = await time.latest();
       await token
         .connect(accounts[1])
-        .approve(votingEscrow.address, amountAlice);
+        .approve(votingEscrow.target, amountAlice);
       const lockedUntilAlice = now + durationAlice;
       await votingEscrow
         .connect(accounts[1])
         .createLock(amountAlice, lockedUntilAlice);
 
       // Bobのロック
-      let amountBob = BigNumber.from(10).pow(18).mul(5);
+      let amountBob = BigInt(1e18) * 5n;
       let durationBob = YEAR * 2;
-      await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
+      await token.connect(accounts[2]).approve(votingEscrow.target, amountBob);
       const lockedUntilBob = now + durationBob;
       await votingEscrow
         .connect(accounts[2])
@@ -156,41 +156,36 @@ describe("Gauge", function () {
     */
     it("should not proceed furthur than timeCursor", async function () {
       // Gaugeの追加
-      await gaugeController.addGauge(
-        gauge.address,
-        1,
-        BigNumber.from(10).pow(18)
-      );
+      await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
       // YMWKトークンを送信
       const creatorBalance = await token.balanceOf(accounts[0].address);
-      await token.transfer(accounts[1].address, creatorBalance.div(2));
-      await token.transfer(accounts[2].address, creatorBalance.div(2));
+      await token.transfer(accounts[1].address, creatorBalance / 2n);
+      await token.transfer(accounts[2].address, creatorBalance / 2n);
 
       // YMWKインフレーション開始週頭まで時間を進める
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
+      const tokenInflationStarts =
+        (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
 
       await time.increaseTo(tokenInflationStarts);
       await token.updateMiningParameters();
 
       // Aliceのロック
-      let amountAlice = BigNumber.from(10).pow(18).mul(4);
+      let amountAlice = BigInt(1e18) * 4n;
       let durationAlice = YEAR * 4;
       let now = await time.latest();
       await token
         .connect(accounts[1])
-        .approve(votingEscrow.address, amountAlice);
+        .approve(votingEscrow.target, amountAlice);
       const lockedUntilAlice = now + durationAlice;
       await votingEscrow
         .connect(accounts[1])
         .createLock(amountAlice, lockedUntilAlice);
 
       // Bobのロック
-      let amountBob = BigNumber.from(10).pow(18).mul(5);
+      let amountBob = BigInt(1e18) * 5n;
       let durationBob = YEAR * 2;
-      await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
+      await token.connect(accounts[2]).approve(votingEscrow.target, amountBob);
       const lockedUntilBob = now + durationBob;
       await votingEscrow
         .connect(accounts[2])
@@ -199,14 +194,12 @@ describe("Gauge", function () {
       /*
         1. 合計500週間時間を進め、1度checkpointTotalSupplyを呼ぶ。
       */
-      await time.increase(WEEK.mul(500));
+      await time.increase(WEEK * 500n);
       await gauge.checkpointTotalSupply();
 
       // timeCursorが20週間経過後の週頭時点のタイムスタンプになっていることを確認
       const timeCursor1 = await gauge.timeCursor();
-      expect(timeCursor1).to.be.eq(
-        BigNumber.from(now).div(WEEK).add(20).mul(WEEK)
-      );
+      expect(timeCursor1).to.be.eq((BigInt(now) / WEEK + 20n) * WEEK);
 
       /*
         2. checkpointTokenを2回呼ぶ
@@ -216,7 +209,7 @@ describe("Gauge", function () {
 
       // tokenTimeCursorがtimeCursorから20週間進んだ時点であることを確認
       const tokenTimeCursor = await gauge.tokenTimeCursor();
-      expect(tokenTimeCursor).to.be.eq(timeCursor1.add(WEEK.mul(20)));
+      expect(tokenTimeCursor).to.be.eq(timeCursor1 + WEEK * 20n);
 
       /*
         3. Aliceのcheckpointを2回実行する

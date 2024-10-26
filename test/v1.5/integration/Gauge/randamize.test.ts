@@ -1,12 +1,18 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Gauge,
+  GaugeControllerV1,
+  Minter,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 /* 
 Gauge, Minter, VotingEscrowのインテグレーションテスト
@@ -20,18 +26,11 @@ describe("Gauge", function () {
   const STATEFUL_STEP_COUNT = 30;
   const WEEK = 86400 * 7;
   const YEAR = 86400 * 365;
-  const two_to_the_256_minus_1 = BigNumber.from("2")
-    .pow(BigNumber.from("256"))
-    .sub(BigNumber.from("1"));
+  const two_to_the_256_minus_1 = ethers.MaxUint256;
   const MOUNT_DECIMALS = 3;
   const INFLATION_DELAY = YEAR;
 
   // Helper functions to generate random variables ----->
-  function randomBigValue(min: number, max: number): BigNumber {
-    return BigNumber.from(
-      Math.floor(Math.random() * (max - min) + min).toString()
-    );
-  }
   function randomValue(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min) + min);
   }
@@ -39,32 +38,32 @@ describe("Gauge", function () {
     let rdm = Math.floor(Math.random() * ACCOUNT_NUM); //0~9 integer
     return rdm;
   }
-  function getRandomWeeks(): BigNumber {
-    return randomBigValue(1, 12);
+  function getRandomWeeks(): number {
+    return randomValue(1, 12);
   }
-  function getRandomAmounts(): BigNumber {
-    return randomBigValue(
-      1 * 10 ** MOUNT_DECIMALS,
-      100 * 10 ** MOUNT_DECIMALS
-    ).mul(BigNumber.from(10).pow(18 - MOUNT_DECIMALS));
+  function getRandomAmounts(): bigint {
+    return BigInt(
+      randomValue(1 * 10 ** MOUNT_DECIMALS, 100 * 10 ** MOUNT_DECIMALS) *
+        10 ** (18 - MOUNT_DECIMALS)
+    );
   }
-  function getRandomsTime(): BigNumber {
-    return randomBigValue(0, 86400 * 3);
+  function getRandomsTime(): bigint {
+    return BigInt(randomValue(0, 86400 * 3));
   }
   // ------------------------------------------------
   let accounts: SignerWithAddress[];
   let admin: SignerWithAddress;
-  let votingEscrow: Contract;
-  let gaugeController: Contract;
-  let token: Contract;
-  let gauge: Contract;
-  let minter: Contract;
+  let votingEscrow: VotingEscrow;
+  let gaugeController: GaugeControllerV1;
+  let token: YMWK;
+  let gauge: Gauge;
+  let minter: Minter;
 
   let lockedUntil: { [key: string]: number } = {};
-  let userClaims: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
-  let claimableTokens: { [key: string]: { [key: number]: BigNumber[] } } = {}; // address -> block number -> [claimed, timeCursor]
-  let initialTokenBalance: { [key: string]: BigNumber };
-  let tokenLockByUser: { [key: string]: BigNumber };
+  let userClaims: { [key: string]: { [key: number]: bigint[] } } = {}; // address -> block number -> [claimed, timeCursor]
+  let claimableTokens: { [key: string]: { [key: number]: bigint[] } } = {}; // address -> block number -> [claimed, timeCursor]
+  let initialTokenBalance: { [key: string]: bigint };
+  let tokenLockByUser: { [key: string]: bigint };
 
   let snapshot: SnapshotRestorer;
 
@@ -91,29 +90,28 @@ describe("Gauge", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
     await votingEscrow.waitForDeployment();
 
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as GaugeControllerV1;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.address, gaugeController.address);
+    minter = await Minter.deploy(token.target, gaugeController.target);
     await minter.waitForDeployment();
 
     // Set minter for the token
-    await token.setMinter(minter.address);
+    await token.setMinter(minter.target);
 
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
-    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
+    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
     await gauge.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
@@ -123,7 +121,7 @@ describe("Gauge", function () {
         .transfer(accounts[i].address, ethers.parseEther("10000000"));
       await token
         .connect(accounts[i])
-        .approve(votingEscrow.address, two_to_the_256_minus_1);
+        .approve(votingEscrow.target, two_to_the_256_minus_1);
 
       userClaims[accounts[i].address] = [];
       claimableTokens[accounts[i].address] = [];
@@ -138,9 +136,9 @@ describe("Gauge", function () {
       );
 
     lockedUntil = {
-      [accounts[0].address]: (
+      [accounts[0].address]: Number(
         await votingEscrow.lockedEnd(accounts[0].address)
-      ).toNumber(),
+      ),
     };
 
     // Advance time to when YMWK inflation starts
@@ -148,18 +146,14 @@ describe("Gauge", function () {
     await token.updateMiningParameters();
 
     // Add Gauge
-    await gaugeController.addGauge(
-      gauge.address,
-      1,
-      BigNumber.from(10).pow(18)
-    );
+    await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
     // Initialize stats variables
     for (let i = 0; i < ACCOUNT_NUM; i++) {
       initialTokenBalance[accounts[i].address] = await token.balanceOf(
         accounts[i].address
       );
-      tokenLockByUser[accounts[i].address] = BigNumber.from("0");
+      tokenLockByUser[accounts[i].address] = 0n;
     }
   });
 
@@ -182,7 +176,7 @@ describe("Gauge", function () {
       delete lockedUntil[stAcct.address];
       if (amount) {
         tokenLockByUser[stAcct.address] =
-          tokenLockByUser[stAcct.address].sub(amount);
+          tokenLockByUser[stAcct.address] - amount;
       }
       return false;
     }
@@ -192,9 +186,9 @@ describe("Gauge", function () {
   //--------------------------------------------- randomly excuted functions -----------------------------------------------------------//
   async function ruleNewLock(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
-    stWeeks?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stWeeks?: number,
+    stTime?: bigint
   ) {
     /*
     Add a new user lock.
@@ -204,11 +198,11 @@ describe("Gauge", function () {
     stAcct : SignerWithAddress
         Account to lock tokens for. If this account already has an active
         lock, the rule is skipped.
-    stAmount: BigNumber
+    stAmount: bigint
         Amount of tokens to lock.
-    stWeeks: BigNumber
+    stWeeks: number
         Duration of lock, given in weeks.
-    stTime: BigNumber
+    stTime: bigint
         Duration to sleep before action, in seconds.
     */
     stAcct = stAcct || accounts[getRandomAccountNum()];
@@ -225,22 +219,21 @@ describe("Gauge", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0n && (await time.increase(stTime));
 
     if (!(await _checkActiveLock(stAcct))) {
-      const until =
-        (Math.floor((await time.latest()) / WEEK) + stWeeks.toNumber()) * WEEK;
+      const until = (Math.floor((await time.latest()) / WEEK) + stWeeks) * WEEK;
       await votingEscrow.connect(stAcct).createLock(stAmount, until);
       lockedUntil[stAcct.address] = until;
       tokenLockByUser[stAcct.address] =
-        tokenLockByUser[stAcct.address].add(stAmount);
+        tokenLockByUser[stAcct.address] + stAmount;
     }
   }
 
   async function ruleExtendLock(
     stAcct?: SignerWithAddress,
-    stWeeks?: BigNumber,
-    stTime?: BigNumber
+    stWeeks?: number,
+    stTime?: bigint
   ) {
     /*
     Extend an existing user lock.
@@ -250,9 +243,9 @@ describe("Gauge", function () {
     stAcct: SignerWithAddress
         Account to extend lock for. If this account does not have an active
         lock, the rule is skipped.
-    stWeeks: BigNumber
+    stWeeks: number
         Duration to extend the lock, given in weeks.
-    stTime: BigNumber
+    stTime: bigint
         Duration to sleep before action, in seconds.
     */
     stAcct = stAcct || accounts[getRandomAccountNum()];
@@ -267,14 +260,14 @@ describe("Gauge", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0n && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
       const until =
         (Math.floor(
-          (await votingEscrow.lockedEnd(stAcct.address)).toNumber() / WEEK
+          Number(await votingEscrow.lockedEnd(stAcct.address)) / WEEK
         ) +
-          stWeeks.toNumber()) *
+          stWeeks) *
         WEEK;
       const newUntil = Math.min(
         until,
@@ -287,8 +280,8 @@ describe("Gauge", function () {
 
   async function ruleIncreaseLockAmount(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stTime?: bigint
   ) {
     /*
     Increase the amount of an existing user lock.
@@ -298,9 +291,9 @@ describe("Gauge", function () {
     stAcct : SignerWithAddress
         Account to increase lock amount for. If this account does not have an
         active lock, the rule is skipped.
-    stAmount : BigNumber
+    stAmount : bigint
         Amount of tokens to add to lock.
-    stTime : number
+    stTime : bigint
         Duration to sleep before action, in seconds.
     */
     stAcct = stAcct || accounts[getRandomAccountNum()];
@@ -315,16 +308,16 @@ describe("Gauge", function () {
     }
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0n && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
       await votingEscrow.connect(stAcct).increaseAmount(stAmount);
       tokenLockByUser[stAcct.address] =
-        tokenLockByUser[stAcct.address].add(stAmount);
+        tokenLockByUser[stAcct.address] + stAmount;
     }
   }
 
-  async function ruleClaimFees(stAcct?: SignerWithAddress, stTime?: BigNumber) {
+  async function ruleClaimFees(stAcct?: SignerWithAddress, stTime?: bigint) {
     /*
     Claim fees for a user.
 
@@ -332,7 +325,7 @@ describe("Gauge", function () {
     ---------
     stAcct : SignerWithAddress
         Account to claim fees for.
-    stTime : number
+    stTime : bigint
         Duration to sleep before action, in seconds.
     */
     stAcct = stAcct || accounts[getRandomAccountNum()];
@@ -344,7 +337,7 @@ describe("Gauge", function () {
     }, stTime: ${stTime.toString()}, WEEK:${(await time.latest()) / WEEK}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0n && (await time.increase(stTime));
 
     let claimed;
     let tx;
@@ -352,17 +345,17 @@ describe("Gauge", function () {
 
     claimed = await token.balanceOf(stAcct.address);
 
-    const claimableToken = await gauge.callStatic.claimableTokens(
+    const claimableToken = await gauge.claimableTokens.staticCall(
       stAcct.address
     );
-    tx = await minter.connect(stAcct).mint(gauge.address);
+    tx = await minter.connect(stAcct).mint(gauge.target);
 
-    newClaimed = (await token.balanceOf(stAcct.address)).sub(claimed);
-    userClaims[stAcct.address][tx.blockNumber] = [
+    newClaimed = (await token.balanceOf(stAcct.address)) - claimed;
+    userClaims[stAcct.address][tx.blockNumber!] = [
       newClaimed,
       await gauge.timeCursorOf(stAcct.address),
     ];
-    claimableTokens[stAcct.address][tx.blockNumber] = [
+    claimableTokens[stAcct.address][tx.blockNumber!] = [
       claimableToken,
       await gauge.timeCursorOf(stAcct.address),
     ];
@@ -383,27 +376,27 @@ describe("Gauge", function () {
       let newClaimed;
 
       claimed = await token.balanceOf(acct.address);
-      const claimableToken = await gauge.callStatic.claimableTokens(
+      const claimableToken = await gauge.claimableTokens.staticCall(
         acct.address
       );
-      tx = await minter.connect(acct).mint(gauge.address);
+      tx = await minter.connect(acct).mint(gauge.target);
 
-      newClaimed = (await token.balanceOf(acct.address)).sub(claimed);
-      userClaims[acct.address][tx.blockNumber] = [
+      newClaimed = (await token.balanceOf(acct.address)) - claimed;
+      userClaims[acct.address][tx.blockNumber!] = [
         newClaimed,
         await gauge.timeCursorOf(acct.address),
       ];
-      claimableTokens[acct.address][tx.blockNumber] = [
+      claimableTokens[acct.address][tx.blockNumber!] = [
         claimableToken,
         await gauge.timeCursorOf(acct.address),
       ];
     }
 
-    const t0: number = (await gauge.startTime()).toNumber();
+    const t0: number = Number(await gauge.startTime());
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
-    const tokensPerUserPerWeek: { [key: string]: BigNumber[] } = {};
-    const tokensPerWeeks: BigNumber[] = [];
+    const tokensPerUserPerWeek: { [key: string]: bigint[] } = {};
+    const tokensPerWeeks: bigint[] = [];
 
     for (let w = t0; w < t1 + WEEK; w += WEEK) {
       const tokensPerWeek = await gauge.tokensPerWeek(w);
@@ -413,11 +406,11 @@ describe("Gauge", function () {
         const veSupply = await gauge.veSupply(w);
         tokensPerUserPerWeek[acct.address] =
           tokensPerUserPerWeek[acct.address] || [];
-        const tokens: BigNumber = veSupply.eq(0)
-          ? BigNumber.from("0")
-          : tokensPerWeek
-              .mul(await gauge.veForAt(acct.address, w))
-              .div(await gauge.veSupply(w));
+        const tokens: bigint =
+          veSupply === 0n
+            ? 0n
+            : (tokensPerWeek * (await gauge.veForAt(acct.address, w))) /
+              (await gauge.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
       }
     }
@@ -460,16 +453,18 @@ describe("Gauge", function () {
       const integrateFraction = await gauge.integrateFraction(acct.address);
       // Balances should match integrateFraction
       expect(await token.balanceOf(acct.address)).to.equal(
-        integrateFraction
-          .add(initialTokenBalance[acct.address])
-          .sub(tokenLockByUser[acct.address])
+        integrateFraction +
+          initialTokenBalance[acct.address] -
+          tokenLockByUser[acct.address]
       );
       // Balances should match tokensPerUserPerWeek (derived from tokenPerWeek)
       expect(await token.balanceOf(acct.address)).to.equal(
-        tokensPerUserPerWeek[acct.address]
-          .reduce((a: BigNumber, b: BigNumber) => a.add(b), BigNumber.from("0"))
-          .add(initialTokenBalance[acct.address])
-          .sub(tokenLockByUser[acct.address])
+        tokensPerUserPerWeek[acct.address].reduce(
+          (a: bigint, b: bigint) => a + b,
+          0n
+        ) +
+          initialTokenBalance[acct.address] -
+          tokenLockByUser[acct.address]
       );
       Object.entries(userClaims[acct.address]).forEach(([k, v]) => {
         // claimableTokens which is saved just before claimimg and actually claimed amount should be identical

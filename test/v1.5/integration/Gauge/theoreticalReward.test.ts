@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   takeSnapshot,
   SnapshotRestorer,
@@ -8,6 +7,13 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import Constants from "../../../lib/Constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Gauge,
+  GaugeControllerV1,
+  Minter,
+  VotingEscrow,
+  YMWK,
+} from "../../../../typechain-types";
 
 /*
   報酬理論値の検証
@@ -18,11 +24,11 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 */
 describe("Gauge", function () {
   let accounts: SignerWithAddress[];
-  let gaugeController: Contract;
-  let token: Contract;
-  let votingEscrow: Contract;
-  let gauge: Contract;
-  let minter: Contract;
+  let gaugeController: GaugeControllerV1;
+  let token: YMWK;
+  let votingEscrow: VotingEscrow;
+  let gauge: Gauge;
+  let minter: Minter;
 
   let snapshot: SnapshotRestorer;
   const WEEK = Constants.WEEK;
@@ -45,26 +51,25 @@ describe("Gauge", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
     );
     await votingEscrow.waitForDeployment();
 
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as GaugeControllerV1;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.address, gaugeController.address);
+    minter = await Minter.deploy(token.target, gaugeController.target);
     await minter.waitForDeployment();
 
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
-    gauge = await Gauge.deploy(minter.address, tokenInflationStarts);
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
+    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
     await gauge.waitForDeployment();
   });
 
@@ -77,24 +82,19 @@ describe("Gauge", function () {
       0. 前提条件の設定 
     */
     // Gaugeの追加
-    await gaugeController.addGauge(
-      gauge.address,
-      1,
-      BigNumber.from(10).pow(18)
-    );
+    await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
     // YMWKトークンをAlice, Bobに均等に送信する
     const creatorBalance = await token.balanceOf(accounts[0].address);
-    await token.transfer(accounts[1].address, creatorBalance.div(2));
-    await token.transfer(accounts[2].address, creatorBalance.div(2));
+    await token.transfer(accounts[1].address, creatorBalance / 2n);
+    await token.transfer(accounts[2].address, creatorBalance / 2n);
 
     /*
      1. YMWKインフレーション開始時間まで進め、YMWKのレートを更新する
     */
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
-    const weekStart = tokenInflationStarts.div(WEEK).mul(WEEK);
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
+    const weekStart = (tokenInflationStarts / WEEK) * WEEK;
     await time.increaseTo(tokenInflationStarts);
     await token.updateMiningParameters();
     const initialRate = await token.rate();
@@ -102,10 +102,10 @@ describe("Gauge", function () {
     /*
       2. Aliceが4YMWK、4年間ロック
     */
-    let amountAlice = BigNumber.from(10).pow(18).mul(4);
+    let amountAlice = BigInt(1e18) * 4n;
     let durationAlice = YEAR * 4;
     let now = await time.latest();
-    await token.connect(accounts[1]).approve(votingEscrow.address, amountAlice);
+    await token.connect(accounts[1]).approve(votingEscrow.target, amountAlice);
     const lockedUntilAlice = now + durationAlice;
     await votingEscrow
       .connect(accounts[1])
@@ -114,9 +114,9 @@ describe("Gauge", function () {
     /*
       3. Bobが5YMWK、2年間ロック
     */
-    let amountBob = BigNumber.from(10).pow(18).mul(5);
+    let amountBob = BigInt(1e18) * 5n;
     let durationBob = YEAR * 2;
-    await token.connect(accounts[2]).approve(votingEscrow.address, amountBob);
+    await token.connect(accounts[2]).approve(votingEscrow.target, amountBob);
     const lockedUntilBob = now + durationBob;
     await votingEscrow
       .connect(accounts[2])
@@ -125,15 +125,15 @@ describe("Gauge", function () {
     /*
       4. 52週間時間を進める
     */
-    await time.increase(WEEK.mul(18));
+    await time.increase(WEEK * 18n);
     await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
     await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
 
-    await time.increase(WEEK.mul(18));
+    await time.increase(WEEK * 18n);
     await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
     await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
 
-    await time.increase(WEEK.mul(16));
+    await time.increase(WEEK * 16n);
     await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
     await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
     let timeCursor = await gauge.timeCursor();
@@ -150,46 +150,46 @@ describe("Gauge", function () {
        *:  現在
     */
     // 期間中のYMWKリワード理論値: 最初の週と最後の週は除外し、1〜51週目まで（全51週分）の報酬額の理論値を計算
-    let theoreticalTokenTotal = timeCursor
-      .sub(weekStart)
-      .sub(WEEK.mul(2))
-      .mul(initialRate);
+    let theoreticalTokenTotal =
+      (timeCursor - weekStart - WEEK * 2n) * initialRate;
     // ゲージに記録されたのYMWKリワード実績値
-    let tokenByWeekTotal = BigNumber.from("0");
+    let tokenByWeekTotal = 0n;
     // VotingEscrowから取得した値を元に計算するAliceのYMWKリワード理論値
-    let expectedAliceReward = BigNumber.from("0");
+    let expectedAliceReward = 0n;
     // VotingEscrowから取得した値を元に計算するBobのYMWKリワード理論値
-    let expectedBobReward = BigNumber.from("0");
+    let expectedBobReward = 0n;
     for (let i = 1; i < 52; i++) {
       // 各週のVotingEscrow残高をVotingEscrowコントラクトから取得し、リワードの理論値を計算する
       // WEEK0の途中でロックするのでWEEK0の頭時点ではVE残高は0。WEEK1から計算スタート
-      const tokenByWeek = await gauge.tokensPerWeek(weekStart.add(WEEK.mul(i)));
-      tokenByWeekTotal = tokenByWeekTotal.add(tokenByWeek);
+      const tokenByWeek = await gauge.tokensPerWeek(
+        weekStart + WEEK * BigInt(i)
+      );
+      tokenByWeekTotal = tokenByWeekTotal + tokenByWeek;
       const supply = await votingEscrow["totalSupply(uint256)"](
-        weekStart.add(WEEK.mul(i))
+        weekStart + WEEK * BigInt(i)
       );
       const balanceAlice = await votingEscrow["balanceOf(address,uint256)"](
         accounts[1].address,
-        weekStart.add(WEEK.mul(i))
+        weekStart + WEEK * BigInt(i)
       );
-      expectedAliceReward = expectedAliceReward.add(
-        tokenByWeek.mul(balanceAlice).div(supply)
-      );
+      expectedAliceReward =
+        expectedAliceReward + (tokenByWeek * balanceAlice) / supply;
       const balanceBob = await votingEscrow["balanceOf(address,uint256)"](
         accounts[2].address,
-        weekStart.add(WEEK.mul(i))
+        weekStart + WEEK * BigInt(i)
       );
-      expectedBobReward = expectedBobReward.add(
-        tokenByWeek.mul(balanceBob).div(supply)
-      );
+      expectedBobReward =
+        expectedBobReward + (tokenByWeek * balanceBob) / supply;
 
       // VotingEscrowから取得した値とgaugeから取得した値に相違がないことを確認
-      expect(supply).to.be.eq(await gauge.veSupply(weekStart.add(WEEK.mul(i))));
+      expect(supply).to.be.eq(
+        await gauge.veSupply(weekStart + WEEK * BigInt(i))
+      );
       expect(balanceAlice).to.be.eq(
-        await gauge.veForAt(accounts[1].address, weekStart.add(WEEK.mul(i)))
+        await gauge.veForAt(accounts[1].address, weekStart + WEEK * BigInt(i))
       );
       expect(balanceBob).to.be.eq(
-        await gauge.veForAt(accounts[2].address, weekStart.add(WEEK.mul(i)))
+        await gauge.veForAt(accounts[2].address, weekStart + WEEK * BigInt(i))
       );
     }
 
@@ -215,7 +215,7 @@ describe("Gauge", function () {
       ◯:  開始
       *:  時間を進めた後（YMWKのfutureEpochTime）
     */
-    const newWeekStart = weekStart.add(WEEK.mul(52));
+    const newWeekStart = weekStart + WEEK * 52n;
     await time.increase(WEEK);
     await token.updateMiningParameters();
     const nextEpochStart = await token.startEpochTime();
@@ -230,7 +230,7 @@ describe("Gauge", function () {
       62: tokenTimeCursor
       63: timeCursor
     */
-    await time.increase(WEEK.mul(9));
+    await time.increase(WEEK * 9n);
     await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
     await gauge.connect(accounts[2]).userCheckpoint(accounts[2].address);
     const newTimeCursor = await gauge.timeCursor();
@@ -238,43 +238,48 @@ describe("Gauge", function () {
     for (let i = 0; i < 10; i++) {
       // 各週のVotingEscrow残高をVotingEscrowコントラクトから取得し、リワードの理論値を計算する
       const tokenByWeek = await gauge.tokensPerWeek(
-        newWeekStart.add(WEEK.mul(i))
+        newWeekStart + WEEK * BigInt(i)
       );
-      tokenByWeekTotal = tokenByWeekTotal.add(tokenByWeek);
+      tokenByWeekTotal = tokenByWeekTotal + tokenByWeek;
       const supply = await votingEscrow["totalSupply(uint256)"](
-        newWeekStart.add(WEEK.mul(i))
+        newWeekStart + WEEK * BigInt(i)
       );
       const balanceAlice = await votingEscrow["balanceOf(address,uint256)"](
         accounts[1].address,
-        newWeekStart.add(WEEK.mul(i))
+        newWeekStart + WEEK * BigInt(i)
       );
-      expectedAliceReward = expectedAliceReward.add(
-        tokenByWeek.mul(balanceAlice).div(supply)
-      );
+      expectedAliceReward =
+        expectedAliceReward + (tokenByWeek * balanceAlice) / supply;
       const balanceBob = await votingEscrow["balanceOf(address,uint256)"](
         accounts[2].address,
-        newWeekStart.add(WEEK.mul(i))
+        newWeekStart + WEEK * BigInt(i)
       );
-      expectedBobReward = expectedBobReward.add(
-        tokenByWeek.mul(balanceBob).div(supply)
-      );
+      expectedBobReward =
+        expectedBobReward + (tokenByWeek * balanceBob) / supply;
 
       expect(supply).to.be.eq(
-        await gauge.veSupply(newWeekStart.add(WEEK.mul(i)))
+        await gauge.veSupply(newWeekStart + WEEK * BigInt(i))
       );
       expect(balanceAlice).to.be.eq(
-        await gauge.veForAt(accounts[1].address, newWeekStart.add(WEEK.mul(i)))
+        await gauge.veForAt(
+          accounts[1].address,
+          newWeekStart + WEEK * BigInt(i)
+        )
       );
       expect(balanceBob).to.be.eq(
-        await gauge.veForAt(accounts[2].address, newWeekStart.add(WEEK.mul(i)))
+        await gauge.veForAt(
+          accounts[2].address,
+          newWeekStart + WEEK * BigInt(i)
+        )
       );
     }
 
     // 前回（52週間後）のリワード額合計にそれ以降に追加されるリワードの理論値を足し合わせ、
     // 現時点でのリワード理論値を計算する
-    theoreticalTokenTotal = theoreticalTokenTotal
-      .add(nextEpochStart.sub(newWeekStart).mul(initialRate))
-      .add(newTimeCursor.sub(nextEpochStart).sub(WEEK).mul(newRate));
+    theoreticalTokenTotal =
+      theoreticalTokenTotal +
+      (nextEpochStart - newWeekStart) * initialRate +
+      (newTimeCursor - nextEpochStart - WEEK) * newRate;
 
     /*
       10. YWMKリワードの理論値と実績値が等しいことを確認
