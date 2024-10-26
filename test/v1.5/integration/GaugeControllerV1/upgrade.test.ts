@@ -1,17 +1,23 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import {
+  Gauge,
+  Minter,
+  VotingEscrow,
+  YMWK,
+  UpgradableGaugeControllerOriginal,
+} from "../../../../typechain-types";
 
 type GaugeInfo = {
-  contract: Contract;
+  contract: Gauge;
   type: number;
-  weight: BigNumber;
+  weight: bigint;
 };
 const ACCOUNT_NUM = 5;
 const MAX_EXAMPLES = 5;
@@ -22,11 +28,6 @@ const YEAR = DAY * 365;
 const INFLATION_DELAY = YEAR;
 
 // Helper functions to generate random variables ----->
-function randomBigValue(min: number, max: number): BigNumber {
-  return BigNumber.from(
-    Math.floor(Math.random() * (max - min) + min).toString()
-  );
-}
 function randomValue(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min) + min);
 }
@@ -34,9 +35,9 @@ function getRandomType(): number {
   // Corresponds strategy("decimal", min_value=0, max_value="0.99999999")
   return randomValue(0, 99999999) / 100000000;
 }
-function getRandomWeight(): BigNumber {
+function getRandomWeight(): bigint {
   // Corresponds strategy("uint", min_value=10 ** 17, max_value=10 ** 19)
-  return randomBigValue(10 ** 17, 10 ** 19);
+  return BigInt(randomValue(10 ** 17, 10 ** 19));
 }
 // ------------------------------------------------
 /* 
@@ -47,12 +48,12 @@ Curve版のIntegration testを実行しアップグレードされたGaugeContro
 */
 describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
-  let votingEscrow: Contract;
-  let gaugeController: Contract;
-  let token: Contract;
-  let minter: Contract;
+  let votingEscrow: VotingEscrow;
+  let gaugeController: UpgradableGaugeControllerOriginal;
+  let token: YMWK;
+  let minter: Minter;
 
-  let typeWeights: BigNumber[] = [];
+  let typeWeights: bigint[] = [];
   let gauges: GaugeInfo[] = [];
 
   let snapshot: SnapshotRestorer;
@@ -71,7 +72,7 @@ describe("GaugeControllerV1", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -79,13 +80,13 @@ describe("GaugeControllerV1", function () {
     await votingEscrow.waitForDeployment();
 
     // GaugeControllerV1のデプロイ
-    gaugeController = await upgrades.deployProxy(GaugeController, [
-      token.address,
-      votingEscrow.address,
-    ]);
+    gaugeController = (await upgrades.deployProxy(GaugeController, [
+      token.target,
+      votingEscrow.target,
+    ])) as unknown as UpgradableGaugeControllerOriginal;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.address, gaugeController.address);
+    minter = await Minter.deploy(token.target, gaugeController.target);
     await minter.waitForDeployment();
 
     typeWeights = [];
@@ -98,10 +99,10 @@ describe("GaugeControllerV1", function () {
 
   //--------------------------------------------- helper functions -----------------------------------------------------------//
 
-  function _gaugeWeight(idx: number): BigNumber {
+  function _gaugeWeight(idx: number): bigint {
     return gauges.reduce((sum, gauge) => {
-      return gauge.type === idx ? sum.add(gauge.weight) : sum;
-    }, BigNumber.from("0"));
+      return gauge.type === idx ? sum + gauge.weight : sum;
+    }, 0n);
   }
 
   //--------------------------------------------- Initializer functions -----------------------------------------------------------//
@@ -112,7 +113,7 @@ describe("GaugeControllerV1", function () {
     await checkInvariants();
   }
   //--------------------------------------------- randomly exceuted functions -----------------------------------------------------------//
-  async function ruleAddType(stTypeWeight?: BigNumber) {
+  async function ruleAddType(stTypeWeight?: bigint) {
     /*
     Add a new gauge type.
     */
@@ -126,7 +127,7 @@ describe("GaugeControllerV1", function () {
     await checkInvariants();
   }
 
-  async function ruleAddGauge(gaugeType?: number, stGaugeWeight?: BigNumber) {
+  async function ruleAddGauge(gaugeType?: number, stGaugeWeight?: bigint) {
     /*
     Add a new gauge.
 
@@ -141,19 +142,18 @@ describe("GaugeControllerV1", function () {
     console.log(
       `ruleAddGauge --- gaugeType: ${gaugeType}, stGaugeWeight: ${stGaugeWeight.toString()}`
     );
-    const tokenInflationStarts: BigNumber = (await token.startEpochTime()).add(
-      INFLATION_DELAY
-    );
+    const tokenInflationStarts =
+      (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
     const LiquidityGauge = await ethers.getContractFactory("Gauge");
     const gauge = await LiquidityGauge.deploy(
-      minter.address,
+      minter.target,
       tokenInflationStarts
     );
     await gauge.waitForDeployment();
 
     await gaugeController
       .connect(accounts[0])
-      .addGauge(gauge.address, gaugeType, stGaugeWeight);
+      .addGauge(gauge.target, gaugeType, stGaugeWeight);
 
     gauges.push({ contract: gauge, type: gaugeType, weight: stGaugeWeight });
 
@@ -180,8 +180,8 @@ describe("GaugeControllerV1", function () {
   async function invariantTotalTypeWeight() {
     // Validate the total weight.
     const totalWeight = typeWeights.reduce((total, weight, idx) => {
-      return total.add(_gaugeWeight(idx).mul(weight));
-    }, BigNumber.from("0"));
+      return total + _gaugeWeight(idx) * weight;
+    }, 0n);
 
     expect(await gaugeController.getTotalWeight()).to.be.eq(totalWeight);
   }
@@ -191,21 +191,19 @@ describe("GaugeControllerV1", function () {
     await ethers.provider.send("evm_increaseTime", [WEEK]);
 
     const totalWeight = typeWeights.reduce((total, weight, idx) => {
-      return total.add(_gaugeWeight(idx).mul(weight));
-    }, BigNumber.from("0"));
+      return total + _gaugeWeight(idx) * weight;
+    }, 0n);
 
     for (let i = 0; i < gauges.length; i++) {
       await gaugeController
         .connect(accounts[0])
-        .checkpointGauge(gauges[i].contract.address);
-      const expected = BigNumber.from("10")
-        .pow(18)
-        .mul(typeWeights[gauges[i].type])
-        .mul(gauges[i].weight)
-        .div(totalWeight);
+        .checkpointGauge(gauges[i].contract.target);
+      const expected =
+        (BigInt(1e18) * typeWeights[gauges[i].type] * gauges[i].weight) /
+        totalWeight;
       expect(
         await gaugeController.gaugeRelativeWeight(
-          gauges[i].contract.address,
+          gauges[i].contract.target,
           await time.latest()
         )
       ).to.be.eq(expected);
@@ -224,15 +222,15 @@ describe("GaugeControllerV1", function () {
       );
     }
     const totalWeight = typeWeights.reduce((total, weight, idx) => {
-      return total.add(_gaugeWeight(idx).mul(weight));
-    }, BigNumber.from("0"));
+      return total + _gaugeWeight(idx) * weight;
+    }, 0n);
     console.log(`totalWeight: ${totalWeight.toString()}`);
 
     for (let i = 0; i < gauges.length; i++) {
       console.log(
-        `gaugeRelativeWeight(${gauges[i].contract.address}): ${(
+        `gaugeRelativeWeight(${gauges[i].contract.target}): ${(
           await gaugeController.gaugeRelativeWeight(
-            gauges[i].contract.address,
+            gauges[i].contract.target,
             await time.latest()
           )
         ).toString()}`
@@ -247,32 +245,31 @@ describe("GaugeControllerV1", function () {
     // アップグレードされたGaugeControllerがV1のデータを保持していることを確認する
     it(`should upgrade successfully and keep variables`, async () => {
       // Gaugeの追加
-      const tokenInflationStarts: BigNumber = (
-        await token.startEpochTime()
-      ).add(INFLATION_DELAY);
+      const tokenInflationStarts =
+        (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
       const LiquidityGauge = await ethers.getContractFactory("Gauge");
       const gauge = await LiquidityGauge.deploy(
-        minter.address,
+        minter.target,
         tokenInflationStarts
       );
       await gauge.waitForDeployment();
-      await gaugeController.addGauge(gauge.address, 0, 1);
+      await gaugeController.addGauge(gauge.target, 0, 1);
 
       // 1) GaugeControllerV2へアップグレード
       const GaugeControllerV2 = await ethers.getContractFactory(
         "UpgradableGaugeControllerOriginal"
       );
-      gaugeController = await upgrades.upgradeProxy(
-        gaugeController.address,
+      gaugeController = (await upgrades.upgradeProxy(
+        gaugeController.target,
         GaugeControllerV2
-      );
+      )) as unknown as UpgradableGaugeControllerOriginal;
       await gaugeController.waitForDeployment();
 
       // 2) GaugeControllerV1のデータを保持していることを確認
       expect(await gaugeController.nGaugeTypes()).to.be.eq(1);
       expect(await gaugeController.nGauges()).to.be.eq(1);
-      expect(await gaugeController.gauges(0)).to.be.eq(gauge.address);
-      expect(await gaugeController.gaugeTypes_(gauge.address)).to.be.eq(1);
+      expect(await gaugeController.gauges(0)).to.be.eq(gauge.target);
+      expect(await gaugeController.gaugeTypes_(gauge.target)).to.be.eq(1);
     });
 
     it("should fail to upgrade with non admin user", async () => {
@@ -283,7 +280,7 @@ describe("GaugeControllerV1", function () {
       );
 
       await expect(
-        upgrades.upgradeProxy(gaugeController.address, GaugeControllerV2)
+        upgrades.upgradeProxy(gaugeController.target, GaugeControllerV2)
       ).to.be.revertedWith("admin only");
     });
 
@@ -296,15 +293,15 @@ describe("GaugeControllerV1", function () {
         const GaugeControllerV2 = await ethers.getContractFactory(
           "UpgradableGaugeControllerOriginal"
         );
-        gaugeController = await upgrades.upgradeProxy(
-          gaugeController.address,
+        gaugeController = (await upgrades.upgradeProxy(
+          gaugeController.target,
           GaugeControllerV2
-        );
+        )) as unknown as UpgradableGaugeControllerOriginal;
         await gaugeController.waitForDeployment();
 
         // 2) Curve版の機能を使ってTypeWeightを調整
-        await gaugeController.changeTypeWeight(0, BigNumber.from(10).pow(18));
-        typeWeights.push(BigNumber.from(BigNumber.from(10).pow(18)));
+        await gaugeController.changeTypeWeight(0, BigInt(1e18));
+        typeWeights.push(BigInt(1e18));
 
         // 3) Curve版のテストを実行する
         const steps = randomValue(1, STATEFUL_STEP_COUNT);
