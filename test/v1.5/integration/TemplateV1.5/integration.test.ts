@@ -1,13 +1,23 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { deploySaleTemplateV1_5 } from "../../../scenarioHelper";
+import {
+  deploySaleTemplateV1_5,
+  getTemplateAddr,
+} from "../../../scenarioHelper";
+import {
+  VotingEscrow,
+  YMWK,
+  Factory,
+  FeeDistributor,
+  TemplateV1_5,
+  MockToken,
+} from "../../../../typechain-types";
 
 const ACCOUNT_NUM = 5;
 const MAX_EXAMPLES = 50;
@@ -15,17 +25,10 @@ const STATEFUL_STEP_COUNT = 30;
 const DAY = 86400;
 const WEEK = DAY * 7;
 const YEAR = DAY * 365;
-const two_to_the_256_minus_1 = BigNumber.from("2")
-  .pow(BigNumber.from("256"))
-  .sub(BigNumber.from("1"));
+const two_to_the_256_minus_1 = ethers.MaxUint256;
 const MOUNT_DECIMALS = 3;
 
 // Helper functions to generate random variables ----->
-function randomBigValue(min: number, max: number): BigNumber {
-  return BigNumber.from(
-    Math.floor(Math.random() * (max - min) + min).toString()
-  );
-}
 function randomValue(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min) + min);
 }
@@ -34,19 +37,19 @@ function getRandomAccountNum(): number {
   let rdm = Math.floor(Math.random() * ACCOUNT_NUM); //0~9 integer
   return rdm;
 }
-function getRandomWeeks(): BigNumber {
+function getRandomWeeks(): number {
   // Corresponds strategy("uint256", min_value=1, max_value=12)
-  return randomBigValue(1, 12);
+  return randomValue(1, 12);
 }
-function getRandomAmounts(): BigNumber {
+function getRandomAmounts(): number {
   // Corresponds strategy("decimal", min_value=1, max_value=100, places=3)
-  return randomBigValue(
-    1 * 10 ** MOUNT_DECIMALS,
-    100 * 10 ** MOUNT_DECIMALS
-  ).mul(BigNumber.from(10).pow(18 - MOUNT_DECIMALS));
+  return (
+    randomValue(1 * 10 ** MOUNT_DECIMALS, 100 * 10 ** MOUNT_DECIMALS) *
+    10 ** (18 - MOUNT_DECIMALS)
+  );
 }
-function getRandomsTime(): BigNumber {
-  return randomBigValue(0, WEEK * 2);
+function getRandomsTime(): number {
+  return randomValue(0, WEEK * 2);
 }
 function getRandomAuctionDuration(): number {
   return randomValue(DAY, DAY * 3);
@@ -64,22 +67,22 @@ Template v1.5, FeeDistributor, VotingEscrowのインテグレーションテス�
 describe("TemplateV1.5", function () {
   let accounts: SignerWithAddress[];
   let admin: SignerWithAddress; // FeeDistributor Admin
-  let votingEscrow: Contract;
-  let factory: Contract;
-  let distributor: Contract;
-  let feeCoin: Contract;
-  let token: Contract;
-  let auction: Contract;
+  let votingEscrow: VotingEscrow;
+  let factory: Factory;
+  let distributor: FeeDistributor;
+  let feeCoin: MockToken;
+  let token: YMWK;
+  let auction: TemplateV1_5;
 
   let lockedUntil: { [key: string]: number } = {};
-  let fees: { [key: number]: BigNumber } = {}; // timestamp -> amount
-  let userClaims: { [key: string]: { [key: number]: BigNumber } } = {}; // address -> timestamp -> [claimed, timeCursor]
-  let userGases: { [key: string]: BigNumber }; // address -> total gas fee
-  let contributions: { [key: string]: BigNumber }; // address -> total contribution
-  let initialEthBalance: { [key: string]: BigNumber };
-  let totalFees: BigNumber = ethers.parseEther("0");
-  let auctions: Contract[];
-  let activeAuctions: Contract[];
+  let fees: { [key: number]: bigint } = {}; // timestamp -> amount
+  let userClaims: { [key: string]: { [key: number]: bigint } } = {}; // address -> timestamp -> [claimed, timeCursor]
+  let userGases: { [key: string]: bigint }; // address -> total gas fee
+  let contributions: { [key: string]: bigint }; // address -> total contribution
+  let initialEthBalance: { [key: string]: bigint };
+  let totalFees: bigint = ethers.parseEther("0");
+  let auctions: TemplateV1_5[];
+  let activeAuctions: TemplateV1_5[];
   let veEventsbyUser: { [key: string]: { [key: number]: string } };
   let templateName: string;
 
@@ -115,7 +118,7 @@ describe("TemplateV1.5", function () {
     await feeCoin.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -132,7 +135,7 @@ describe("TemplateV1.5", function () {
         .transfer(accounts[i].address, ethers.parseEther("10000000"));
       await token
         .connect(accounts[i])
-        .approve(votingEscrow.address, two_to_the_256_minus_1);
+        .approve(votingEscrow.target, two_to_the_256_minus_1);
 
       userClaims[accounts[i].address] = {};
     }
@@ -146,9 +149,9 @@ describe("TemplateV1.5", function () {
       );
 
     lockedUntil = {
-      [accounts[0].address]: (
+      [accounts[0].address]: Number(
         await votingEscrow.lockedEnd(accounts[0].address)
-      ).toNumber(),
+      ),
     };
 
     // a week later we deploy the fee distributor
@@ -156,8 +159,8 @@ describe("TemplateV1.5", function () {
     await time.increase(WEEK);
 
     distributor = await FeeDistributor.deploy(
-      votingEscrow.address,
-      factory.address,
+      votingEscrow.target,
+      factory.target,
       await time.latest()
     );
     await distributor.waitForDeployment();
@@ -167,12 +170,12 @@ describe("TemplateV1.5", function () {
       ._mintForTesting(admin.address, ethers.parseEther("1"));
     await feeCoin
       .connect(admin)
-      .approve(factory.address, ethers.parseEther("1"));
+      .approve(factory.target, ethers.parseEther("1"));
     let auctionObj = await deploySaleTemplateV1_5(
       factory,
       distributor,
       token,
-      feeCoin.address,
+      String(feeCoin.target),
       ethers.parseEther("1"),
       (await time.latest()) + DAY,
       DAY,
@@ -185,9 +188,11 @@ describe("TemplateV1.5", function () {
     activeAuctions = [];
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {
-      initialEthBalance[accounts[i].address] = await accounts[i].getBalance();
-      userGases[accounts[i].address] = ethers.BigNumber.from("0");
-      contributions[accounts[i].address] = ethers.BigNumber.from("0");
+      initialEthBalance[accounts[i].address] = await ethers.provider.getBalance(
+        accounts[i]
+      );
+      userGases[accounts[i].address] = 0n;
+      contributions[accounts[i].address] = 0n;
     }
   });
 
@@ -207,9 +212,8 @@ describe("TemplateV1.5", function () {
     if (lockedUntil[stAcct.address] < currentTime) {
       let tx = await votingEscrow.connect(stAcct).withdraw();
       let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      userGases[stAcct.address] =
+        userGases[stAcct.address] + receipt!.gasPrice * receipt!.gasUsed;
       delete lockedUntil[stAcct.address];
       return false;
     }
@@ -219,9 +223,9 @@ describe("TemplateV1.5", function () {
   //--------------------------------------------- randomly excuted functions -----------------------------------------------------------//
   async function ruleNewLock(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
-    stWeeks?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stWeeks?: number,
+    stTime?: number
   ) {
     /*
     Add a new user lock.
@@ -231,15 +235,15 @@ describe("TemplateV1.5", function () {
     stAcct : SignerWithAddress
         Account to lock tokens for. If this account already has an active
         lock, the rule is skipped.
-    stAmount: BigNumber
+    stAmount: bigint
         Amount of tokens to lock.
-    stWeeks: BigNumber
+    stWeeks: number
         Duration of lock, given in weeks.
-    stTime: BigNumber
+    stTime: number
         Duration to sleep before action, in seconds.
     */
     stAcct = stAcct || accounts[getRandomAccountNum()];
-    stAmount = stAmount || getRandomAmounts();
+    stAmount = stAmount || BigInt(getRandomAmounts());
     stWeeks = stWeeks || getRandomWeeks();
     stTime = stTime || getRandomsTime();
 
@@ -250,24 +254,22 @@ describe("TemplateV1.5", function () {
     }, stAmount: ${stAmount.toString()}, stWeeks: ${stWeeks.toString()}, stTime: ${stTime.toString()}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     if (!(await _checkActiveLock(stAcct))) {
-      const until =
-        (Math.floor((await time.latest()) / WEEK) + stWeeks.toNumber()) * WEEK;
+      const until = (Math.floor((await time.latest()) / WEEK) + stWeeks) * WEEK;
       let tx = await votingEscrow.connect(stAcct).createLock(stAmount, until);
       let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      userGases[stAcct.address] =
+        userGases[stAcct.address] + receipt!.gasPrice * receipt!.gasUsed;
       lockedUntil[stAcct.address] = until;
     }
   }
 
   async function ruleExtendLock(
     stAcct?: SignerWithAddress,
-    stWeeks?: BigNumber,
-    stTime?: BigNumber
+    stWeeks?: number,
+    stTime?: number
   ) {
     /*
     Extend an existing user lock.
@@ -292,14 +294,14 @@ describe("TemplateV1.5", function () {
     }, stWeeks: ${stWeeks.toString()}, stTime: ${stTime.toString()}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
       const until =
         (Math.floor(
-          (await votingEscrow.lockedEnd(stAcct.address)).toNumber() / WEEK
+          Number(await votingEscrow.lockedEnd(stAcct.address)) / WEEK
         ) +
-          stWeeks.toNumber()) *
+          stWeeks) *
         WEEK;
       const newUntil = Math.min(
         until,
@@ -307,17 +309,16 @@ describe("TemplateV1.5", function () {
       );
       let tx = await votingEscrow.connect(stAcct).increaseUnlockTime(newUntil);
       let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      userGases[stAcct.address] =
+        userGases[stAcct.address] + receipt!.gasPrice * receipt!.gasUsed;
       lockedUntil[stAcct.address] = newUntil;
     }
   }
 
   async function ruleIncreaseLockAmount(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
-    stTime?: BigNumber
+    stAmount?: bigint,
+    stTime?: number
   ) {
     /*
     Increase the amount of an existing user lock.
@@ -327,13 +328,13 @@ describe("TemplateV1.5", function () {
     stAcct : SignerWithAddress
         Account to increase lock amount for. If this account does not have an
         active lock, the rule is skipped.
-    stAmount : BigNumber
+    stAmount : bigint
         Amount of tokens to add to lock.
     stTime : number
         Duration to sleep before action, in seconds.
     */
     stAcct = accounts[getRandomAccountNum()];
-    stAmount = getRandomAmounts();
+    stAmount = BigInt(getRandomAmounts());
     stTime = getRandomsTime();
 
     console.log(`
@@ -342,22 +343,21 @@ describe("TemplateV1.5", function () {
     }, stAmount: ${stAmount.toString()}, stTime: ${stTime.toString()}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     if (await _checkActiveLock(stAcct)) {
       let tx = await votingEscrow.connect(stAcct).increaseAmount(stAmount);
       let receipt = await tx.wait();
-      userGases[stAcct.address] = userGases[stAcct.address].add(
-        receipt.effectiveGasPrice.mul(receipt.gasUsed)
-      );
+      userGases[stAcct.address] =
+        userGases[stAcct.address] + receipt!.gasPrice * receipt!.gasUsed;
     }
   }
 
   async function ruleContribute(
     stAcct?: SignerWithAddress,
-    stAmount?: BigNumber,
+    stAmount?: bigint,
     stAuctionId?: number,
-    stTime?: BigNumber
+    stTime?: number
   ) {
     /*
     Contribute to an active auction.
@@ -366,7 +366,7 @@ describe("TemplateV1.5", function () {
     ---------
     stAcct : SignerWithAddress
         Account to claim fees for.
-    stAmount: BigNumber
+    stAmount: bigint
         Amount of tokens to contribute.
     stAuctionId: number
         Auction ID to contribute.
@@ -378,20 +378,20 @@ describe("TemplateV1.5", function () {
       return;
     }
     stAcct = accounts[getRandomAccountNum()];
-    stAmount = stAmount || getRandomAmounts();
+    stAmount = stAmount || BigInt(getRandomAmounts());
     stAuctionId = stAuctionId || randomValue(0, activeAuctions.length);
     stTime = stTime || getRandomsTime();
     auction = activeAuctions[stAuctionId];
 
     const closingAt = await auction.closingAt();
 
-    if (closingAt.toNumber() <= (await time.latest())) {
+    if (closingAt <= (await time.latest())) {
       // オークションは終了している
       await ruleCloseAuction(stAuctionId);
       return;
     }
     const startingAt = await auction.startingAt();
-    if (startingAt.toNumber() > (await time.latest())) {
+    if (startingAt > (await time.latest())) {
       await time.increaseTo(startingAt);
     }
 
@@ -402,19 +402,18 @@ describe("TemplateV1.5", function () {
     `);
 
     const tx = await stAcct.sendTransaction({
-      to: auction.address,
+      to: auction.target,
       value: stAmount,
     });
     const receipt = await tx.wait();
-    userGases[stAcct.address] = userGases[stAcct.address].add(
-      receipt.effectiveGasPrice.mul(receipt.gasUsed)
-    );
-    contributions[stAcct.address] = contributions[stAcct.address].add(stAmount);
+    userGases[stAcct.address] =
+      userGases[stAcct.address] + receipt!.gasPrice * receipt!.gasUsed;
+    contributions[stAcct.address] = contributions[stAcct.address] + stAmount;
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
   }
 
-  async function ruleClaimFees(stAcct?: SignerWithAddress, stTime?: BigNumber) {
+  async function ruleClaimFees(stAcct?: SignerWithAddress, stTime?: number) {
     /*
     Claim fees for a user.
 
@@ -432,7 +431,7 @@ describe("TemplateV1.5", function () {
     ruleClaimFees --- stAcct ${stAcct.address}, stTime: ${stTime.toString()}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     // For debug ---
     // const t0: number = (await distributor.startTime(ethers.ZeroAddress)).toNumber();
@@ -455,15 +454,15 @@ describe("TemplateV1.5", function () {
     } catch (e: any) {
       // RevertしたTXのガスコストを考慮
       const latestBlock = await ethers.provider.getBlock("latest");
-      const latestTXHash = latestBlock.transactions.at(-1);
+      const latestTXHash = latestBlock!.transactions.at(-1);
       const revertedTxReceipt = await ethers.provider.getTransactionReceipt(
         latestTXHash as string
       );
-      const revertedTxGasUsage = revertedTxReceipt.gasUsed;
-      const revertedTxGasPrice = revertedTxReceipt.effectiveGasPrice;
-      const revertedTxGasCosts = revertedTxGasUsage.mul(revertedTxGasPrice);
+      const revertedTxGasUsage = revertedTxReceipt!.gasUsed;
+      const revertedTxGasPrice = revertedTxReceipt!.gasPrice;
+      const revertedTxGasCosts = revertedTxGasUsage * revertedTxGasPrice;
       userGases[stAcct.address] =
-        userGases[stAcct.address].add(revertedTxGasCosts);
+        userGases[stAcct.address] + revertedTxGasCosts;
 
       // revertは仕様とし、checkpointTotalSupplyを呼び、再度claimする
       await distributor.connect(admin).checkpointTotalSupply();
@@ -473,19 +472,18 @@ describe("TemplateV1.5", function () {
         ["claim(address)"](ethers.ZeroAddress);
     }
     const receipt = await tx.wait();
-    const gas = receipt.effectiveGasPrice.mul(receipt.gasUsed);
-    userGases[stAcct.address] = userGases[stAcct.address].add(gas);
+    const gas = receipt!.gasPrice * receipt!.gasUsed;
+    userGases[stAcct.address] = userGases[stAcct.address] + gas;
 
-    const newClaimed = (await ethers.provider.getBalance(stAcct.address))
-      .sub(claimed)
-      .add(gas);
-    userClaims[stAcct.address][tx.blockNumber] = newClaimed;
+    const newClaimed =
+      (await ethers.provider.getBalance(stAcct.address)) - claimed + gas;
+    userClaims[stAcct.address][tx.blockNumber!] = newClaimed;
   }
 
   async function ruleStartAuction(
-    stAmount?: BigNumber,
+    stAmount?: bigint,
     stAuctionDuration?: number,
-    stTime?: BigNumber
+    stTime?: number
   ) {
     /*
     Start a new auction with random amount and duration.
@@ -499,7 +497,7 @@ describe("TemplateV1.5", function () {
     stTime : number
         Duration to sleep before action, in seconds.
     */
-    stAmount = stAmount || getRandomAmounts();
+    stAmount = stAmount || BigInt(getRandomAmounts());
     stAuctionDuration = stAuctionDuration || getRandomAuctionDuration();
     stTime = stTime || getRandomsTime();
 
@@ -509,37 +507,39 @@ describe("TemplateV1.5", function () {
     } days,  stTime: ${stTime.toString()}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     await feeCoin.connect(admin)._mintForTesting(admin.address, stAmount);
-    await feeCoin.connect(admin).approve(factory.address, stAmount);
+    await feeCoin.connect(admin).approve(factory.target, stAmount);
 
-    const abiCoder = ethers.utils.defaultAbiCoder;
+    const abiCoder = ethers.AbiCoder.defaultAbiCoder();
     const args = abiCoder.encode(
       ["address", "uint256", "uint256", "address", "uint256", "uint256"],
       [
         admin.address,
         (await time.latest()) + DAY,
         stAuctionDuration,
-        feeCoin.address,
+        feeCoin.target,
         stAmount,
         0, //randomBigValue(0, 5).mul(BigNumber.from(10).pow(18)),
       ]
     );
     const tx = await factory.connect(admin).deployAuction(templateName, args);
     const receipt = await tx.wait();
-    const event = receipt.events.find(
-      (event: any) => event.event === "Deployed"
-    );
-    const [, templateAddr] = event.args;
+
+    const templateAddr = await getTemplateAddr(receipt);
+    // const event = receipt.events.find(
+    //   (event: any) => event.event === "Deployed"
+    // );
+    // const [, templateAddr] = event.args;
     const Template = await ethers.getContractFactory("TemplateV1_5");
-    const auction = Template.attach(templateAddr);
+    const auction = Template.attach(templateAddr) as TemplateV1_5;
 
     auctions.push(auction);
     activeAuctions.push(auction);
   }
 
-  async function ruleCloseAuction(stAuctionId?: number, stTime?: BigNumber) {
+  async function ruleCloseAuction(stAuctionId?: number, stTime?: number) {
     /*
     オークションが開催終了していた場合
         - 売上引き出し（成功）
@@ -562,25 +562,25 @@ describe("TemplateV1.5", function () {
     ruleCloseAuction --- stAuctionId ${stAuctionId}
     `);
 
-    stTime.gt(0) && (await time.increase(stTime));
+    stTime > 0 && (await time.increase(stTime));
 
     const closingAt = await auction.closingAt();
 
-    if (closingAt.toNumber() > (await time.latest())) {
+    if (closingAt > (await time.latest())) {
       // オークションはまだ開催中
       return;
     }
     const minRaisedAmount = await auction.minRaisedAmount();
     const totalRaised = await auction.totalRaised();
 
-    if (minRaisedAmount.gt(totalRaised) || totalRaised.eq(0)) {
+    if (minRaisedAmount > totalRaised || totalRaised === 0n) {
       // 失敗。トークン回収
       await auction.connect(admin).withdrawERC20Onsale();
     } else {
       // 成功、売上回収
       const raised = await auction.totalRaised();
       await auction.connect(admin).withdrawRaisedETH();
-      totalFees = totalFees.add(raised.div(100));
+      totalFees = totalFees + raised / 100n;
     }
     // 開催中オークションリストから削除
     activeAuctions.splice(stAuctionId, 1);
@@ -593,7 +593,7 @@ describe("TemplateV1.5", function () {
     console.log("teardown----");
     for (let i = 0; i < activeAuctions.length; i++) {
       // 開催中のオークションがある場合、期限が過ぎているものはクローズする
-      await ruleCloseAuction(i, BigNumber.from("0"));
+      await ruleCloseAuction(i, 0);
     }
 
     // Need two checkpoints to get tokens fully distributed
@@ -614,32 +614,30 @@ describe("TemplateV1.5", function () {
       //     Point: ${up}
       //     `);
       // <----
-      await ruleClaimFees(acct, BigNumber.from("0"));
+      await ruleClaimFees(acct, 0);
       const thisWeek = Math.floor((await time.latest()) / WEEK) * WEEK;
       let userTimeCursor = await distributor.timeCursorOf(
         acct.address,
         ethers.ZeroAddress
       );
-      if (userTimeCursor.gt(0) && userTimeCursor.lt(thisWeek)) {
+      if (userTimeCursor > 0 && userTimeCursor < thisWeek) {
         // console.log(
         //   `Additional claim. ${BigNumber.from(thisWeek).sub(userTimeCursor).div(WEEK)}`
         // );
         // 追加でClaim。2回で十分
-        await ruleClaimFees(acct, BigNumber.from("0"));
-        await ruleClaimFees(acct, BigNumber.from("0"));
+        await ruleClaimFees(acct, 0);
+        await ruleClaimFees(acct, 0);
       }
     }
 
-    const t0: number = (
-      await distributor.startTime(ethers.ZeroAddress)
-    ).toNumber();
+    const t0: number = Number(await distributor.startTime(ethers.ZeroAddress));
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
-    const tokensPerUserPerWeek: { [key: string]: BigNumber[] } = {};
-    const tokensPerWeeks: BigNumber[] = [];
+    const tokensPerUserPerWeek: { [key: string]: bigint[] } = {};
+    const tokensPerWeeks: bigint[] = [];
 
     for (let w = t0; w < t1 + WEEK; w += WEEK) {
-      const tokensPerWeek: BigNumber = await distributor.tokensPerWeek(
+      const tokensPerWeek: bigint = await distributor.tokensPerWeek(
         ethers.ZeroAddress,
         w
       );
@@ -648,16 +646,16 @@ describe("TemplateV1.5", function () {
       for (const acct of accounts) {
         tokensPerUserPerWeek[acct.address] =
           tokensPerUserPerWeek[acct.address] || [];
-        const veSupply: BigNumber = await distributor.veSupply(w);
-        if (veSupply.isZero() && !tokensPerWeek.isZero()) {
+        const veSupply: bigint = await distributor.veSupply(w);
+        if (veSupply === 0n && tokensPerWeek !== 0n) {
           // tokensPerWeekが発生しているのにもかかわらずveSupplyが0の場合はエラーを出す
           throw Error("veSupply is incorrectly zero");
         }
-        const tokens: BigNumber = tokensPerWeek.isZero()
-          ? BigNumber.from("0")
-          : tokensPerWeek
-              .mul(await distributor.veForAt(acct.address, w))
-              .div(await distributor.veSupply(w));
+        const tokens: bigint =
+          tokensPerWeek === 0n
+            ? 0n
+            : (tokensPerWeek * (await distributor.veForAt(acct.address, w))) /
+              (await distributor.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
       }
     }
@@ -697,9 +695,10 @@ describe("TemplateV1.5", function () {
       console.log(
         acct.address,
         initialEthBalance[acct.address].toString(),
-        (await ethers.provider.getBalance(acct.address))
-          .sub(initialEthBalance[acct.address])
-          .toString()
+        (
+          (await ethers.provider.getBalance(acct.address)) -
+          initialEthBalance[acct.address]
+        ).toString()
       );
     }
     console.log(``);
@@ -708,24 +707,23 @@ describe("TemplateV1.5", function () {
       console.log(
         acct.address,
         initialEthBalance[acct.address].toString(),
-        (await ethers.provider.getBalance(acct.address))
-          .sub(initialEthBalance[acct.address])
-          .add(userGases[acct.address])
-          .toString()
+        (await ethers.provider.getBalance(acct.address)) -
+          initialEthBalance[acct.address] +
+          userGases[acct.address].toString()
       );
     }
     console.log(``);
     console.log(`[Ether balance of Distributor]`);
     console.log(
-      (await ethers.provider.getBalance(distributor.address)).toString()
+      (await ethers.provider.getBalance(distributor.target)).toString()
     );
 
     console.log(``);
     console.log(`[Active auctions]`);
     console.log(`Number of active auctions: ${activeAuctions.length}`);
     for (let i = 0; i < auctions.length; i++) {
-      const startWeek = (await auctions[i].startingAt()).sub(t0).div(WEEK);
-      const endWeek = (await auctions[i].closingAt()).sub(t0).div(WEEK);
+      const startWeek = (Number(await auctions[i].startingAt()) - t0) / WEEK;
+      const endWeek = (Number(await auctions[i].closingAt()) - t0) / WEEK;
       const totalRaised = await auctions[i].totalRaised();
       console.log(
         `Auction ${i}: startWeek: ${startWeek} closeWeek: ${endWeek} raised: ${totalRaised.toString()}`
@@ -738,16 +736,18 @@ describe("TemplateV1.5", function () {
     for (const acct of accounts) {
       // 各アカウントの初期残高からの変化がそれぞれの報酬額と合致していることを確認
       expect(await ethers.provider.getBalance(acct.address)).to.equal(
-        tokensPerUserPerWeek[acct.address]
-          .reduce((a: BigNumber, b: BigNumber) => a.add(b), BigNumber.from("0"))
-          .add(initialEthBalance[acct.address])
-          .sub(userGases[acct.address])
-          .sub(contributions[acct.address])
+        tokensPerUserPerWeek[acct.address].reduce(
+          (a: bigint, b: bigint) => a + b,
+          0n
+        ) +
+          initialEthBalance[acct.address] -
+          userGases[acct.address] -
+          contributions[acct.address]
       );
     }
 
     // Check if all fees are distributed
-    expect(await ethers.provider.getBalance(distributor.address)).to.be.lt(100);
+    expect(await ethers.provider.getBalance(distributor.target)).to.be.lt(100);
   }
 
   let func = [
