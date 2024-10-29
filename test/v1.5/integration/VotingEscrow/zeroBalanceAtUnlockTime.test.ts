@@ -1,19 +1,19 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { VotingEscrow, YMWK } from "../../../../typechain-types";
 
 const WEEK = 86400 * 7;
 
 describe("Voting Escrow tests", function () {
   let accounts: SignerWithAddress[];
-  let votingEscrow: Contract;
-  let token: Contract;
+  let votingEscrow: VotingEscrow;
+  let token: YMWK;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async () => {
@@ -27,7 +27,7 @@ describe("Voting Escrow tests", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -36,7 +36,7 @@ describe("Voting Escrow tests", function () {
 
     await token
       .connect(accounts[0])
-      .approve(votingEscrow.address, ethers.parseEther("1"));
+      .approve(votingEscrow.target, ethers.parseEther("1"));
   });
 
   afterEach(async () => {
@@ -58,7 +58,7 @@ describe("Voting Escrow tests", function () {
 
       const actualUnlock = (await votingEscrow.locked(accounts[0].address))[1];
 
-      await time.increase(actualUnlock - (await time.latest()) - 5);
+      await time.increase(actualUnlock - BigInt(await time.latest()) - 5n);
 
       expect(
         await votingEscrow["balanceOf(address)"](accounts[0].address)
@@ -90,8 +90,8 @@ describe("Voting Escrow tests", function () {
 
         const initialUnlock = (
           await votingEscrow.locked(accounts[0].address)
-        )[1].toNumber();
-        const extendedExpectedUnlock = initialUnlock + st_extend;
+        )[1];
+        const extendedExpectedUnlock = initialUnlock + BigInt(st_extend);
 
         await votingEscrow.increaseUnlockTime(extendedExpectedUnlock);
 
@@ -99,7 +99,9 @@ describe("Voting Escrow tests", function () {
           await votingEscrow.locked(accounts[0].address)
         )[1];
 
-        await time.increase(extendedActualUnlock - (await time.latest()) - 5);
+        await time.increase(
+          extendedActualUnlock - BigInt(await time.latest()) - 5n
+        );
 
         expect(
           await votingEscrow["balanceOf(address)"](accounts[0].address)

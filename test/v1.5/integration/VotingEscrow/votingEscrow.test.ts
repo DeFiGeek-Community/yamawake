@@ -1,12 +1,13 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import {
   time,
   takeSnapshot,
   SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { VotingEscrow, YMWK } from "../../../../typechain-types";
+import { abs } from "../../../helper";
 
 describe("Voting Powers Test", function () {
   // Test voting power in the following scenario.
@@ -49,10 +50,10 @@ describe("Voting Powers Test", function () {
   const TOL = (120 / WEEK) * SCALE;
 
   let alice: SignerWithAddress, bob: SignerWithAddress;
-  let votingEscrow: Contract;
-  let token: Contract;
+  let votingEscrow: VotingEscrow;
+  let token: YMWK;
   let t0: number;
-  let wTotal, wAlice, wBob: BigNumber;
+  let wTotal, wAlice, wBob: bigint;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -64,7 +65,7 @@ describe("Voting Powers Test", function () {
     await token.waitForDeployment();
 
     votingEscrow = await VotingEscrow.deploy(
-      token.address,
+      token.target,
       "Voting-escrowed token",
       "vetoken",
       "v1"
@@ -79,12 +80,12 @@ describe("Voting Powers Test", function () {
   });
 
   it("test voting powers", async function () {
-    const amount: BigNumber = ethers.parseEther("1000");
+    const amount = ethers.parseEther("1000");
     await token.connect(alice).transfer(bob.address, amount);
     const stages: { [key: string]: Stage | Stage[] } = {};
 
-    await token.connect(alice).approve(votingEscrow.address, amount.mul(10));
-    await token.connect(bob).approve(votingEscrow.address, amount.mul(10));
+    await token.connect(alice).approve(votingEscrow.target, amount * 10n);
+    await token.connect(bob).approve(votingEscrow.target, amount * 10n);
 
     expect(await votingEscrow["totalSupply()"]()).to.equal(0);
     expect(await votingEscrow["balanceOf(address)"](alice.address)).to.equal(0);
@@ -122,10 +123,20 @@ describe("Voting Powers Test", function () {
       alice.address
     );
 
-    expect(approx(totalSupply, amount.div(MAXTIME).mul(WEEK - 2 * H), TOL)).to
-      .be.true;
-    expect(approx(aliceBalance, amount.div(MAXTIME).mul(WEEK - 2 * H), TOL)).to
-      .be.true;
+    expect(
+      approx(
+        totalSupply,
+        (amount / BigInt(MAXTIME)) * BigInt(WEEK - 2 * H),
+        TOL
+      )
+    ).to.be.true;
+    expect(
+      approx(
+        aliceBalance,
+        (amount / BigInt(MAXTIME)) * BigInt(WEEK - 2 * H),
+        TOL
+      )
+    ).to.be.true;
     expect(await votingEscrow["balanceOf(address)"](bob.address)).to.equal(0);
 
     t0 = await time.latest();
@@ -153,14 +164,14 @@ describe("Voting Powers Test", function () {
       expect(
         approx(
           totalSupply,
-          amount.div(MAXTIME).mul(Math.max(WEEK - 2 * H - dt, 0)),
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(WEEK - 2 * H - dt, 0)),
           TOL
         )
       ).to.be.true;
       expect(
         approx(
           aliceBalance,
-          amount.div(MAXTIME).mul(Math.max(WEEK - 2 * H - dt, 0)),
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(WEEK - 2 * H - dt, 0)),
           TOL
         )
       ).to.be.true;
@@ -211,14 +222,14 @@ describe("Voting Powers Test", function () {
     expect(
       approx(
         await votingEscrow["totalSupply()"](),
-        amount.div(MAXTIME).mul(2 * WEEK),
+        (amount / BigInt(MAXTIME)) * BigInt(2 * WEEK),
         TOL
       )
     ).to.be.true;
     expect(
       approx(
         await votingEscrow["balanceOf(address)"](alice.address),
-        amount.div(MAXTIME).mul(2 * WEEK),
+        (amount / BigInt(MAXTIME)) * BigInt(2 * WEEK),
         TOL
       )
     ).to.be.true;
@@ -238,21 +249,21 @@ describe("Voting Powers Test", function () {
     expect(
       approx(
         await votingEscrow["totalSupply()"](),
-        amount.div(MAXTIME).mul(3 * WEEK),
+        (amount / BigInt(MAXTIME)) * BigInt(3 * WEEK),
         TOL
       )
     ).to.be.true;
     expect(
       approx(
         await votingEscrow["balanceOf(address)"](alice.address),
-        amount.div(MAXTIME).mul(2 * WEEK),
+        (amount / BigInt(MAXTIME)) * BigInt(2 * WEEK),
         TOL
       )
     ).to.be.true;
     expect(
       approx(
         await votingEscrow["balanceOf(address)"](bob.address),
-        amount.div(MAXTIME).mul(WEEK),
+        (amount / BigInt(MAXTIME)) * BigInt(WEEK),
         TOL
       )
     ).to.be.true;
@@ -271,12 +282,21 @@ describe("Voting Powers Test", function () {
       wTotal = await votingEscrow["totalSupply()"]();
       wAlice = await votingEscrow["balanceOf(address)"](alice.address);
       wBob = await votingEscrow["balanceOf(address)"](bob.address);
-      expect(wTotal).to.equal(wAlice.add(wBob));
+      expect(wTotal).to.equal(wAlice + wBob);
       expect(
-        approx(wAlice, amount.div(MAXTIME).mul(Math.max(2 * WEEK - dt, 0)), TOL)
+        approx(
+          wAlice,
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(2 * WEEK - dt, 0)),
+          TOL
+        )
       ).to.be.true;
-      expect(approx(wBob, amount.div(MAXTIME).mul(Math.max(WEEK - dt, 0)), TOL))
-        .to.be.true;
+      expect(
+        approx(
+          wBob,
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(WEEK - dt, 0)),
+          TOL
+        )
+      ).to.be.true;
 
       stages["alice_bob_in_2"].push({
         blockNumber: await time.latestBlock(),
@@ -297,8 +317,9 @@ describe("Voting Powers Test", function () {
     const wTotal1 = await votingEscrow["totalSupply()"]();
     const wAlice1 = await votingEscrow["balanceOf(address)"](alice.address);
     expect(wAlice1).to.equal(wTotal1);
-    expect(approx(wTotal1, amount.div(MAXTIME).mul(WEEK - 2 * H), TOL)).to.be
-      .true;
+    expect(
+      approx(wTotal1, (amount / BigInt(MAXTIME)) * BigInt(WEEK - 2 * H), TOL)
+    ).to.be.true;
     expect(await votingEscrow["balanceOf(address)"](bob.address)).to.equal(0);
 
     await time.increase(H);
@@ -315,7 +336,7 @@ describe("Voting Powers Test", function () {
       expect(
         approx(
           wTotal,
-          amount.div(MAXTIME).mul(Math.max(WEEK - dt - 2 * H, 0)),
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(WEEK - dt - 2 * H, 0)),
           TOL
         )
       ).to.be.true;
@@ -368,7 +389,8 @@ describe("Voting Powers Test", function () {
       stages["alice_deposit"].blockNumber
     );
 
-    expect(approx(wAlice, amount.div(MAXTIME).mul(WEEK - H), TOL)).to.be.true;
+    expect(approx(wAlice, (amount / BigInt(MAXTIME)) * BigInt(WEEK - H), TOL))
+      .to.be.true;
     expect(
       await votingEscrow.balanceOfAt(
         bob.address,
@@ -389,8 +411,9 @@ describe("Voting Powers Test", function () {
       expect(wAlice).to.equal(wTotal);
       const timeLeft = Math.floor((WEEK * (7 - i)) / 7) - 2 * H;
       const error1h = (H / timeLeft) * SCALE; // Rounding error of 1 block is possible, and we have 1h blocks
-      expect(approx(wAlice, amount.div(MAXTIME).mul(timeLeft), error1h)).to.be
-        .true;
+      expect(
+        approx(wAlice, (amount / BigInt(MAXTIME)) * BigInt(timeLeft), error1h)
+      ).to.be.true;
     }
 
     wTotal = await votingEscrow.totalSupplyAt(
@@ -415,7 +438,8 @@ describe("Voting Powers Test", function () {
       alice.address,
       stages["alice_deposit_2"].blockNumber
     );
-    expect(approx(wTotal, amount.div(MAXTIME).mul(2 * WEEK), TOL)).to.be.true;
+    expect(approx(wTotal, (amount / BigInt(MAXTIME)) * BigInt(2 * WEEK), TOL))
+      .to.be.true;
     expect(wTotal).to.equal(wAlice);
     expect(
       await votingEscrow.balanceOfAt(
@@ -435,9 +459,11 @@ describe("Voting Powers Test", function () {
       bob.address,
       stages["bob_deposit_2"].blockNumber
     );
-    expect(wTotal).to.equal(wAlice.add(wBob));
-    expect(approx(wTotal, amount.div(MAXTIME).mul(3 * WEEK), TOL)).to.be.true;
-    expect(approx(wAlice, amount.div(MAXTIME).mul(2 * WEEK), TOL)).to.be.true;
+    expect(wTotal).to.equal(wAlice + wBob);
+    expect(approx(wTotal, (amount / BigInt(MAXTIME)) * BigInt(3 * WEEK), TOL))
+      .to.be.true;
+    expect(approx(wAlice, (amount / BigInt(MAXTIME)) * BigInt(2 * WEEK), TOL))
+      .to.be.true;
 
     t0 = stages["bob_deposit_2"].timestamp;
     for (let i = 0; i < stages["alice_bob_in_2"].length; i++) {
@@ -445,18 +471,22 @@ describe("Voting Powers Test", function () {
       wAlice = await votingEscrow.balanceOfAt(alice.address, block);
       wBob = await votingEscrow.balanceOfAt(bob.address, block);
       wTotal = await votingEscrow.totalSupplyAt(block);
-      expect(wTotal).to.equal(wAlice.add(wBob));
+      expect(wTotal).to.equal(wAlice + wBob);
       const dt = stages["alice_bob_in_2"][i].timestamp - t0;
       const error1h = (H / (2 * WEEK - i * DAY)) * SCALE; // Rounding error of 1 block is possible, and we have 1h blocks
       expect(
         approx(
           wAlice,
-          amount.div(MAXTIME).mul(Math.max(2 * WEEK - dt, 0)),
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(2 * WEEK - dt, 0)),
           error1h
         )
       ).to.be.true;
       expect(
-        approx(wBob, amount.div(MAXTIME).mul(Math.max(WEEK - dt, 0)), error1h)
+        approx(
+          wBob,
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(WEEK - dt, 0)),
+          error1h
+        )
       ).to.be.true;
     }
 
@@ -472,8 +502,9 @@ describe("Voting Powers Test", function () {
       stages["bob_withdraw_1"].blockNumber
     );
     expect(wTotal).to.equal(wAlice);
-    expect(approx(wTotal, amount.div(MAXTIME).mul(WEEK - 2 * H), TOL)).to.be
-      .true;
+    expect(
+      approx(wTotal, (amount / BigInt(MAXTIME)) * BigInt(WEEK - 2 * H), TOL)
+    ).to.be.true;
     expect(wBob).to.equal(0);
 
     t0 = stages["bob_withdraw_1"].timestamp;
@@ -490,7 +521,7 @@ describe("Voting Powers Test", function () {
       expect(
         approx(
           wTotal,
-          amount.div(MAXTIME).mul(Math.max(WEEK - dt - 2 * H, 0)),
+          (amount / BigInt(MAXTIME)) * BigInt(Math.max(WEEK - dt - 2 * H, 0)),
           error1h
         )
       ).to.be.true;
@@ -514,33 +545,29 @@ describe("Voting Powers Test", function () {
     await showStats();
   });
 
-  function approx(value: BigNumber, target: BigNumber, tol: number) {
-    if (value.isZero() && target.isZero()) {
+  function approx(value: bigint, target: bigint, tol: number) {
+    if (value === 0n && target === 0n) {
       return true;
     }
 
-    const diff = value.sub(target).abs();
-    const sum = value.add(target);
-    const ratio = diff.mul(2).mul(BigNumber.from(SCALE.toString())).div(sum);
+    const diff = abs(value - target);
+    const sum = value + target;
+    const ratio = (diff * 2n * BigInt(SCALE)) / sum;
 
-    return ratio.lte(BigNumber.from(tol.toString()));
+    return ratio <= BigInt(tol);
   }
 
   async function showStats() {
-    const initialBlock = (await votingEscrow.pointHistory(0)).blk.toNumber();
+    const initialBlock = (await votingEscrow.pointHistory(0)).blk;
     const latestBlock = await time.latestBlock();
     for (let i = initialBlock; i < latestBlock; i++) {
       let a = await votingEscrow.balanceOfAt(alice.address, `${i}`);
       let b = await votingEscrow.balanceOfAt(bob.address, `${i}`);
       console.log(`Block ${i}: a: ${a.toString()} b: ${b.toString()}`);
     }
-    const epoch = (await votingEscrow.epoch()).toNumber();
-    const aliceEpoch = (
-      await votingEscrow.userPointEpoch(alice.address)
-    ).toNumber();
-    const bobEpoch = (
-      await votingEscrow.userPointEpoch(bob.address)
-    ).toNumber();
+    const epoch = await votingEscrow.epoch();
+    const aliceEpoch = await votingEscrow.userPointEpoch(alice.address);
+    const bobEpoch = await votingEscrow.userPointEpoch(bob.address);
     for (let i = 0; i <= epoch; i++) {
       let p = await votingEscrow.pointHistory(i);
       console.log(
@@ -549,18 +576,18 @@ describe("Voting Powers Test", function () {
     }
     for (let i = 0; i <= aliceEpoch; i++) {
       let p = await votingEscrow.userPointHistory(alice.address, i);
-      let balanceAt = p.blk.isZero()
-        ? 0
-        : await votingEscrow.balanceOfAt(alice.address, p.blk.toNumber());
+      let balanceAt =
+        p.blk === 0n
+          ? 0n
+          : await votingEscrow.balanceOfAt(alice.address, p.blk);
       console.log(
         `alice epoch: ${i}: balanceAt: ${balanceAt.toString()} bias: ${p.bias.toString()} slope: ${p.slope.toString()} ts: ${p.ts.toString()} blk: ${p.blk.toString()}`
       );
     }
     for (let i = 0; i < bobEpoch; i++) {
       let p = await votingEscrow.userPointHistory(bob.address, i);
-      let balanceAt = p.blk.isZero()
-        ? 0
-        : await votingEscrow.balanceOfAt(bob.address, p.blk.toNumber());
+      let balanceAt =
+        p.blk === 0n ? 0n : await votingEscrow.balanceOfAt(bob.address, p.blk);
       console.log(
         `bob epoch: ${i}: balanceAt: ${balanceAt.toString()} bias: ${p.bias.toString()} slope: ${p.slope.toString()} ts: ${p.ts.toString()} blk: ${p.blk.toString()}`
       );
