@@ -276,7 +276,7 @@ kill状態をTrueに変更し、Ether残高をAdminに送金する
 
 #### addRewardToken(address coin\_) returns bool
 
-- Auctionのみ
+- Auction、Adminのみ
 - external
 - 引数
   - address\_

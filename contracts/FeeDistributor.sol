@@ -170,12 +170,8 @@ contract FeeDistributor is ReentrancyGuard {
      * @dev Calculates the total number of tokens to be distributed in a given week.
          This function is only callable by auctions or the contract owner.
      */
-    function checkpointToken(address token_) external {
+    function checkpointToken(address token_) external onlyAdminOrAuction {
         require(tokenFlags[token_] == 1, "Token not registered");
-        require(
-            msg.sender == admin || IFactory(factory).auctions(msg.sender),
-            "Unauthorized"
-        );
 
         if (block.timestamp >= timeCursor) {
             _checkpointTotalSupply();
@@ -724,7 +720,9 @@ contract FeeDistributor is ReentrancyGuard {
      * @param coin_ Token address
      * @return bool success
      */
-    function addRewardToken(address coin_) external onlyAuction returns (bool) {
+    function addRewardToken(
+        address coin_
+    ) external onlyAdminOrAuction returns (bool) {
         require(coin_ != address(0), "ETH is already registered");
         require(tokenFlags[coin_] == 0, "Token is already registered");
 
@@ -752,6 +750,15 @@ contract FeeDistributor is ReentrancyGuard {
         require(
             IFactory(factory).auctions(msg.sender),
             "You are not the auction."
+        );
+        _;
+    }
+
+    /// @dev Allow only auctions or admin
+    modifier onlyAdminOrAuction() {
+        require(
+            msg.sender == admin || IFactory(factory).auctions(msg.sender),
+            "Unauthorized"
         );
         _;
     }

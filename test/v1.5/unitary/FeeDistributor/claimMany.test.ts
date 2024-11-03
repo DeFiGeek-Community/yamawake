@@ -179,17 +179,18 @@ describe("FeeDistributor", () => {
         dan
       );
 
-      expect(feeDistributor.checkpointToken(coinA.target)).to.be.revertedWith(
-        "Token not registered"
-      );
-      expect(feeDistributor.addRewardToken(coinA.target)).to.be.revertedWith(
-        "You are not the auction."
-      );
+      await expect(
+        feeDistributor.checkpointToken(coinA.target)
+      ).to.be.revertedWith("Token not registered");
+      await expect(
+        feeDistributor.connect(dan).addRewardToken(coinA.target)
+      ).to.be.revertedWith("Unauthorized");
 
       await coinA._mintForTesting(auction.target, ethers.parseEther("10"));
 
-      // Calling the mock function to add coinA to the reward list
-      await auction.withdrawRaisedToken(coinA.target);
+      // Add coinA to the reward list by the admin
+      await expect(feeDistributor.connect(alice).addRewardToken(coinA.target))
+        .to.not.be.reverted;
 
       await feeDistributor.checkpointToken(coinA.target);
       await time.increase(WEEK);
