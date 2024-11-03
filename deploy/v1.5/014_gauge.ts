@@ -6,6 +6,7 @@ import {
   getContractAddress,
   existsDeployedContract,
 } from "../../src/deployUtil";
+import { Gauge, GaugeControllerV1, YMWK } from "../../typechain-types";
 
 const codename = "Gauge";
 const INFLATION_DELAY = 86400 * 365;
@@ -15,6 +16,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`${codename} is already deployed. skipping deploy...`);
     return;
   }
+
+  // Deploy only to L1
+  if (!hre.network.tags.receiver) {
+    console.log(`${codename} is intended for deployment on L1 only`);
+    return;
+  }
+
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
@@ -31,30 +39,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   ) {
     throw new Error("Minter, YMWK or GaugeController address is null");
   }
-  const ymwk = (await getContractFactory("YMWK")).attach(ymwkAddress);
-  const tokenInflationStarts = (await ymwk.startEpochTime()).add(
-    INFLATION_DELAY
-  );
+  const ymwk = (await getContractFactory("YMWK")).attach(ymwkAddress) as YMWK;
+  const tokenInflationStarts =
+    (await ymwk.startEpochTime()) + BigInt(INFLATION_DELAY);
   console.log(
     `${codename} is deploying with Minter=${minterAddress},  startTime=${tokenInflationStarts}...`
   );
 
-  const gauge = await deploy(codename, {
+  const gauge = (await deploy(codename, {
     from: foundation,
     args: [minterAddress, tokenInflationStarts],
     log: true,
     getContractFactory,
-  });
+  })) as unknown as Gauge;
 
   const gaugeController = (
     await getContractFactory("GaugeControllerV1")
-  ).attach(controllerAddress);
+  ).attach(controllerAddress) as GaugeControllerV1;
 
   console.log(
-    `Adding Gauge (${gauge.address}) to GaugeController (${gaugeController.address}) ...`
+    `Adding Gauge (${gauge.target}) to GaugeController (${gaugeController.target}) ...`
   );
   try {
-    await gaugeController.addGauge(gauge.address, 0, 1);
+    await gaugeController.addGauge(gauge.target, 0, 1);
   } catch (e: any) {
     console.trace(e.message);
   }

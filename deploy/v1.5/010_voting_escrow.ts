@@ -1,13 +1,13 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import {
-  deployProxy,
+  deploy,
   getFoundation,
   getContractAddress,
   existsDeployedContract,
 } from "../../src/deployUtil";
 
-const codename = "GaugeControllerV1";
+const codename = "VotingEscrow";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (existsDeployedContract(hre.network.name, codename)) {
@@ -15,25 +15,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     return;
   }
 
+  // Deploy only to L1
+  if (!hre.network.tags.receiver) {
+    console.log(`${codename} is intended for deployment on L1 only`);
+    return;
+  }
+
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
   const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
-  const votingEscrowAddress = getContractAddress(
-    hre.network.name,
-    "VotingEscrow"
-  );
-  if (ymwkAddress === null || votingEscrowAddress === null) {
-    throw new Error("YMWK address or VotingEscrow address is null");
+  if (ymwkAddress === null) {
+    throw new Error("YMWK address is null");
   }
+  console.log(`${codename} is deploying with YMWK=${ymwkAddress}...`);
 
-  console.log(
-    `${codename} is deploying with YMWK=${ymwkAddress}, VotingEscrow=${votingEscrowAddress}...`
-  );
-
-  await deployProxy(codename, {
+  await deploy(codename, {
     from: foundation,
-    args: [ymwkAddress, votingEscrowAddress],
+    args: [ymwkAddress, "Voting-escrowed Yamawake", "veYMWK", "v1"],
     log: true,
     getContractFactory,
   });

@@ -14,6 +14,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`${codename} is already deployed. skipping deploy...`);
     return;
   }
+
+  // Deploy only to L1
+  if (!hre.network.tags.receiver) {
+    console.log(`${codename} is intended for deployment on L1 only`);
+    return;
+  }
+
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
