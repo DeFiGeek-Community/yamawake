@@ -101,4 +101,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 };
 export default func;
-func.tags = [codename];
+func.tags = [codename, "V1"];
