@@ -5,7 +5,7 @@ import {
   getFoundation,
   getContractAddress,
   existsDeployedContract,
-} from "../src/deployUtil";
+} from "../../src/deployUtil";
 
 const codename = "TemplateYMWKWithdraw";
 
@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const feePoolAddress = getContractAddress(hre.network.name, "FeePool");
   const distributorAddress = getContractAddress(
     hre.network.name,
-    "Distributor",
+    "Distributor"
   );
   if (
     factoryAddress === null ||
@@ -45,7 +45,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
   } else {
     TemplateYMWKWithdraw = (await getContractFactory(codename)).attach(
-      getContractAddress(hre.network.name, "TemplateYMWKWithdraw"),
+      getContractAddress(hre.network.name, "TemplateYMWKWithdraw")
     );
     console.log(`${codename} is already deployed. skipping deploy...`);
   }

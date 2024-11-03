@@ -5,7 +5,7 @@ import {
   getFoundation,
   getContractAddress,
   existsDeployedContract,
-} from "../src/deployUtil";
+} from "../../src/deployUtil";
 
 const tagName = "DistributorReceiver";
 

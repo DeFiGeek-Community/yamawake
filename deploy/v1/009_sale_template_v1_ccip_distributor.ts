@@ -6,8 +6,8 @@ import {
   getFoundation,
   getContractAddress,
   existsDeployedContract,
-} from "../src/deployUtil";
-import { addTemplate } from "../src/addTemplate";
+} from "../../src/deployUtil";
+import { addTemplate } from "../../src/addTemplate";
 
 const codename = "TemplateV1";
 
