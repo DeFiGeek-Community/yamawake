@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -106,7 +106,7 @@ describe("TemplateV1.5", function () {
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const FeeDistributor = await ethers.getContractFactory(
-      "FeeDistributor",
+      "FeeDistributorV1",
       admin
     );
     const Factory = await ethers.getContractFactory("Factory");
@@ -158,11 +158,11 @@ describe("TemplateV1.5", function () {
     // await ethers.provider.send("evm_increaseTime", [WEEK]);
     await time.increase(WEEK);
 
-    feeDistributor = await FeeDistributor.deploy(
+    feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await feeDistributor.waitForDeployment();
 
     await feeCoin

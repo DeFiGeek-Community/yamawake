@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -34,7 +34,7 @@ describe("Template V1.5", () => {
     [alice, bob, charlie, dan] = await ethers.getSigners();
 
     const FeeDistributor = await ethers.getContractFactory(
-      "FeeDistributor",
+      "FeeDistributorV1",
       alice
     );
     const YMWK = await ethers.getContractFactory("YMWK");
@@ -59,11 +59,11 @@ describe("Template V1.5", () => {
     factory = await Factory.deploy();
     await factory.waitForDeployment();
 
-    feeDistributor = await FeeDistributor.deploy(
+    feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {

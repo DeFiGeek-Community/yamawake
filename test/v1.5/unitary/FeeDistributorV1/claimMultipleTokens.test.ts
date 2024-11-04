@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -16,7 +16,7 @@ import {
   YMWK,
 } from "../../../../typechain-types";
 
-describe("FeeDistributor", () => {
+describe("FeeDistributorV1", () => {
   const DAY = 86400;
   const WEEK = DAY * 7;
   const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
@@ -39,7 +39,7 @@ describe("FeeDistributor", () => {
     [alice, bob, charlie, dan] = await ethers.getSigners();
 
     const FeeDistributor = await ethers.getContractFactory(
-      "FeeDistributor",
+      "FeeDistributorV1",
       alice
     );
     const YMWK = await ethers.getContractFactory("YMWK");
@@ -64,11 +64,11 @@ describe("FeeDistributor", () => {
     factory = await Factory.deploy();
     await factory.waitForDeployment();
 
-    feeDistributor = await FeeDistributor.deploy(
+    feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await feeDistributor.waitForDeployment();
 
     await coinA._mintForTesting(dan.address, ethers.parseEther("10"));
@@ -95,14 +95,14 @@ describe("FeeDistributor", () => {
       let startTime = await time.latest();
       await time.increase(WEEK * 5);
       const FeeDistributor = await ethers.getContractFactory(
-        "FeeDistributor",
+        "FeeDistributorV1",
         alice
       );
-      feeDistributor = await FeeDistributor.deploy(
+      feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
         votingEscrow.target,
         factory.target,
-        startTime
-      );
+        startTime,
+      ])) as unknown as FeeDistributor;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
@@ -173,14 +173,14 @@ describe("FeeDistributor", () => {
       let startTime = await time.latest();
       await time.increase(WEEK * 5);
       const FeeDistributor = await ethers.getContractFactory(
-        "FeeDistributor",
+        "FeeDistributorV1",
         alice
       );
-      feeDistributor = await FeeDistributor.deploy(
+      feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
         votingEscrow.target,
         factory.target,
-        startTime
-      );
+        startTime,
+      ])) as unknown as FeeDistributor;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(

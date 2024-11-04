@@ -48,11 +48,11 @@ describe("GaugeControllerV1", function () {
 
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    const LiquidityGauge = await ethers.getContractFactory("Gauge");
-    const lg1 = await LiquidityGauge.deploy(
+    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const lg1 = await upgrades.deployProxy(Gauge, [
       minter.target,
-      tokenInflationStarts
-    );
+      tokenInflationStarts,
+    ]);
     threeGauges = [lg1.target, lg1.target, lg1.target];
   });
 

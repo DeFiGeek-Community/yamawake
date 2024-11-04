@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -56,7 +56,7 @@ FeeDistributorが全ての残高を報酬として送金完了していること
 - ランダムな額をFeeDistributorに送金し、tokenCheckpoint
 - 報酬のクレーム
 */
-describe("FeeDistributor", function () {
+describe("FeeDistributorV1", function () {
   let accounts: SignerWithAddress[];
   let admin: SignerWithAddress; // FeeDistributor Admin
   let votingEscrow: VotingEscrow;
@@ -95,7 +95,7 @@ describe("FeeDistributor", function () {
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const FeeDistributor = await ethers.getContractFactory(
-      "FeeDistributor",
+      "FeeDistributorV1",
       admin
     );
     const Factory = await ethers.getContractFactory("Factory");
@@ -147,11 +147,11 @@ describe("FeeDistributor", function () {
     // await ethers.provider.send("evm_increaseTime", [WEEK]);
     await time.increase(WEEK);
 
-    distributor = await FeeDistributor.deploy(
+    distributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await distributor.waitForDeployment();
 
     tokenAddresses = [ethers.ZeroAddress, String(feeCoin.target)];

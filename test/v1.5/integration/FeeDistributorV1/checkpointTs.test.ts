@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -22,7 +22,7 @@ const MAX_EXAMPLES = 10;
   ランダムな時間経過後にcheckpointTotalSupplyを数回呼ぶことで
   VotingEscrowのveYMWK残高と同期できることを確認
 */
-describe("FeeDistributor", function () {
+describe("FeeDistributorV1", function () {
   let accounts: SignerWithAddress[];
   let token: YMWK;
   let coinA: MockToken;
@@ -35,7 +35,7 @@ describe("FeeDistributor", function () {
     snapshot = await takeSnapshot();
     accounts = await ethers.getSigners();
 
-    const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+    const FeeDistributor = await ethers.getContractFactory("FeeDistributorV1");
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -58,11 +58,11 @@ describe("FeeDistributor", function () {
     factory = await Factory.deploy();
     await factory.waitForDeployment();
 
-    feeDistributor = await FeeDistributor.deploy(
+    feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await feeDistributor.waitForDeployment();
   });
 

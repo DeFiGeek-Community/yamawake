@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -16,7 +16,7 @@ import {
 } from "../../../../typechain-types";
 import { sendEther } from "../../../scenarioHelper";
 
-describe("FeeDistributor", () => {
+describe("FeeDistributorV1", () => {
   const DAY = 86400;
   const WEEK = DAY * 7;
 
@@ -34,7 +34,7 @@ describe("FeeDistributor", () => {
     [admin, alice] = await ethers.getSigners();
 
     const FeeDistributor = await ethers.getContractFactory(
-      "FeeDistributor",
+      "FeeDistributorV1",
       alice
     );
     const YMWK = await ethers.getContractFactory("YMWK");
@@ -59,11 +59,11 @@ describe("FeeDistributor", () => {
     factory = await Factory.deploy();
     await factory.waitForDeployment();
 
-    feeDistributor = await FeeDistributor.deploy(
+    feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
@@ -77,14 +77,14 @@ describe("FeeDistributor", () => {
       const startTime = await time.latest();
 
       const FeeDistributor = await ethers.getContractFactory(
-        "FeeDistributor",
+        "FeeDistributorV1",
         admin
       );
-      feeDistributor = await FeeDistributor.deploy(
+      feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
         votingEscrow.target,
         factory.target,
-        startTime
-      );
+        startTime,
+      ])) as unknown as FeeDistributor;
       await feeDistributor.waitForDeployment();
 
       await feeDistributor.checkpointToken(ethers.ZeroAddress);
@@ -115,14 +115,14 @@ describe("FeeDistributor", () => {
       const startTime = await time.latest();
 
       const FeeDistributor = await ethers.getContractFactory(
-        "FeeDistributor",
+        "FeeDistributorV1",
         admin
       );
-      feeDistributor = await FeeDistributor.deploy(
+      feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
         votingEscrow.target,
         factory.target,
-        startTime
-      );
+        startTime,
+      ])) as unknown as FeeDistributor;
       await feeDistributor.waitForDeployment();
 
       await feeDistributor.checkpointToken(ethers.ZeroAddress);

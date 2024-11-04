@@ -3,7 +3,8 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/IVotingEscrow.sol";
 import "./interfaces/IFactory.sol";
@@ -11,12 +12,12 @@ import "./interfaces/IFactory.sol";
 /// @title FeeDistributor
 /// @author DeFiGeek Community Japan
 /// @notice Distributes fees to ve holders according to their ve holdings
-contract FeeDistributor is ReentrancyGuard {
+contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
 
     uint256 public constant WEEK = 7 * 86400;
 
-    address public immutable factory;
+    address public factory;
     uint256 public timeCursor;
     uint256 public lastCheckpointTotalSupplyTime;
     mapping(address => mapping(address => uint256)) public timeCursorOf; // user -> token -> timestamp
@@ -70,7 +71,12 @@ contract FeeDistributor is ReentrancyGuard {
      * @param factory_ Auction Factory contract address
      * @param startTime_ Epoch time for fee distribution to start
      */
-    constructor(address votingEscrow_, address factory_, uint256 startTime_) {
+    function initialize(
+        address votingEscrow_,
+        address factory_,
+        uint256 startTime_
+    ) public initializer {
+        __ReentrancyGuard_init();
         uint256 t = (startTime_ / WEEK) * WEEK;
         startTime[address(0)] = t;
         lastTokenTime[address(0)] = t;
@@ -81,6 +87,10 @@ contract FeeDistributor is ReentrancyGuard {
         factory = factory_;
         admin = msg.sender;
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyAdmin {}
 
     function _checkpointToken(address token_) internal {
         uint256 _tokenBalance;

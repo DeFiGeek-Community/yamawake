@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers, network } from "hardhat";
+import { ethers, network, upgrades } from "hardhat";
 import { Contract } from "ethers";
 import {
   time,
@@ -23,7 +23,7 @@ const WEEK = DAY * 7;
 同じ週にtokenCheckpoint, claim, tokenCheckpoint, claimし、
 2回目のclaimでは報酬は獲得できないが、翌週以降にクレームできることを確認
 */
-describe("FeeDistributor", function () {
+describe("FeeDistributorV1", function () {
   let accounts: SignerWithAddress[];
   let token: YMWK;
   let coinA: MockToken;
@@ -36,7 +36,7 @@ describe("FeeDistributor", function () {
     snapshot = await takeSnapshot();
     accounts = await ethers.getSigners();
 
-    const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+    const FeeDistributor = await ethers.getContractFactory("FeeDistributorV1");
     const YMWK = await ethers.getContractFactory("YMWK");
     const Token = await ethers.getContractFactory("MockToken");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -59,11 +59,11 @@ describe("FeeDistributor", function () {
     factory = await Factory.deploy();
     await factory.waitForDeployment();
 
-    feeDistributor = await FeeDistributor.deploy(
+    feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
       votingEscrow.target,
       factory.target,
-      await time.latest()
-    );
+      await time.latest(),
+    ])) as unknown as FeeDistributor;
     await feeDistributor.waitForDeployment();
   });
 

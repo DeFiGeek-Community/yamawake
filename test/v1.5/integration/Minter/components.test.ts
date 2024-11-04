@@ -41,7 +41,7 @@ describe("Minter components", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("Minter");
-    const Gauge = await ethers.getContractFactory("Gauge");
+    const Gauge = await ethers.getContractFactory("GaugeV1");
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -68,7 +68,10 @@ describe("Minter components", function () {
 
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
+    gauge = (await upgrades.deployProxy(Gauge, [
+      minter.target,
+      tokenInflationStarts,
+    ])) as unknown as Gauge;
     await gauge.waitForDeployment();
 
     await token.setMinter(minter.target);

@@ -19,7 +19,7 @@ import {
   checkpointTotalSupply, checkpointToken, userCheckpointの
   順序、頻度によって整合性が崩れないことを確認
 */
-describe("Gauge", function () {
+describe("GaugeV1", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
@@ -42,7 +42,7 @@ describe("Gauge", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("Minter");
-    const Gauge = await ethers.getContractFactory("Gauge");
+    const Gauge = await ethers.getContractFactory("GaugeV1");
 
     token = await YMWK.deploy();
     await token.waitForDeployment();
@@ -66,7 +66,10 @@ describe("Gauge", function () {
 
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
+    gauge = (await upgrades.deployProxy(Gauge, [
+      minter.target,
+      tokenInflationStarts,
+    ])) as unknown as Gauge;
     await gauge.waitForDeployment();
   });
 

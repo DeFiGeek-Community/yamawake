@@ -144,11 +144,11 @@ describe("GaugeControllerV1", function () {
     );
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    const LiquidityGauge = await ethers.getContractFactory("Gauge");
-    const gauge = await LiquidityGauge.deploy(
+    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
-      tokenInflationStarts
-    );
+      tokenInflationStarts,
+    ])) as unknown as Gauge;
     await gauge.waitForDeployment();
 
     await gaugeController
@@ -247,11 +247,11 @@ describe("GaugeControllerV1", function () {
       // Gaugeの追加
       const tokenInflationStarts =
         (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-      const LiquidityGauge = await ethers.getContractFactory("Gauge");
-      const gauge = await LiquidityGauge.deploy(
+      const Gauge = await ethers.getContractFactory("GaugeV1");
+      const gauge = await upgrades.deployProxy(Gauge, [
         minter.target,
-        tokenInflationStarts
-      );
+        tokenInflationStarts,
+      ]);
       await gauge.waitForDeployment();
       await gaugeController.addGauge(gauge.target, 0, 1);
 

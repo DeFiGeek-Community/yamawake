@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import {
   time,
   takeSnapshot,
@@ -16,7 +16,7 @@ import {
   YMWK,
 } from "../../../../typechain-types";
 
-describe("FeeDistributor", () => {
+describe("FeeDistributorV1", () => {
   const TEMPLATE_NAME = ethers.encodeBytes32String("SampleTemplate");
 
   let alice: SignerWithAddress,
@@ -66,14 +66,14 @@ describe("FeeDistributor", () => {
     let accounts: SignerWithAddress[];
     beforeEach(async () => {
       const FeeDistributor = await ethers.getContractFactory(
-        "FeeDistributor",
+        "FeeDistributorV1",
         alice
       );
-      feeDistributor = await FeeDistributor.deploy(
+      feeDistributor = (await upgrades.deployProxy(FeeDistributor, [
         votingEscrow.target,
         factory.target,
-        await time.latest()
-      );
+        await time.latest(),
+      ])) as unknown as FeeDistributor;
       await feeDistributor.waitForDeployment();
       accounts = await ethers.getSigners();
     });

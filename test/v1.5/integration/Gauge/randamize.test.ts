@@ -20,7 +20,7 @@ Gauge, Minter, VotingEscrowのインテグレーションテスト
 - ランダムな額をlock, extendLock, increaseAmount、withdraw
 - ランダムなタイミングでMinterで報酬をclaim
 */
-describe("Gauge", function () {
+describe("GaugeV1", function () {
   const ACCOUNT_NUM = 5;
   const MAX_EXAMPLES = 50;
   const STATEFUL_STEP_COUNT = 30;
@@ -84,7 +84,7 @@ describe("Gauge", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("Minter");
-    const Gauge = await ethers.getContractFactory("Gauge");
+    const Gauge = await ethers.getContractFactory("GaugeV1");
 
     token = await YMWK.deploy();
     await token.waitForDeployment();
@@ -111,7 +111,10 @@ describe("Gauge", function () {
 
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    gauge = await Gauge.deploy(minter.target, tokenInflationStarts);
+    gauge = (await upgrades.deployProxy(Gauge, [
+      minter.target,
+      tokenInflationStarts,
+    ])) as unknown as Gauge;
     await gauge.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {

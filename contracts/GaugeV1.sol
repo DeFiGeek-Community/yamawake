@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IGaugeController.sol";
 import "./interfaces/IYMWK.sol";
 import "./interfaces/IMinter.sol";
@@ -11,17 +11,17 @@ import "./interfaces/IVotingEscrow.sol";
 /// @title Gauge
 /// @author DeFiGeek Community Japan
 /// @notice Calculate YMWK token rewards for veYMWK holders
-contract Gauge {
+contract GaugeV1 is UUPSUpgradeable {
     event CheckpointToken(uint256 time, uint256 tokens);
     event CommitOwnership(address indexed admin);
     event ApplyOwnership(address indexed admin);
 
     uint256 public constant WEEK = 604800;
-    uint256 public immutable startTime;
-    address public immutable token;
-    address public immutable votingEscrow;
-    address public immutable minter;
-    address public immutable gaugeController;
+    uint256 public startTime;
+    address public token;
+    address public votingEscrow;
+    address public minter;
+    address public gaugeController;
     address public admin;
     uint256 public futureEpochTime;
     uint256 public inflationRate;
@@ -40,7 +40,10 @@ contract Gauge {
      * @notice Constructor
      * @param minter_
      */
-    constructor(address minter_, uint256 startTime_) {
+    function initialize(
+        address minter_,
+        uint256 startTime_
+    ) public initializer {
         minter = minter_;
         token = IMinter(minter).token();
         gaugeController = IMinter(minter).controller();
@@ -57,6 +60,10 @@ contract Gauge {
         tokenTimeCursor = _t;
         timeCursor = _t;
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyAdmin {}
 
     /***
      * @notice
