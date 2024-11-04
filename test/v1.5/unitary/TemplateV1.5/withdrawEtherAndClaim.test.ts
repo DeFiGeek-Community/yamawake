@@ -130,5 +130,20 @@ describe("Template V1.5", () => {
     expect(await distributor.scores(alice.address)).to.be.equal(
       ethers.parseEther("10000")
     );
+
+    /*
+      4) Bobがクレーム後にcoinA残高と初期ユーザリワードスコアを確認
+    */
+    expect(await distributor.scores(bob.address)).to.be.equal(0);
+    await expect(
+      auction.connect(bob).claim(bob.address, bob.address)
+    ).to.changeTokenBalances(
+      coinA,
+      [bob.address, auction.target],
+      [auctionAmount, -auctionAmount]
+    );
+    expect(await distributor.scores(bob.address)).to.be.equal(
+      auctionAmount * 100n
+    );
   });
 });
