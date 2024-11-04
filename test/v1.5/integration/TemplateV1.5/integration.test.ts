@@ -69,7 +69,7 @@ describe("TemplateV1.5", function () {
   let admin: SignerWithAddress; // FeeDistributor Admin
   let votingEscrow: VotingEscrow;
   let factory: Factory;
-  let distributor: FeeDistributor;
+  let feeDistributor: FeeDistributor;
   let feeCoin: MockToken;
   let token: YMWK;
   let auction: TemplateV1_5;
@@ -158,12 +158,12 @@ describe("TemplateV1.5", function () {
     // await ethers.provider.send("evm_increaseTime", [WEEK]);
     await time.increase(WEEK);
 
-    distributor = await FeeDistributor.deploy(
+    feeDistributor = await FeeDistributor.deploy(
       votingEscrow.target,
       factory.target,
       await time.latest()
     );
-    await distributor.waitForDeployment();
+    await feeDistributor.waitForDeployment();
 
     await feeCoin
       .connect(admin)
@@ -173,7 +173,7 @@ describe("TemplateV1.5", function () {
       .approve(factory.target, ethers.parseEther("1"));
     let auctionObj = await deploySaleTemplateV1_5(
       factory,
-      distributor,
+      feeDistributor,
       token,
       String(feeCoin.target),
       ethers.parseEther("1"),
@@ -434,8 +434,8 @@ describe("TemplateV1.5", function () {
     stTime > 0 && (await time.increase(stTime));
 
     // For debug ---
-    // const t0: number = (await distributor.startTime(ethers.ZeroAddress)).toNumber();
-    // const ue = await distributor.userEpochOf(stAcct.address);
+    // const t0: number = (await feeDistributor.startTime(ethers.ZeroAddress)).toNumber();
+    // const ue = await feeDistributor.userEpochOf(stAcct.address);
     // const up = await votingEscrow.userPointHistory(stAcct.address, ue);
     // console.log(`Week:
     //     ${Math.floor(((await time.latest()) - t0) / WEEK)}
@@ -448,7 +448,7 @@ describe("TemplateV1.5", function () {
     let tx;
     try {
       // veSupplyの同期が20週間以上遅れているとzero divisionエラーでrevert
-      tx = await distributor
+      tx = await feeDistributor
         .connect(stAcct)
         ["claim(address)"](ethers.ZeroAddress);
     } catch (e: any) {
@@ -465,9 +465,9 @@ describe("TemplateV1.5", function () {
         userGases[stAcct.address] + revertedTxGasCosts;
 
       // revertは仕様とし、checkpointTotalSupplyを呼び、再度claimする
-      await distributor.connect(admin).checkpointTotalSupply();
+      await feeDistributor.connect(admin).checkpointTotalSupply();
       claimed = await ethers.provider.getBalance(stAcct.address);
-      tx = await distributor
+      tx = await feeDistributor
         .connect(stAcct)
         ["claim(address)"](ethers.ZeroAddress);
     }
@@ -491,7 +491,7 @@ describe("TemplateV1.5", function () {
     Arguments
     ---------
     stAmount : BigNumber
-        Amount of fee tokens to add to the distributor.
+        Amount of fee tokens to add to the feeDistributor.
     stAuctionDuration : number
         Event duration
     stTime : number
@@ -547,7 +547,7 @@ describe("TemplateV1.5", function () {
     Arguments
     ---------
     stAuctionId : BigNumber
-        Amount of fee tokens to add to the distributor.
+        Amount of fee tokens to add to the feeDistributor.
     stTime : number
         Duration to sleep before action, in seconds.
     */
@@ -599,14 +599,14 @@ describe("TemplateV1.5", function () {
     // Need two checkpoints to get tokens fully distributed
     // Because tokens for current week are obtained in the next week
     // And that is by design
-    await distributor.connect(admin).checkpointToken(ethers.ZeroAddress);
+    await feeDistributor.connect(admin).checkpointToken(ethers.ZeroAddress);
     await ethers.provider.send("evm_increaseTime", [WEEK * 2]);
-    await distributor.connect(admin).checkpointToken(ethers.ZeroAddress);
+    await feeDistributor.connect(admin).checkpointToken(ethers.ZeroAddress);
 
     for (const acct of accounts) {
       // For debug --->
-      //   const t0: number = (await distributor.startTime(ethers.ZeroAddress).toNumber();
-      //   const ue = await distributor.userEpochOf(acct.address);
+      //   const t0: number = (await feeDistributor.startTime(ethers.ZeroAddress).toNumber();
+      //   const ue = await feeDistributor.userEpochOf(acct.address);
       //   const up = await votingEscrow.userPointHistory(acct.address, ue);
       //   console.log(`Week:
       //     ${Math.floor(((await time.latest()) - t0) / WEEK)}
@@ -616,7 +616,7 @@ describe("TemplateV1.5", function () {
       // <----
       await ruleClaimFees(acct, 0);
       const thisWeek = Math.floor((await time.latest()) / WEEK) * WEEK;
-      let userTimeCursor = await distributor.timeCursorOf(
+      let userTimeCursor = await feeDistributor.timeCursorOf(
         acct.address,
         ethers.ZeroAddress
       );
@@ -630,14 +630,16 @@ describe("TemplateV1.5", function () {
       }
     }
 
-    const t0: number = Number(await distributor.startTime(ethers.ZeroAddress));
+    const t0: number = Number(
+      await feeDistributor.startTime(ethers.ZeroAddress)
+    );
     const t1: number = Math.floor((await time.latest()) / WEEK) * WEEK;
 
     const tokensPerUserPerWeek: { [key: string]: bigint[] } = {};
     const tokensPerWeeks: bigint[] = [];
 
     for (let w = t0; w < t1 + WEEK; w += WEEK) {
-      const tokensPerWeek: bigint = await distributor.tokensPerWeek(
+      const tokensPerWeek: bigint = await feeDistributor.tokensPerWeek(
         ethers.ZeroAddress,
         w
       );
@@ -646,7 +648,7 @@ describe("TemplateV1.5", function () {
       for (const acct of accounts) {
         tokensPerUserPerWeek[acct.address] =
           tokensPerUserPerWeek[acct.address] || [];
-        const veSupply: bigint = await distributor.veSupply(w);
+        const veSupply: bigint = await feeDistributor.veSupply(w);
         if (veSupply === 0n && tokensPerWeek !== 0n) {
           // tokensPerWeekが発生しているのにもかかわらずveSupplyが0の場合はエラーを出す
           throw Error("veSupply is incorrectly zero");
@@ -654,8 +656,9 @@ describe("TemplateV1.5", function () {
         const tokens: bigint =
           tokensPerWeek === 0n
             ? 0n
-            : (tokensPerWeek * (await distributor.veForAt(acct.address, w))) /
-              (await distributor.veSupply(w));
+            : (tokensPerWeek *
+                (await feeDistributor.veForAt(acct.address, w))) /
+              (await feeDistributor.veSupply(w));
         tokensPerUserPerWeek[acct.address].push(tokens);
       }
     }
@@ -713,9 +716,9 @@ describe("TemplateV1.5", function () {
       );
     }
     console.log(``);
-    console.log(`[Ether balance of Distributor]`);
+    console.log(`[Ether balance of FeeDistributor]`);
     console.log(
-      (await ethers.provider.getBalance(distributor.target)).toString()
+      (await ethers.provider.getBalance(feeDistributor.target)).toString()
     );
 
     console.log(``);
@@ -747,7 +750,9 @@ describe("TemplateV1.5", function () {
     }
 
     // Check if all fees are distributed
-    expect(await ethers.provider.getBalance(distributor.target)).to.be.lt(100);
+    expect(await ethers.provider.getBalance(feeDistributor.target)).to.be.lt(
+      100
+    );
   }
 
   let func = [
