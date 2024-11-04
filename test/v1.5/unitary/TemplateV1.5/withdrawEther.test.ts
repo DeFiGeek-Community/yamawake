@@ -112,6 +112,7 @@ describe("Template V1.5", () => {
       3) Aliceが売上を回収した後下記を確認
       a) FeeDistributorに売上の1%が送金されていること
       b) FeeDistributorのlastTokenTimeが引き出しトランザクションのブロックタイムと一致すること
+      c) DistributorReceiverのスコアが売上額*100と一致すること
     */
     await expect(
       auction.connect(alice).withdrawRaisedETH()
@@ -125,6 +126,9 @@ describe("Template V1.5", () => {
     );
     expect(await feeDistributor.lastTokenTime(ethers.ZeroAddress)).to.be.eq(
       await time.latest()
+    );
+    expect(await distributor.scores(alice.address)).to.be.equal(
+      ethers.parseEther("10000")
     );
   });
 });
