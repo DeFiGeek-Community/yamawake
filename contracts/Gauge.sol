@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IGaugeController.sol";
 import "./interfaces/IYMWK.sol";
@@ -12,7 +11,7 @@ import "./interfaces/IVotingEscrow.sol";
 /// @title Gauge
 /// @author DeFiGeek Community Japan
 /// @notice Calculate YMWK token rewards for veYMWK holders
-contract Gauge is ReentrancyGuard {
+contract Gauge {
     event CheckpointToken(uint256 time, uint256 tokens);
     event CommitOwnership(address indexed admin);
     event ApplyOwnership(address indexed admin);
