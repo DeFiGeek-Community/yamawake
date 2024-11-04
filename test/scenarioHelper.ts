@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import type { TransactionReceipt } from "ethers";
 import { TemplateV1 } from "../typechain-types/contracts/TemplateV1";
 import {
-  Distributor,
+  DistributorReceiver,
   Factory,
   FeeDistributor,
   MockToken,
@@ -211,12 +211,17 @@ export async function deploySaleTemplateV1_5(
   auction: TemplateV1_5;
   templateName: string;
   feeDistributor: FeeDistributor;
-  distributor: Distributor;
+  distributor: DistributorReceiver;
 }> {
-  const Distributor = await ethers.getContractFactory("Distributor");
+  const { destinationRouter } = await deployCCIPRouter(deployer.address);
+  const Distributor = await ethers.getContractFactory("DistributorReceiver");
   const Template = await ethers.getContractFactory("TemplateV1_5");
 
-  const distributor = await Distributor.deploy(factory.target, ymwk.target);
+  const distributor = await Distributor.deploy(
+    factory.target,
+    ymwk.target,
+    destinationRouter
+  );
   await distributor.waitForDeployment();
 
   const template = await Template.deploy(
