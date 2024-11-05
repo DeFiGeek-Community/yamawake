@@ -1,12 +1,12 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import {
-  deploy,
   getFoundation,
   getContractAddress,
   existsDeployedContract,
+  deployProxy,
 } from "../../src/deployUtil";
-import { Gauge, GaugeControllerV1, YMWK } from "../../typechain-types";
+import { GaugeControllerV1, YMWK } from "../../typechain-types";
 
 const codename = "Gauge";
 const INFLATION_DELAY = 86400 * 365;
@@ -46,12 +46,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     `${codename} is deploying with Minter=${minterAddress},  startTime=${tokenInflationStarts}...`
   );
 
-  const gauge = (await deploy(codename, {
+  const gauge = await deployProxy(codename, {
     from: foundation,
     args: [minterAddress, tokenInflationStarts],
     log: true,
     getContractFactory,
-  })) as unknown as Gauge;
+  });
 
   const gaugeController = (
     await getContractFactory("GaugeControllerV1")

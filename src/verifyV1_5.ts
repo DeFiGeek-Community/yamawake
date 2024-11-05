@@ -1,5 +1,6 @@
 import { network, run, ethers } from "hardhat";
 import { readFileSync } from "fs";
+import { FeeDistributorV1, YMWK } from "../typechain-types";
 
 async function main() {
   const basePath = `deployments/${network.name}/`;
@@ -22,15 +23,24 @@ async function main() {
     ],
   });
 
-  // FeeDistributor
-  const feeDistributorAddress = readFileSync(
-    basePath + "FeeDistributor"
+  // FeeDistributorV1
+  const implFeeDistributorAddress = readFileSync(
+    basePath + "ImplFeeDistributorV1"
   ).toString();
-  const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
-  const feeDistributor = FeeDistributor.attach(feeDistributorAddress);
-  const startTime = (
-    await feeDistributor.startTime(ethers.ZeroAddress)
-  ).toNumber();
+  await run(`verify:verify`, {
+    address: implFeeDistributorAddress,
+    constructorArguments: [],
+  });
+
+  const feeDistributorAddress = readFileSync(
+    basePath + "FeeDistributorV1"
+  ).toString();
+  const FeeDistributor = await ethers.getContractFactory("FeeDistributorV1");
+  const feeDistributor = FeeDistributor.attach(
+    feeDistributorAddress
+  ) as FeeDistributorV1;
+  const startTime = await feeDistributor.startTime(ethers.ZeroAddress);
+
   await run(`verify:verify`, {
     address: feeDistributorAddress,
     constructorArguments: [votingEscrowAddress, factoryAddress, startTime],
@@ -61,11 +71,18 @@ async function main() {
 
   // Gauge
   const INFLATION_DELAY = 86400 * 365;
-  const ymwk = (await ethers.getContractFactory("YMWK")).attach(ymwkAddress);
-  const tokenInflationStarts = (await ymwk.startEpochTime()).add(
-    INFLATION_DELAY
-  );
-  const gaugeAddress = readFileSync(basePath + "Gauge").toString();
+  const ymwk = (await ethers.getContractFactory("YMWK")).attach(
+    ymwkAddress
+  ) as YMWK;
+  const tokenInflationStarts =
+    (await ymwk.startEpochTime()) + BigInt(INFLATION_DELAY);
+  const implGaugeAddress = readFileSync(basePath + "ImplGaugeV1").toString();
+  await run(`verify:verify`, {
+    address: implGaugeAddress,
+    constructorArguments: [],
+  });
+
+  const gaugeAddress = readFileSync(basePath + "GaugeV1").toString();
   await run(`verify:verify`, {
     address: gaugeAddress,
     constructorArguments: [minterAddress, tokenInflationStarts],

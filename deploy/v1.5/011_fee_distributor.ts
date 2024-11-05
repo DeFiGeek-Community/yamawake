@@ -1,13 +1,13 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import {
-  deploy,
   getFoundation,
   getContractAddress,
   existsDeployedContract,
+  deployProxy,
 } from "../../src/deployUtil";
 
-const codename = "FeeDistributor";
+const codename = "FeeDistributorV1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (existsDeployedContract(hre.network.name, codename)) {
@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     `${codename} is deploying with startTime=${startTime} VotingEscrow=${votingEscrowAddress}, Factory=${factoryAddress} ...`
   );
 
-  await deploy(codename, {
+  await deployProxy(codename, {
     from: foundation,
     args: [votingEscrowAddress, factoryAddress, startTime],
     log: true,
