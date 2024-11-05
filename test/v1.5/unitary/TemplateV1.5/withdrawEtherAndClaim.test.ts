@@ -9,7 +9,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySaleTemplateV1_5, sendEther } from "../../../scenarioHelper";
 import {
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   VotingEscrow,
   YMWK,
@@ -22,7 +22,7 @@ describe("Template V1.5", () => {
     bob: SignerWithAddress,
     charlie: SignerWithAddress,
     dan: SignerWithAddress;
-  let feeDistributor: FeeDistributor;
+  let feeDistributor: FeeDistributorV1;
   let votingEscrow: VotingEscrow;
   let factory: Factory;
   let token: YMWK;
@@ -63,7 +63,7 @@ describe("Template V1.5", () => {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {

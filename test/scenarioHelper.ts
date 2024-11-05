@@ -4,7 +4,7 @@ import { TemplateV1 } from "../typechain-types/contracts/TemplateV1";
 import {
   DistributorReceiver,
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   SampleTemplate,
   SampleToken,
@@ -155,7 +155,7 @@ export async function snapshot() {
 
 export async function deploySampleSaleTemplate(
   factory: Factory,
-  feeDistributor: FeeDistributor,
+  feeDistributor: FeeDistributorV1,
   token: MockToken | YMWK,
   auctionToken: MockToken,
   templateName: string,
@@ -199,7 +199,7 @@ export async function deploySampleSaleTemplate(
 
 export async function deploySaleTemplateV1_5(
   factory: Factory,
-  feeDistributor: FeeDistributor,
+  feeDistributor: FeeDistributorV1,
   ymwk: YMWK,
   auctionTokenAddr: string,
   allocatedAmount: any,
@@ -210,7 +210,7 @@ export async function deploySaleTemplateV1_5(
 ): Promise<{
   auction: TemplateV1_5;
   templateName: string;
-  feeDistributor: FeeDistributor;
+  feeDistributor: FeeDistributorV1;
   distributor: DistributorReceiver;
 }> {
   const { destinationRouter } = await deployCCIPRouter(deployer.address);

@@ -9,7 +9,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate, sendEther } from "../../../scenarioHelper";
 import {
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   SampleTemplate,
   VotingEscrow,
@@ -26,7 +26,7 @@ describe("FeeDistributorV1", () => {
     bob: SignerWithAddress,
     charlie: SignerWithAddress,
     dan: SignerWithAddress;
-  let feeDistributor: FeeDistributor;
+  let feeDistributor: FeeDistributorV1;
   let votingEscrow: VotingEscrow;
   let factory: Factory;
   let auction: SampleTemplate;
@@ -68,7 +68,7 @@ describe("FeeDistributorV1", () => {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
@@ -155,7 +155,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         await time.latest(),
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       for (let i = 0; i < 3; i++) {
@@ -201,7 +201,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         await time.latest(),
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
@@ -256,7 +256,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       await sendEther(feeDistributor.target, "10", bob);
@@ -301,7 +301,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
@@ -358,7 +358,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       await sendEther(feeDistributor.target, "10", bob);
@@ -419,7 +419,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
@@ -504,7 +504,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       await sendEther(feeDistributor.target, "10", charlie);
@@ -583,7 +583,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(

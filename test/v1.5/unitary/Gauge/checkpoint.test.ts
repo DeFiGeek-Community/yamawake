@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import Constants from "../../../lib/Constants";
-import { Gauge, VotingEscrow, YMWK } from "../../../../typechain-types";
+import { GaugeV1, VotingEscrow, YMWK } from "../../../../typechain-types";
 
 describe("Gauge checkpoint", function () {
   const DAY = 86400;
@@ -15,7 +15,7 @@ describe("Gauge checkpoint", function () {
   const YEAR = DAY * 365;
 
   let accounts: SignerWithAddress[];
-  let gauge: Gauge;
+  let gauge: GaugeV1;
   let token: YMWK;
   let votingEscrow: VotingEscrow;
   let snapshot: SnapshotRestorer;
@@ -53,7 +53,7 @@ describe("Gauge checkpoint", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as Gauge;
+    ])) as unknown as GaugeV1;
   });
   afterEach(async () => {
     await snapshot.restore();

@@ -9,7 +9,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { deploySampleSaleTemplate } from "../../../scenarioHelper";
 import {
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   SampleTemplate,
   VotingEscrow,
@@ -61,7 +61,7 @@ describe("FeeDistributorV1", function () {
   let admin: SignerWithAddress; // FeeDistributor Admin
   let votingEscrow: VotingEscrow;
   let factory: Factory;
-  let distributor: FeeDistributor;
+  let distributor: FeeDistributorV1;
   let feeCoin: MockToken;
   let token: YMWK;
   let auction: SampleTemplate;
@@ -151,7 +151,7 @@ describe("FeeDistributorV1", function () {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await distributor.waitForDeployment();
 
     tokenAddresses = [ethers.ZeroAddress, String(feeCoin.target)];

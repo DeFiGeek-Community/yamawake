@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  Gauge,
+  GaugeV1,
   GaugeControllerV1,
   Minter,
   VotingEscrow,
@@ -56,7 +56,7 @@ describe("GaugeV1", function () {
   let votingEscrow: VotingEscrow;
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
-  let gauge: Gauge;
+  let gauge: GaugeV1;
   let minter: Minter;
 
   let lockedUntil: { [key: string]: number } = {};
@@ -114,7 +114,7 @@ describe("GaugeV1", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as Gauge;
+    ])) as unknown as GaugeV1;
     await gauge.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {

@@ -9,7 +9,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther } from "../../../scenarioHelper";
 import {
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   VotingEscrow,
   YMWK,
@@ -20,7 +20,7 @@ describe("FeeDistributorV1", () => {
   const WEEK = DAY * 7;
 
   let admin: SignerWithAddress, alice: SignerWithAddress;
-  let feeDistributor: FeeDistributor;
+  let feeDistributor: FeeDistributorV1;
   let votingEscrow: VotingEscrow;
   let factory: Factory;
   let token: YMWK;
@@ -62,7 +62,7 @@ describe("FeeDistributorV1", () => {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await feeDistributor.waitForDeployment();
   });
   afterEach(async () => {
@@ -101,7 +101,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       await feeDistributor.checkpointToken(ethers.ZeroAddress);

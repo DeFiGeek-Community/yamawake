@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  Gauge,
+  GaugeV1,
   Minter,
   VotingEscrow,
   YMWK,
@@ -15,7 +15,7 @@ import {
 } from "../../../../typechain-types";
 
 type GaugeInfo = {
-  contract: Gauge;
+  contract: GaugeV1;
   type: number;
   weight: bigint;
 };
@@ -148,7 +148,7 @@ describe("GaugeControllerV1", function () {
     const gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as Gauge;
+    ])) as unknown as GaugeV1;
     await gauge.waitForDeployment();
 
     await gaugeController

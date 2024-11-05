@@ -14,7 +14,7 @@ import {
   VotingEscrow,
   YMWK,
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   TemplateV1_5,
   MockToken,
 } from "../../../../typechain-types";
@@ -69,7 +69,7 @@ describe("TemplateV1.5", function () {
   let admin: SignerWithAddress; // FeeDistributor Admin
   let votingEscrow: VotingEscrow;
   let factory: Factory;
-  let feeDistributor: FeeDistributor;
+  let feeDistributor: FeeDistributorV1;
   let feeCoin: MockToken;
   let token: YMWK;
   let auction: TemplateV1_5;
@@ -162,7 +162,7 @@ describe("TemplateV1.5", function () {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await feeDistributor.waitForDeployment();
 
     await feeCoin

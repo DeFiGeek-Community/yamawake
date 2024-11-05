@@ -8,7 +8,7 @@ import {
 import Constants from "../../../lib/Constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  Gauge,
+  GaugeV1,
   GaugeControllerV1,
   Minter,
   VotingEscrow,
@@ -24,7 +24,7 @@ describe("GaugeV1", function () {
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
   let votingEscrow: VotingEscrow;
-  let gauge: Gauge;
+  let gauge: GaugeV1;
   let minter: Minter;
 
   let snapshot: SnapshotRestorer;
@@ -69,7 +69,7 @@ describe("GaugeV1", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as Gauge;
+    ])) as unknown as GaugeV1;
     await gauge.waitForDeployment();
   });
 

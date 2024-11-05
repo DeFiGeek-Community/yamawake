@@ -8,7 +8,7 @@ import {
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   VotingEscrow,
   YMWK,
@@ -28,7 +28,7 @@ describe("FeeDistributorV1", function () {
   let coinA: MockToken;
   let votingEscrow: VotingEscrow;
   let factory: Factory;
-  let feeDistributor: FeeDistributor;
+  let feeDistributor: FeeDistributorV1;
   let snapshot: SnapshotRestorer;
 
   beforeEach(async function () {
@@ -62,7 +62,7 @@ describe("FeeDistributorV1", function () {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await feeDistributor.waitForDeployment();
   });
 

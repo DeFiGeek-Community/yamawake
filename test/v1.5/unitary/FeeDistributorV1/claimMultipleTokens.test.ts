@@ -9,7 +9,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { sendEther, deploySampleSaleTemplate } from "../../../scenarioHelper";
 import {
   Factory,
-  FeeDistributor,
+  FeeDistributorV1,
   MockToken,
   SampleTemplate,
   VotingEscrow,
@@ -27,7 +27,7 @@ describe("FeeDistributorV1", () => {
     charlie: SignerWithAddress,
     dan: SignerWithAddress;
 
-  let feeDistributor: FeeDistributor;
+  let feeDistributor: FeeDistributorV1;
   let votingEscrow: VotingEscrow;
   let factory: Factory;
   let auction: SampleTemplate;
@@ -68,7 +68,7 @@ describe("FeeDistributorV1", () => {
       votingEscrow.target,
       factory.target,
       await time.latest(),
-    ])) as unknown as FeeDistributor;
+    ])) as unknown as FeeDistributorV1;
     await feeDistributor.waitForDeployment();
 
     await coinA._mintForTesting(dan.address, ethers.parseEther("10"));
@@ -102,7 +102,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
@@ -180,7 +180,7 @@ describe("FeeDistributorV1", () => {
         votingEscrow.target,
         factory.target,
         startTime,
-      ])) as unknown as FeeDistributor;
+      ])) as unknown as FeeDistributorV1;
       await feeDistributor.waitForDeployment();
 
       auction = await deploySampleSaleTemplate(
