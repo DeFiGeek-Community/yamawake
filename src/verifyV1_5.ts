@@ -1,6 +1,5 @@
-import { network, run, ethers } from "hardhat";
+import { network, run } from "hardhat";
 import { readFileSync } from "fs";
-import { FeeDistributorV1, YMWK } from "../typechain-types";
 
 async function main() {
   const basePath = `deployments/${network.name}/`;
@@ -13,91 +12,88 @@ async function main() {
   const votingEscrowAddress = readFileSync(
     basePath + "VotingEscrow"
   ).toString();
-  await run(`verify:verify`, {
-    address: votingEscrowAddress,
-    constructorArguments: [
-      ymwkAddress,
-      "Voting-escrowed Yamawake",
-      "veYMWK",
-      "v1",
-    ],
-  });
+  try {
+    console.log(`[INFO] Verifying VotingEscrow...`);
+    await run(`verify:verify`, {
+      address: votingEscrowAddress,
+      constructorArguments: [
+        ymwkAddress,
+        "Voting-escrowed Yamawake",
+        "veYMWK",
+        "v1",
+      ],
+    });
+  } catch (e) {
+    console.log(`[ERROR] ${e}`);
+  }
 
-  // FeeDistributorV1
-  const implFeeDistributorAddress = readFileSync(
-    basePath + "ImplFeeDistributorV1"
-  ).toString();
-  await run(`verify:verify`, {
-    address: implFeeDistributorAddress,
-    constructorArguments: [],
-  });
-
+  // FeeDistributor
   const feeDistributorAddress = readFileSync(
     basePath + "FeeDistributorV1"
   ).toString();
-  const FeeDistributor = await ethers.getContractFactory("FeeDistributorV1");
-  const feeDistributor = FeeDistributor.attach(
-    feeDistributorAddress
-  ) as FeeDistributorV1;
-  const startTime = await feeDistributor.startTime(ethers.ZeroAddress);
 
-  await run(`verify:verify`, {
-    address: feeDistributorAddress,
-    constructorArguments: [votingEscrowAddress, factoryAddress, startTime],
-  });
+  try {
+    console.log(`[INFO] Verifying FeeDistributor...`);
+    await run(`verify:verify`, {
+      address: feeDistributorAddress,
+    });
+  } catch (e) {
+    console.log(`[ERROR] ${e}`);
+  }
 
-  // GaugeControllerV1
-  const implGaugeControllerAddress = readFileSync(
-    basePath + "ImplGaugeControllerV1"
-  ).toString();
-  await run(`verify:verify`, {
-    address: implGaugeControllerAddress,
-    constructorArguments: [],
-  });
+  // GaugeController
   const gaugeControllerAddress = readFileSync(
     basePath + "GaugeControllerV1"
   ).toString();
-  await run(`verify:verify`, {
-    address: gaugeControllerAddress,
-    constructorArguments: [votingEscrowAddress, ymwkAddress],
-  });
+
+  try {
+    console.log(`[INFO] Verifying GaugeController...`);
+    await run(`verify:verify`, {
+      address: gaugeControllerAddress,
+    });
+  } catch (e) {
+    console.log(`[ERROR] ${e}`);
+  }
 
   // Minter
   const minterAddress = readFileSync(basePath + "Minter").toString();
-  await run(`verify:verify`, {
-    address: minterAddress,
-    constructorArguments: [ymwkAddress, gaugeControllerAddress],
-  });
+  try {
+    console.log(`[INFO] Verifying Minter...`);
+    await run(`verify:verify`, {
+      address: minterAddress,
+      constructorArguments: [ymwkAddress, gaugeControllerAddress],
+    });
+  } catch (e) {
+    console.log(`[ERROR] ${e}`);
+  }
 
   // Gauge
-  const INFLATION_DELAY = 86400 * 365;
-  const ymwk = (await ethers.getContractFactory("YMWK")).attach(
-    ymwkAddress
-  ) as YMWK;
-  const tokenInflationStarts =
-    (await ymwk.startEpochTime()) + BigInt(INFLATION_DELAY);
-  const implGaugeAddress = readFileSync(basePath + "ImplGaugeV1").toString();
-  await run(`verify:verify`, {
-    address: implGaugeAddress,
-    constructorArguments: [],
-  });
-
   const gaugeAddress = readFileSync(basePath + "GaugeV1").toString();
-  await run(`verify:verify`, {
-    address: gaugeAddress,
-    constructorArguments: [minterAddress, tokenInflationStarts],
-  });
+  try {
+    console.log(`[INFO] Verifying Gauge...`);
+    await run(`verify:verify`, {
+      address: gaugeAddress,
+    });
+  } catch (e) {
+    console.log(`[ERROR] ${e}`);
+  }
 
   // TemplateV1.5
   const templateAddress = readFileSync(basePath + "TemplateV1_5").toString();
-  await run(`verify:verify`, {
-    address: templateAddress,
-    constructorArguments: [
-      factoryAddress,
-      feeDistributorAddress,
-      distributorAddress,
-    ],
-  });
+
+  try {
+    console.log(`[INFO] Verifying TemplateV1.5...`);
+    await run(`verify:verify`, {
+      address: templateAddress,
+      constructorArguments: [
+        factoryAddress,
+        feeDistributorAddress,
+        distributorAddress,
+      ],
+    });
+  } catch (e) {
+    console.log(`[ERROR] ${e}`);
+  }
 }
 
 main().catch((error) => {
