@@ -88,7 +88,7 @@ export async function deployProxy(contractName: string, opts: Options) {
   if (opts.log)
     console.log(
       `${contractName} is deployed as ${
-        _Contract.address
+        _Contract.target
       } by ${await opts.signer.getAddress()}`
     );
   writeFileSync(
