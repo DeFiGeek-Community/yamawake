@@ -8,7 +8,7 @@ import {
 } from "../../src/deployUtil";
 import { GaugeControllerV1, YMWK } from "../../typechain-types";
 
-const codename = "Gauge";
+const codename = "GaugeV1";
 const INFLATION_DELAY = 86400 * 365;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

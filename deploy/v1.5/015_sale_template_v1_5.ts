@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const factoryAddress = getContractAddress(hre.network.name, "Factory");
   const feeDistributorAddress = getContractAddress(
     hre.network.name,
-    "FeeDistributor"
+    "FeeDistributorV1"
   );
   const distributorAddress = getContractAddress(
     hre.network.name,
@@ -54,31 +54,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       getContractFactory,
     })) as unknown as TemplateV1_5;
   } else {
-    // If a deployment address for TemplateV1 already exists, ask the user for confirmation.
-    // This applies when replacing the old Distributor settings of TemplateV1 deployed on L1 with a CCIP-compatible Distributor setting,
-    // or during deployment in a local development environment.
-    const response = await prompts({
-      type: "confirm",
-      name: "value",
-      message: `Looks like TemplateV1_5 is deployed already. Do you want to proceed with the deployment with DistributorReceiver?`,
-      initial: false,
-    });
-
-    if (response.value) {
-      console.log(`${codename} is deploying with factory=${factoryAddress}...`);
-
-      TemplateV1_5 = (await deploy(codename, {
-        from: foundation,
-        args: [factoryAddress, feeDistributorAddress, distributorAddress],
-        log: true,
-        getContractFactory,
-      })) as unknown as TemplateV1_5;
-    } else {
-      TemplateV1_5 = (await getContractFactory(codename)).attach(
-        getContractAddress(hre.network.name, codename)
-      ) as TemplateV1_5;
-      console.log(`${codename} is already deployed. skipping deploy...`);
-    }
+    TemplateV1_5 = (await getContractFactory(codename)).attach(
+      getContractAddress(hre.network.name, codename)
+    ) as TemplateV1_5;
+    console.log(`${codename} is already deployed. skipping deploy...`);
   }
 
   const Factory = await ethers.getContractAt(
