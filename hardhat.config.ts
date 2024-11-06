@@ -83,8 +83,9 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       mainnet: ETHERSCAN_API_KEY,
+      sepolia: ETHERSCAN_API_KEY,
       baseSepolia: BASESCAN_API_KEY,
-      base:BASESCAN_API_KEY,
+      base: BASESCAN_API_KEY,
     },
   },
   paths: {
