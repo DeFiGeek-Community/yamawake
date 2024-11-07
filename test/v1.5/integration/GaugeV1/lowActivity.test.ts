@@ -148,6 +148,7 @@ describe("GaugeV1", function () {
 
       // 各種ステータスが一致することを確認。
       // rewardは複数のepochを跨ぐため、まとめて最新のrateにて計算されるreward2の方が少なくなる
+      expect(reward1).to.be.above(0);
       expect(reward2).to.be.above(reward1);
       expect(timeCursorOf1).to.be.eq(timeCursorOf2);
       expect(timeCursor1).to.be.eq(timeCursor2);

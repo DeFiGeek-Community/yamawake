@@ -59,13 +59,15 @@ describe("Gauge checkpoint", function () {
     await snapshot.restore();
   });
   it("test_user_checkpoint", async function () {
-    await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
+    await expect(gauge.connect(accounts[1]).userCheckpoint(accounts[1].address))
+      .to.not.be.reverted;
   });
   it("test_user_checkpoint_new_period", async function () {
     await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
     // Increase the time on the blockchain
     await time.increase(year * 1.1);
-    await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
+    await expect(gauge.connect(accounts[1]).userCheckpoint(accounts[1].address))
+      .to.not.be.reverted;
   });
   it("test_user_checkpoint_wrong_account", async function () {
     // Expect the transaction to be reverted with the specified error message
