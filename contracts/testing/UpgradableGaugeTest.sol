@@ -2,19 +2,17 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IGaugeController.sol";
 import "../interfaces/IYMWK.sol";
 import "../interfaces/IMinter.sol";
 import "../interfaces/IVotingEscrow.sol";
+import "../UUPSBase.sol";
 
 /// @title Gauge
 /// @author DeFiGeek Community Japan
 /// @notice Dummy Gauge for upgrading test
-contract UpgradableGaugeTest is UUPSUpgradeable {
+contract UpgradableGaugeTest is UUPSBase {
     event CheckpointToken(uint256 time, uint256 tokens);
-    event CommitOwnership(address indexed admin);
-    event ApplyOwnership(address indexed admin);
 
     uint256 public constant WEEK = 604800;
     uint256 public startTime;
@@ -22,7 +20,6 @@ contract UpgradableGaugeTest is UUPSUpgradeable {
     address public votingEscrow;
     address public minter;
     address public gaugeController;
-    address public admin;
     uint256 public futureEpochTime;
     uint256 public inflationRate;
     uint256 public timeCursor;
@@ -50,10 +47,6 @@ contract UpgradableGaugeTest is UUPSUpgradeable {
     function newMethod() external {
         newParam++;
     }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
 
     /***
      * @notice
@@ -421,10 +414,5 @@ contract UpgradableGaugeTest is UUPSUpgradeable {
 
     function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin);
-        _;
     }
 }

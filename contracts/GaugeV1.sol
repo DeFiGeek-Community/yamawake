@@ -2,19 +2,17 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IGaugeController.sol";
 import "./interfaces/IYMWK.sol";
 import "./interfaces/IMinter.sol";
 import "./interfaces/IVotingEscrow.sol";
+import "./UUPSBase.sol";
 
-/// @title Gauge
+/// @title GaugeV1
 /// @author DeFiGeek Community Japan
 /// @notice Calculate YMWK token rewards for veYMWK holders
-contract GaugeV1 is UUPSUpgradeable {
+contract GaugeV1 is UUPSBase {
     event CheckpointToken(uint256 time, uint256 tokens);
-    event CommitOwnership(address indexed admin);
-    event ApplyOwnership(address indexed admin);
 
     uint256 public constant WEEK = 604800;
     uint256 public startTime;
@@ -22,7 +20,6 @@ contract GaugeV1 is UUPSUpgradeable {
     address public votingEscrow;
     address public minter;
     address public gaugeController;
-    address public admin;
     uint256 public futureEpochTime;
     uint256 public inflationRate;
     uint256 public timeCursor;
@@ -44,12 +41,12 @@ contract GaugeV1 is UUPSUpgradeable {
         address minter_,
         uint256 startTime_
     ) public initializer {
+        __UUPSBase_init();
+
         minter = minter_;
         token = IMinter(minter).token();
         gaugeController = IMinter(minter).controller();
         votingEscrow = IGaugeController(gaugeController).votingEscrow();
-
-        admin = msg.sender;
 
         inflationRate = IYMWK(token).rate();
         futureEpochTime = IYMWK(token).futureEpochTimeWrite();
@@ -60,10 +57,6 @@ contract GaugeV1 is UUPSUpgradeable {
         tokenTimeCursor = _t;
         timeCursor = _t;
     }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
 
     /***
      * @notice
@@ -431,10 +424,5 @@ contract GaugeV1 is UUPSUpgradeable {
 
     function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin);
-        _;
     }
 }

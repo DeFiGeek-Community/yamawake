@@ -4,20 +4,15 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IVotingEscrow.sol";
 import "../interfaces/IFactory.sol";
-
-import "hardhat/console.sol";
+import "../UUPSBase.sol";
 
 /// @title UpgradableFeeDistributorTest
 /// @author DeFiGeek Community Japan
 /// @notice Dummy FeeDistributor for upgrading test
-contract UpgradableFeeDistributorTest is
-    ReentrancyGuardUpgradeable,
-    UUPSUpgradeable
-{
+contract UpgradableFeeDistributorTest is UUPSBase, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     uint256 public constant WEEK = 7 * 86400;
@@ -39,8 +34,6 @@ contract UpgradableFeeDistributorTest is
     mapping(address => uint256) public tokenLastBalance; // token -> balance
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
 
-    address public admin;
-    address public futureAdmin;
     uint256 public isKilled; // 0 -> Not killed, 1 -> killed
 
     // New param
@@ -84,10 +77,6 @@ contract UpgradableFeeDistributorTest is
     function newMethod() external {
         newParam++;
     }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
 
     function _checkpointToken(address token_) internal {
         uint256 _tokenBalance;
@@ -666,24 +655,6 @@ contract UpgradableFeeDistributorTest is
     }
 
     /***
-     * @notice Commit transfer of ownership
-     * @param addr_ New admin address
-     */
-    function commitAdmin(address addr_) external onlyAdmin {
-        futureAdmin = addr_;
-        emit CommitAdmin(addr_);
-    }
-
-    /***
-     * @notice Apply transfer of ownership
-     */
-    function applyAdmin() external onlyAdmin {
-        require(futureAdmin != address(0), "No admin set");
-        admin = futureAdmin;
-        emit ApplyAdmin(futureAdmin);
-    }
-
-    /***
      * @notice Kill the contract
      * @dev Killing transfers the entire Ether balance to admin address
          and blocks the ability to claim. The contract cannot be unkilled.
@@ -745,11 +716,6 @@ contract UpgradableFeeDistributorTest is
 
     function getTokens() external view returns (address[] memory) {
         return tokens;
-    }
-
-    modifier onlyAdmin() {
-        require(admin == msg.sender, "Access denied");
-        _;
     }
 
     /// @dev Allow only auctions

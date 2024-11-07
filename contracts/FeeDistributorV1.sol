@@ -4,15 +4,15 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/IVotingEscrow.sol";
 import "./interfaces/IFactory.sol";
+import "./UUPSBase.sol";
 
 /// @title FeeDistributor
 /// @author DeFiGeek Community Japan
 /// @notice Distributes fees to ve holders according to their ve holdings
-contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
+contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
 
     uint256 public constant WEEK = 7 * 86400;
@@ -34,8 +34,6 @@ contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
     mapping(address => uint256) public tokenLastBalance; // token -> balance
     mapping(uint256 => uint256) public veSupply; // VE total supply at week bounds
 
-    address public admin;
-    address public futureAdmin;
     uint256 public isKilled; // 0 -> Not killed, 1 -> killed
 
     struct ClaimParams {
@@ -54,8 +52,6 @@ contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
         uint256 tokensPerWeek;
     }
 
-    event CommitAdmin(address indexed admin);
-    event ApplyAdmin(address indexed admin);
     event CheckpointToken(address indexed token, uint256 time, uint256 tokens);
     event Claimed(
         address indexed recipient,
@@ -76,6 +72,7 @@ contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
         address factory_,
         uint256 startTime_
     ) public initializer {
+        __UUPSBase_init();
         __ReentrancyGuard_init();
         uint256 t = (startTime_ / WEEK) * WEEK;
         startTime[address(0)] = t;
@@ -85,12 +82,7 @@ contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
         tokenFlags[address(0)] = 1;
         votingEscrow = votingEscrow_;
         factory = factory_;
-        admin = msg.sender;
     }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
 
     function _checkpointToken(address token_) internal {
         uint256 _tokenBalance;
@@ -669,24 +661,6 @@ contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
     }
 
     /***
-     * @notice Commit transfer of ownership
-     * @param addr_ New admin address
-     */
-    function commitAdmin(address addr_) external onlyAdmin {
-        futureAdmin = addr_;
-        emit CommitAdmin(addr_);
-    }
-
-    /***
-     * @notice Apply transfer of ownership
-     */
-    function applyAdmin() external onlyAdmin {
-        require(futureAdmin != address(0), "No admin set");
-        admin = futureAdmin;
-        emit ApplyAdmin(futureAdmin);
-    }
-
-    /***
      * @notice Kill the contract
      * @dev Killing transfers the entire Ether balance to admin address
          and blocks the ability to claim. The contract cannot be unkilled.
@@ -748,11 +722,6 @@ contract FeeDistributorV1 is ReentrancyGuardUpgradeable, UUPSUpgradeable {
 
     function getTokens() external view returns (address[] memory) {
         return tokens;
-    }
-
-    modifier onlyAdmin() {
-        require(admin == msg.sender, "Access denied");
-        _;
     }
 
     /// @dev Allow only auctions

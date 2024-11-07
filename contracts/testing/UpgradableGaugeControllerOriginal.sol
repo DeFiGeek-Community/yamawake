@@ -6,12 +6,12 @@ pragma solidity 0.8.19;
  *@notice Controls liquidity gauges and the issuance of token through the gauges
  */
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IYMWK.sol";
 import "../interfaces/IVotingEscrow.sol";
+import "../UUPSBase.sol";
 
 // Upgradable ver of Curve GaugeController
-contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
+contract UpgradableGaugeControllerOriginal is UUPSBase {
     struct Point {
         uint256 bias;
         uint256 slope;
@@ -41,8 +41,6 @@ contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
     // Cannot change weight votes more often than once in 10 days.
     uint256 constant WEIGHT_VOTE_DELAY = 10 days;
 
-    event CommitOwnership(address admin);
-    event ApplyOwnership(address admin);
     event AddType(string name, int128 typeId);
     event NewTypeWeight(
         int128 typeId,
@@ -66,10 +64,6 @@ contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
 
     uint256 constant MULTIPLIER = 10 ** 18;
 
-    // Can and will be a smart contract
-    address public admin;
-    // Can and will be a smart contract
-    address public futureAdmin;
     // YMWK token
     address public token;
     // Voting escrow
@@ -80,7 +74,7 @@ contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
     mapping(int128 => string) public gaugeTypeNames;
 
     // Needed for enumeration
-    address[1000000000] public gauges;
+    mapping(uint256 => address) public gauges;
 
     // we increment values by 1 prior to storing them here so we can rely on a value
     // of zero as meaning the gauge has not been set    mapping(address => int128) gaugeTypes;
@@ -127,29 +121,6 @@ contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
         token = token_;
         votingEscrow = votingEscrow_;
         timeTotal = (block.timestamp / WEEK) * WEEK;
-    }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
-
-    /***
-     * @notice Transfer ownership of GaugeController to `addr`
-     * @param addr_ Address to have ownership transferred to
-     */
-    function commitTransferOwnership(address addr_) external onlyAdmin {
-        futureAdmin = addr_;
-        emit CommitOwnership(addr_);
-    }
-
-    /***
-     * @notice Apply pending ownership transfer
-     */
-    function applyTransferOwnership() external onlyAdmin {
-        address _admin = futureAdmin;
-        require(_admin != address(0), "admin not set");
-        admin = _admin;
-        emit ApplyOwnership(_admin);
     }
 
     /***
@@ -682,10 +653,5 @@ contract UpgradableGaugeControllerOriginal is UUPSUpgradeable {
 
     function max(uint256 _a, uint256 _b) internal pure returns (uint256) {
         return _a >= _b ? _a : _b;
-    }
-
-    modifier onlyAdmin() {
-        require(admin == msg.sender, "admin only");
-        _;
     }
 }

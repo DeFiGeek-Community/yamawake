@@ -664,76 +664,76 @@ describe("TemplateV1.5", function () {
     }
 
     // Display results--------------------------------------------------
-    console.log(``);
-    console.log(`Results ------------------------>`);
-    console.log(`[TokensPerWeek]`);
-    Object.entries(tokensPerWeeks).forEach((val) => {
-      console.log(`${val.toString()}`);
-    });
-    console.log(``);
-    console.log(`[TokensPerUserPerWeek]`);
-    Object.entries(tokensPerUserPerWeek).forEach(([key, val]) => {
-      console.log(`${key}: ${val}`);
-    });
-    console.log(``);
-    console.log(`[Fees]`);
-    Object.entries(fees).forEach(([key, val]) => {
-      console.log(`${key}: ${val}`);
-    });
-    console.log(``);
-    console.log(`[Total Fee]`);
-    console.log(totalFees.toString());
-    console.log(``);
-    console.log(`[User claims]`);
-    Object.entries(userClaims).forEach(([key, val]) => {
-      console.log(`${key}:`);
-      Object.entries(val).forEach(([k, v]) => {
-        console.log(`${k}: ${v}`);
-      });
-      console.log(``);
-    });
-    console.log(``);
-    console.log(`[User balances changes without gas]`);
-    for (const acct of accounts) {
-      console.log(
-        acct.address,
-        initialEthBalance[acct.address].toString(),
-        (
-          (await ethers.provider.getBalance(acct.address)) -
-          initialEthBalance[acct.address]
-        ).toString()
-      );
-    }
-    console.log(``);
-    console.log(`[User balances changes with gas]`);
-    for (const acct of accounts) {
-      console.log(
-        acct.address,
-        initialEthBalance[acct.address].toString(),
-        (await ethers.provider.getBalance(acct.address)) -
-          initialEthBalance[acct.address] +
-          userGases[acct.address].toString()
-      );
-    }
-    console.log(``);
-    console.log(`[Ether balance of FeeDistributor]`);
-    console.log(
-      (await ethers.provider.getBalance(feeDistributor.target)).toString()
-    );
+    // console.log(``);
+    // console.log(`Results ------------------------>`);
+    // console.log(`[TokensPerWeek]`);
+    // Object.entries(tokensPerWeeks).forEach((val) => {
+    //   console.log(`${val.toString()}`);
+    // });
+    // console.log(``);
+    // console.log(`[TokensPerUserPerWeek]`);
+    // Object.entries(tokensPerUserPerWeek).forEach(([key, val]) => {
+    //   console.log(`${key}: ${val}`);
+    // });
+    // console.log(``);
+    // console.log(`[Fees]`);
+    // Object.entries(fees).forEach(([key, val]) => {
+    //   console.log(`${key}: ${val}`);
+    // });
+    // console.log(``);
+    // console.log(`[Total Fee]`);
+    // console.log(totalFees.toString());
+    // console.log(``);
+    // console.log(`[User claims]`);
+    // Object.entries(userClaims).forEach(([key, val]) => {
+    //   console.log(`${key}:`);
+    //   Object.entries(val).forEach(([k, v]) => {
+    //     console.log(`${k}: ${v}`);
+    //   });
+    //   console.log(``);
+    // });
+    // console.log(``);
+    // console.log(`[User balances changes without gas]`);
+    // for (const acct of accounts) {
+    //   console.log(
+    //     acct.address,
+    //     initialEthBalance[acct.address].toString(),
+    //     (
+    //       (await ethers.provider.getBalance(acct.address)) -
+    //       initialEthBalance[acct.address]
+    //     ).toString()
+    //   );
+    // }
+    // console.log(``);
+    // console.log(`[User balances changes with gas]`);
+    // for (const acct of accounts) {
+    //   console.log(
+    //     acct.address,
+    //     initialEthBalance[acct.address].toString(),
+    //     (await ethers.provider.getBalance(acct.address)) -
+    //       initialEthBalance[acct.address] +
+    //       userGases[acct.address].toString()
+    //   );
+    // }
+    // console.log(``);
+    // console.log(`[Ether balance of FeeDistributor]`);
+    // console.log(
+    //   (await ethers.provider.getBalance(feeDistributor.target)).toString()
+    // );
 
-    console.log(``);
-    console.log(`[Active auctions]`);
-    console.log(`Number of active auctions: ${activeAuctions.length}`);
-    for (let i = 0; i < auctions.length; i++) {
-      const startWeek = (Number(await auctions[i].startingAt()) - t0) / WEEK;
-      const endWeek = (Number(await auctions[i].closingAt()) - t0) / WEEK;
-      const totalRaised = await auctions[i].totalRaised();
-      console.log(
-        `Auction ${i}: startWeek: ${startWeek} closeWeek: ${endWeek} raised: ${totalRaised.toString()}`
-      );
-    }
-    console.log(`<------------------------ End of Results`);
-    console.log(``);
+    // console.log(``);
+    // console.log(`[Active auctions]`);
+    // console.log(`Number of active auctions: ${activeAuctions.length}`);
+    // for (let i = 0; i < auctions.length; i++) {
+    //   const startWeek = (Number(await auctions[i].startingAt()) - t0) / WEEK;
+    //   const endWeek = (Number(await auctions[i].closingAt()) - t0) / WEEK;
+    //   const totalRaised = await auctions[i].totalRaised();
+    //   console.log(
+    //     `Auction ${i}: startWeek: ${startWeek} closeWeek: ${endWeek} raised: ${totalRaised.toString()}`
+    //   );
+    // }
+    // console.log(`<------------------------ End of Results`);
+    // console.log(``);
     // -------------------------------------------
 
     for (const acct of accounts) {

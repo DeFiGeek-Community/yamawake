@@ -1,21 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./UUPSBase.sol";
 
 /// @title GaugeControllerV1
 /// @author DeFiGeek Community Japan
 /// @notice Controls liquidity gauges and the issuance of token through the gauges
-contract GaugeControllerV1 is UUPSUpgradeable {
-    event CommitOwnership(address admin);
-    event ApplyOwnership(address admin);
-
+contract GaugeControllerV1 is UUPSBase {
     uint256 constant MULTIPLIER = 10 ** 18;
 
-    // Can and will be a smart contract
-    address public admin;
-    // Can and will be a smart contract
-    address public futureAdmin;
     // YMWK token
     address public token;
     // Voting escrow
@@ -26,7 +19,7 @@ contract GaugeControllerV1 is UUPSUpgradeable {
     mapping(int128 => string) public gaugeTypeNames;
 
     // Needed for enumeration
-    address[1000000000] public gauges;
+    mapping(uint256 => address) public gauges;
 
     // we increment values by 1 prior to storing them here so we can rely on a value
     // of zero as meaning the gauge has not been set    mapping(address => int128) gaugeTypes;
@@ -41,10 +34,10 @@ contract GaugeControllerV1 is UUPSUpgradeable {
         address token_,
         address votingEscrow_
     ) public initializer {
+        __UUPSBase_init();
         require(token_ != address(0));
         require(votingEscrow_ != address(0));
 
-        admin = msg.sender;
         token = token_;
         votingEscrow = votingEscrow_;
 
@@ -52,29 +45,6 @@ contract GaugeControllerV1 is UUPSUpgradeable {
         int128 _typeId = nGaugeTypes;
         gaugeTypeNames[_typeId] = "veYMWK";
         nGaugeTypes = 1;
-    }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
-
-    /***
-     * @notice Transfer ownership of GaugeController to `addr`
-     * @param addr_ Address to have ownership transferred to
-     */
-    function commitTransferOwnership(address addr_) external onlyAdmin {
-        futureAdmin = addr_;
-        emit CommitOwnership(addr_);
-    }
-
-    /***
-     * @notice Apply pending ownership transfer
-     */
-    function applyTransferOwnership() external onlyAdmin {
-        address _admin = futureAdmin;
-        require(_admin != address(0), "admin not set");
-        admin = _admin;
-        emit ApplyOwnership(_admin);
     }
 
     /***
@@ -133,10 +103,5 @@ contract GaugeControllerV1 is UUPSUpgradeable {
     ) external pure returns (uint256) {
         // Just return 1e18 for V1
         return MULTIPLIER;
-    }
-
-    modifier onlyAdmin() {
-        require(admin == msg.sender, "admin only");
-        _;
     }
 }
