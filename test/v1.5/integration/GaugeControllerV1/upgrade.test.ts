@@ -8,7 +8,7 @@ import {
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   GaugeV1,
-  Minter,
+  MinterV1,
   VotingEscrow,
   YMWK,
   UpgradableGaugeControllerOriginal,
@@ -51,7 +51,7 @@ describe("GaugeControllerV1", function () {
   let votingEscrow: VotingEscrow;
   let gaugeController: UpgradableGaugeControllerOriginal;
   let token: YMWK;
-  let minter: Minter;
+  let minter: MinterV1;
 
   let typeWeights: bigint[] = [];
   let gauges: GaugeInfo[] = [];
@@ -63,7 +63,7 @@ describe("GaugeControllerV1", function () {
     accounts = (await ethers.getSigners()).slice(0, ACCOUNT_NUM);
 
     const Token = await ethers.getContractFactory("YMWK");
-    const Minter = await ethers.getContractFactory("Minter");
+    const Minter = await ethers.getContractFactory("MinterV1");
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -86,7 +86,10 @@ describe("GaugeControllerV1", function () {
     ])) as unknown as UpgradableGaugeControllerOriginal;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.target, gaugeController.target);
+    minter = (await upgrades.deployProxy(Minter, [
+      token.target,
+      gaugeController.target,
+    ])) as unknown as MinterV1;
     await minter.waitForDeployment();
 
     typeWeights = [];

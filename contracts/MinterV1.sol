@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./interfaces/IYMWK.sol";
 import "./interfaces/ILiquidityGauge.sol";
 import "./interfaces/IGaugeController.sol";
+import "./UUPSBase.sol";
 
-/// @title Token Minter
+/// @title MinterV1
 /// @author DeFiGeek Community Japan
-/// @notice Controls liquidity gauges and the issuance of token through the gauges
-contract Minter is ReentrancyGuard {
+/// @notice Mint YMWK
+contract MinterV1 is UUPSBase, ReentrancyGuardUpgradeable {
     event Minted(address indexed recipient, address gauge, uint256 minted);
 
-    address public immutable token;
-    address public immutable controller;
+    address public token;
+    address public controller;
 
     // user -> gauge -> value
     mapping(address => mapping(address => uint256)) public minted; // minted amount of user from specific gauge.
@@ -21,7 +22,12 @@ contract Minter is ReentrancyGuard {
     // minter -> user -> can mint
     mapping(address => mapping(address => bool)) public allowedToMintFor; // A can mint for B if [A => B => true].
 
-    constructor(address token_, address controller_) {
+    function initialize(
+        address token_,
+        address controller_
+    ) public initializer {
+        __UUPSBase_init();
+        __ReentrancyGuard_init();
         token = token_;
         controller = controller_;
     }

@@ -10,7 +10,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   GaugeV1,
   GaugeControllerV1,
-  Minter,
+  MinterV1,
   VotingEscrow,
   YMWK,
   UpgradableGaugeTest,
@@ -26,7 +26,7 @@ describe("GaugeV1", function () {
   let token: YMWK;
   let votingEscrow: VotingEscrow;
   let gauge: GaugeV1 | UpgradableGaugeTest;
-  let minter: Minter;
+  let minter: MinterV1;
 
   let snapshot: SnapshotRestorer;
   const WEEK = Constants.WEEK;
@@ -42,7 +42,7 @@ describe("GaugeV1", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
-    const Minter = await ethers.getContractFactory("Minter");
+    const Minter = await ethers.getContractFactory("MinterV1");
     const Gauge = await ethers.getContractFactory("GaugeV1");
 
     token = await YMWK.deploy();
@@ -62,7 +62,10 @@ describe("GaugeV1", function () {
     ])) as unknown as GaugeControllerV1;
     await gaugeController.waitForDeployment();
 
-    minter = await Minter.deploy(token.target, gaugeController.target);
+    minter = (await upgrades.deployProxy(Minter, [
+      token.target,
+      gaugeController.target,
+    ])) as unknown as MinterV1;
     await minter.waitForDeployment();
 
     const tokenInflationStarts =

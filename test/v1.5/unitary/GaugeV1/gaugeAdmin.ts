@@ -8,7 +8,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import Constants from "../../../lib/Constants";
 import { GaugeV1, VotingEscrow, YMWK } from "../../../../typechain-types";
 
-describe("Gauge checkpoint", function () {
+describe("GaugeV1 Admin", function () {
   let accounts: SignerWithAddress[];
   let gauge: GaugeV1;
   let token: YMWK;
@@ -26,7 +26,7 @@ describe("Gauge checkpoint", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Gauge = await ethers.getContractFactory("GaugeV1");
-    const Minter = await ethers.getContractFactory("Minter");
+    const Minter = await ethers.getContractFactory("MinterV1");
 
     // Contract deployments
     token = await Token.deploy();
@@ -41,7 +41,10 @@ describe("Gauge checkpoint", function () {
       votingEscrow.target,
     ]);
 
-    const minter = await Minter.deploy(token.target, gaugeController.target);
+    const minter = await upgrades.deployProxy(Minter, [
+      token.target,
+      gaugeController.target,
+    ]);
 
     const tokenInflationStarts: bigint =
       (await token.startEpochTime()) + INFLATION_DELAY;

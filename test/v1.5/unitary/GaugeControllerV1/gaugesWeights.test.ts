@@ -29,7 +29,7 @@ describe("GaugeControllerV1", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
-    const Minter = await ethers.getContractFactory("Minter");
+    const Minter = await ethers.getContractFactory("MinterV1");
 
     // Contract deployments
     const token = await Token.deploy();
@@ -44,7 +44,10 @@ describe("GaugeControllerV1", function () {
       votingEscrow.target,
     ])) as unknown as GaugeControllerV1;
 
-    const minter = await Minter.deploy(token.target, gaugeController.target);
+    const minter = await upgrades.deployProxy(Minter, [
+      token.target,
+      gaugeController.target,
+    ]);
 
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
