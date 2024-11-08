@@ -38,8 +38,6 @@ contract VotingEscrow is ReentrancyGuard {
     uint128 private constant INCREASE_LOCK_AMOUNT = 2;
     uint128 private constant INCREASE_UNLOCK_TIME = 3;
 
-    event CommitOwnership(address admin);
-    event ApplyOwnership(address admin);
     event Deposit(
         address indexed provider,
         uint256 value,
@@ -67,17 +65,10 @@ contract VotingEscrow is ReentrancyGuard {
     mapping(address => uint256) public userPointEpoch;
     mapping(uint256 => int128) public slopeChanges; // time -> signed slope change
 
-    // Aragon's view methods for compatibility
-    address public controller;
-    bool public transfersEnabled;
-
     string public name;
     string public symbol;
     string public version;
     uint8 public decimals;
-
-    address public admin;
-    address public futureAdmin;
 
     /***
      * @notice Contract constructor
@@ -92,37 +83,15 @@ contract VotingEscrow is ReentrancyGuard {
         string memory symbol_,
         string memory version_
     ) {
-        admin = msg.sender;
         token = tokenAddr_;
         pointHistory[0].blk = block.number;
         pointHistory[0].ts = block.timestamp;
-        controller = msg.sender;
-        transfersEnabled = true;
 
         decimals = ERC20(tokenAddr_).decimals();
 
         name = name_;
         symbol = symbol_;
         version = version_;
-    }
-
-    /***
-     * @notice Transfer ownership of VotingEscrow contract to `addr_`
-     * @param addr Address to have ownership transferred to
-     */
-    function commitTransferOwnership(address addr_) external onlyAdmin {
-        futureAdmin = addr_;
-        emit CommitOwnership(addr_);
-    }
-
-    /***
-     * @notice Apply ownership transfer
-     */
-    function applyTransferOwnership() external onlyAdmin {
-        address _admin = futureAdmin;
-        require(_admin != address(0), "admin not set");
-        admin = _admin;
-        emit ApplyOwnership(_admin);
     }
 
     /***
@@ -791,21 +760,5 @@ contract VotingEscrow is ReentrancyGuard {
         }
         // Now _dt contains info on how far are we beyond point
         return supplyAt(_point, _point.ts + _dt);
-    }
-
-    /***
-     * @dev Dummy method required for Aragon compatibility
-     */
-    function changeController(address newController) external {
-        require(
-            msg.sender == controller,
-            "Only the controller can call this function"
-        );
-        controller = newController;
-    }
-
-    modifier onlyAdmin() {
-        require(admin == msg.sender, "admin only");
-        _;
     }
 }
