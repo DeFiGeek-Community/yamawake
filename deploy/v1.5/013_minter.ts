@@ -1,13 +1,13 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import {
-  deploy,
+  deployProxy,
   getFoundation,
   getContractAddress,
   existsDeployedContract,
 } from "../../src/deployUtil";
 
-const codename = "Minter";
+const codename = "MinterV1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (existsDeployedContract(hre.network.name, codename)) {
@@ -36,7 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     `${codename} is deploying with YMWK=${ymwkAddress}, GaugeControllerV1=${gaugeControllerAddress} ...`
   );
 
-  await deploy(codename, {
+  await deployProxy(codename, {
     from: foundation,
     args: [ymwkAddress, gaugeControllerAddress],
     log: true,

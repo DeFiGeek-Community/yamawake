@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
-  const minterAddress = getContractAddress(hre.network.name, "Minter");
+  const minterAddress = getContractAddress(hre.network.name, "MinterV1");
   const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
   const controllerAddress = getContractAddress(
     hre.network.name,

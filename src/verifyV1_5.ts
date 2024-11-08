@@ -6,7 +6,9 @@ async function main() {
 
   const factoryAddress = readFileSync(basePath + "Factory").toString();
   const ymwkAddress = readFileSync(basePath + "YMWK").toString();
-  const distributorAddress = readFileSync(basePath + "Distributor").toString();
+  const distributorAddress = readFileSync(
+    basePath + "DistributorReceiver"
+  ).toString();
 
   // VotingEscrow
   const votingEscrowAddress = readFileSync(
@@ -56,12 +58,11 @@ async function main() {
   }
 
   // Minter
-  const minterAddress = readFileSync(basePath + "Minter").toString();
+  const minterAddress = readFileSync(basePath + "MinterV1").toString();
   try {
     console.log(`[INFO] Verifying Minter...`);
     await run(`verify:verify`, {
       address: minterAddress,
-      constructorArguments: [ymwkAddress, gaugeControllerAddress],
     });
   } catch (e) {
     console.log(`[ERROR] ${e}`);
