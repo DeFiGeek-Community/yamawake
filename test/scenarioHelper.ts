@@ -35,7 +35,6 @@ export async function sendEther(to: any, amountStr: string, signer: any) {
   ).wait();
 }
 
-const templateName = ethers.encodeBytes32String("TemplateV1");
 export async function deploySaleTemplate(
   factory: any,
   tokenAddr: string,
@@ -47,6 +46,7 @@ export async function deploySaleTemplate(
   creationFee?: bigint,
   templateName_?: string
 ): Promise<TemplateV1> {
+  const templateName = ethers.encodeBytes32String("TemplateV1");
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
   const args = abiCoder.encode(
     ["address", "uint256", "uint256", "address", "uint256", "uint256"],
@@ -213,6 +213,7 @@ export async function deploySaleTemplateV1_5(
   feeDistributor: FeeDistributorV1;
   distributor: DistributorReceiver;
 }> {
+  const templateName = ethers.encodeBytes32String("TemplateV1_5");
   const { destinationRouter } = await deployCCIPRouter(deployer.address);
   const Distributor = await ethers.getContractFactory("DistributorReceiver");
   const Template = await ethers.getContractFactory("TemplateV1_5");
