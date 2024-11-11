@@ -31,7 +31,7 @@ async function main() {
 
   // FeeDistributor
   const feeDistributorAddress = readFileSync(
-    basePath + "FeeDistributorV1"
+    basePath + "FeeDistributorProxy"
   ).toString();
 
   try {
@@ -45,7 +45,7 @@ async function main() {
 
   // GaugeController
   const gaugeControllerAddress = readFileSync(
-    basePath + "GaugeControllerV1"
+    basePath + "GaugeControllerProxy"
   ).toString();
 
   try {
@@ -58,7 +58,7 @@ async function main() {
   }
 
   // Minter
-  const minterAddress = readFileSync(basePath + "MinterV1").toString();
+  const minterAddress = readFileSync(basePath + "MinterProxy").toString();
   try {
     console.log(`[INFO] Verifying Minter...`);
     await run(`verify:verify`, {
@@ -69,7 +69,7 @@ async function main() {
   }
 
   // Gauge
-  const gaugeAddress = readFileSync(basePath + "GaugeV1").toString();
+  const gaugeAddress = readFileSync(basePath + "GaugeProxy").toString();
   try {
     console.log(`[INFO] Verifying Gauge...`);
     await run(`verify:verify`, {

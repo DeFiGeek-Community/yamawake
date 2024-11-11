@@ -34,8 +34,9 @@ contract GaugeV1 is UUPSBase {
     mapping(address => uint256) public integrateFraction;
 
     /***
-     * @notice Constructor
+     * @notice initializer
      * @param minter_
+     * @param startTime_
      */
     function initialize(
         address minter_,

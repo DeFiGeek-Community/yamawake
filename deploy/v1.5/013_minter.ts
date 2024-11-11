@@ -7,17 +7,20 @@ import {
   existsDeployedContract,
 } from "../../src/deployUtil";
 
-const codename = "MinterV1";
+const codename = "Minter";
+const version = "V1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (existsDeployedContract(hre.network.name, codename)) {
-    console.log(`${codename} is already deployed. skipping deploy...`);
+  if (existsDeployedContract(hre.network.name, `${codename}${version}`)) {
+    console.log(
+      `${codename}${version} is already deployed. skipping deploy...`
+    );
     return;
   }
 
   // Deploy only to L1
   if (!hre.network.tags.receiver) {
-    console.log(`${codename} is intended for deployment on L1 only`);
+    console.log(`${codename}${version} is intended for deployment on L1 only`);
     return;
   }
 
@@ -27,16 +30,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
   const gaugeControllerAddress = getContractAddress(
     hre.network.name,
-    "GaugeControllerV1"
+    "GaugeControllerProxy"
   );
   if (ymwkAddress === null || gaugeControllerAddress === null) {
     throw new Error("YMWK address or GaugeControllerV1 address is null");
   }
   console.log(
-    `${codename} is deploying with YMWK=${ymwkAddress}, GaugeControllerV1=${gaugeControllerAddress} ...`
+    `${codename}${version} is deploying with YMWK=${ymwkAddress}, GaugeControllerV1=${gaugeControllerAddress} ...`
   );
 
-  await deployProxy(codename, {
+  await deployProxy(codename, "V1", {
     from: foundation,
     args: [ymwkAddress, gaugeControllerAddress],
     log: true,

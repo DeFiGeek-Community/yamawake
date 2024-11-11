@@ -7,17 +7,20 @@ import {
   existsDeployedContract,
 } from "../../src/deployUtil";
 
-const codename = "GaugeControllerV1";
+const codename = "GaugeController";
+const version = "V1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (existsDeployedContract(hre.network.name, codename)) {
-    console.log(`${codename} is already deployed. skipping deploy...`);
+  if (existsDeployedContract(hre.network.name, `${codename}${version}`)) {
+    console.log(
+      `${codename}${version} is already deployed. skipping deploy...`
+    );
     return;
   }
 
   // Deploy only to L1
   if (!hre.network.tags.receiver) {
-    console.log(`${codename} is intended for deployment on L1 only`);
+    console.log(`${codename}${version} is intended for deployment on L1 only`);
     return;
   }
 
@@ -34,10 +37,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   console.log(
-    `${codename} is deploying with YMWK=${ymwkAddress}, VotingEscrow=${votingEscrowAddress}...`
+    `${codename}${version} is deploying with YMWK=${ymwkAddress}, VotingEscrow=${votingEscrowAddress}...`
   );
 
-  await deployProxy(codename, {
+  await deployProxy(codename, "V1", {
     from: foundation,
     args: [ymwkAddress, votingEscrowAddress],
     log: true,

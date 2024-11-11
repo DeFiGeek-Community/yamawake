@@ -7,17 +7,20 @@ import {
   deployProxy,
 } from "../../src/deployUtil";
 
-const codename = "FeeDistributorV1";
+const codename = "FeeDistributor";
+const version = "V1";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (existsDeployedContract(hre.network.name, codename)) {
-    console.log(`${codename} is already deployed. skipping deploy...`);
+  if (existsDeployedContract(hre.network.name, `${codename}${version}`)) {
+    console.log(
+      `${codename}${version} is already deployed. skipping deploy...`
+    );
     return;
   }
 
   // Deploy only to L1
   if (!hre.network.tags.receiver) {
-    console.log(`${codename} is intended for deployment on L1 only`);
+    console.log(`${codename}${version} is intended for deployment on L1 only`);
     return;
   }
 
@@ -36,10 +39,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const startTime = Math.floor(new Date().getTime() / 1000 / WEEK) * WEEK;
 
   console.log(
-    `${codename} is deploying with startTime=${startTime} VotingEscrow=${votingEscrowAddress}, Factory=${factoryAddress} ...`
+    `${codename}${version} is deploying with startTime=${startTime} VotingEscrow=${votingEscrowAddress}, Factory=${factoryAddress} ...`
   );
 
-  await deployProxy(codename, {
+  await deployProxy(codename, "V1", {
     from: foundation,
     args: [votingEscrowAddress, factoryAddress, startTime],
     log: true,

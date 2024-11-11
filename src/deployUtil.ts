@@ -66,17 +66,21 @@ export async function deploy(contractName: string, opts: Options) {
   return _Contract;
 }
 
-export async function deployProxy(contractName: string, opts: Options) {
+export async function deployProxy(
+  contractName: string,
+  version: "V1", // should be added in the future
+  opts: Options
+) {
   const foundation: SignerWithAddress = await getFoundation();
 
   if (!opts.from) opts.from = foundation;
   if (!opts.signer) opts.signer = opts.from;
-  if (!opts.ABI) opts.ABI = genABI(contractName);
+  if (!opts.ABI) opts.ABI = genABI(contractName + version);
   if (!opts.args) opts.args = [];
   if (!opts.linkings) opts.linkings = [];
   if (!opts.log) opts.log = false;
 
-  const _Factory = await opts.getContractFactory(contractName, {
+  const _Factory = await opts.getContractFactory(contractName + version, {
     signer: opts.signer,
   });
 
@@ -87,14 +91,17 @@ export async function deployProxy(contractName: string, opts: Options) {
   );
   if (opts.log)
     console.log(
-      `${contractName} is deployed as ${
+      `${contractName}${version} is deployed as ${
         _Contract.target
       } by ${await opts.signer.getAddress()}`
     );
   writeFileSync(
-    `deployments/${network.name}/${contractName}`,
+    `deployments/${network.name}/${contractName}Proxy`,
     String(_Contract.target)
   );
-  writeFileSync(`deployments/${network.name}/Impl${contractName}`, implAddress);
+  writeFileSync(
+    `deployments/${network.name}/${contractName}${version}`,
+    implAddress
+  );
   return _Contract;
 }

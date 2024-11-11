@@ -8,29 +8,32 @@ import {
 } from "../../src/deployUtil";
 import { GaugeControllerV1, YMWK } from "../../typechain-types";
 
-const codename = "GaugeV1";
+const codename = "Gauge";
+const version = "V1";
 const INFLATION_DELAY = 86400 * 365;
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  if (existsDeployedContract(hre.network.name, codename)) {
-    console.log(`${codename} is already deployed. skipping deploy...`);
+  if (existsDeployedContract(hre.network.name, `${codename}${version}`)) {
+    console.log(
+      `${codename}${version} is already deployed. skipping deploy...`
+    );
     return;
   }
 
   // Deploy only to L1
   if (!hre.network.tags.receiver) {
-    console.log(`${codename} is intended for deployment on L1 only`);
+    console.log(`${codename}${version} is intended for deployment on L1 only`);
     return;
   }
 
   const { ethers } = hre;
   const { getContractFactory } = ethers;
   const foundation = await getFoundation();
-  const minterAddress = getContractAddress(hre.network.name, "MinterV1");
+  const minterAddress = getContractAddress(hre.network.name, "MinterProxy");
   const ymwkAddress = getContractAddress(hre.network.name, "YMWK");
   const controllerAddress = getContractAddress(
     hre.network.name,
-    "GaugeControllerV1"
+    "GaugeControllerProxy"
   );
   if (
     minterAddress === null ||
@@ -43,10 +46,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const tokenInflationStarts =
     (await ymwk.startEpochTime()) + BigInt(INFLATION_DELAY);
   console.log(
-    `${codename} is deploying with Minter=${minterAddress},  startTime=${tokenInflationStarts}...`
+    `${codename}${version} is deploying with Minter=${minterAddress},  startTime=${tokenInflationStarts}...`
   );
 
-  const gauge = await deployProxy(codename, {
+  const gauge = await deployProxy(codename, "V1", {
     from: foundation,
     args: [minterAddress, tokenInflationStarts],
     log: true,
