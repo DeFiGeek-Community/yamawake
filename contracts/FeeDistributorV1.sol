@@ -9,7 +9,7 @@ import "./interfaces/IVotingEscrow.sol";
 import "./interfaces/IFactory.sol";
 import "./UUPSBase.sol";
 
-/// @title FeeDistributor
+/// @title FeeDistributorV1
 /// @author DeFiGeek Community Japan
 /// @notice Distributes fees to ve holders according to their ve holdings
 contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {

@@ -1,294 +1,470 @@
-# FeeDistributor
+# FeeDistributorV1
 
 ## 概要
 
-オークションの手数料をveYMWKホルダーに報酬として分配する
+オークションの手数料をveYMWKホルダーに報酬として分配する。UUPSでアップグレーダブル
 
 ## 機能
 
 ### 定数
 
-- WEEK: constant(uint256) = 7 \* 86400
-  - 一週間の秒数
+`WEEK: uint256 public constant`
+
+一週間の秒数（7 \* 86400）
 
 ### プロパティ
 
-- address public immutable factory
+#### `factory: address public`
 
-  - Factoryのアドレスを保持する
+- Factoryのアドレスを保持する
 
-- uint256 public startTime
-  - 報酬の分配を開始するタイムスタンプを保持する
-- uint256 public timeCursor
-  - ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
-- mapping(address => mapping(address => uint256)) public timeCursorOf
-  - ユーザごと、トークンごとに報酬のクレームが完了している週の次週頭（WEEKの倍数）のタイムスタンプを保持する
-- mapping(address => mapping(address => uint256)) public userEpochOf
-  - ユーザごと、トークンごとにVotingEscrowのuserPointHistoryと同期が完了しているエポック数を保持する
-- mapping(address => uint256) public lastTokenTime
-  - チェックポイント時点のタイムスタンプをトークンごとに保持する
-- mapping(address => mapping(uint256 => uint256)) public tokensPerWeek
+#### `timeCursor: uint256 public`
 
-  - 報酬額を週ごと、トークン種別ごとに保持する
+- ve同期が完了している最後（最新）の履歴のタイムスタンプを保持する
 
-- address public votingEscrow
-  - VotingEscrowのアドレスを保持する
-- address[] public tokens
-  - 報酬トークンのアドレスを保持する
-  - 0x0はeth
-- mapping(address => uint256) public tokenFlags
+#### `lastCheckpointTotalSupplyTime: uint256 public`
 
-  - トークンのアドレスが報酬トークンとして登録されているかのフラグを保持する
-  - 0 -> 未登録, 1 -> 登録済み
-  - address 0x0はeth
+- 最後にveのtotalSupplyを同期したタイムスタンプを保持する
 
-- mapping(address => uint256) public tokenLastBalance
+#### `timeCursorOf: mapping(address => mapping(address => uint256)) public`
 
-  - チェックポイント時点の残高をトークンごとに保持する
+- ユーザごと、トークンごとに報酬のクレームが完了している週の次週頭（WEEKの倍数）のタイムスタンプを保持する
 
-- mapping(uint256 => uint256) public veSupply
-  - veYMWK総残高を週ごとに保持する
-- address public admin
-  - 管理者のアドレスを保持する
-- address public futureAdmin
-  - 次期管理者のアドレスを保持する
-- bool public isKilled
-  - killed / not killed の状態を保持する
+#### `userEpochOf: mapping(address => mapping(address => uint256)) public `
+
+- ユーザごと、トークンごとにVotingEscrowのuserPointHistoryと同期が完了しているエポック数を保持する
+
+#### `lastTokenTime: mapping(address => uint256) public`
+
+- チェックポイント時点のタイムスタンプをトークンごとに保持する
+
+#### `startTime: uint256 public`
+
+- 報酬の分配を開始するタイムスタンプを保持する
+
+#### `tokensPerWeek: mapping(address => mapping(uint256 => uint256)) public`
+
+- 報酬額を週ごと、トークン種別ごとに保持する
+
+#### `votingEscrow: address public `
+
+- VotingEscrowのアドレスを保持する
+
+#### `tokens: address[] public`
+
+- 報酬トークンのアドレスを保持する
+- 0x0はeth
+
+#### `tokenFlags: mapping(address => uint256) public`
+
+- トークンのアドレスが報酬トークンとして登録されているかのフラグを保持する
+- 0 -> 未登録, 1 -> 登録済み
+- address 0x0はeth
+
+#### `tokenLastBalance: mapping(address => uint256) public`
+
+- チェックポイント時点の残高をトークンごとに保持する
+
+#### `veSupply: mapping(uint256 => uint256) public`
+
+- veYMWK総残高を週ごとに保持する
+
+#### `isKilled: bool public`
+
+- killed / not killed の状態を保持する
 
 ### 関数
 
-#### constructor(address votingEscrow\_, address factory\_, uint256 startTime\_)
+#### initializer
 
-- 処理概要
-  - startTimeを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
-  - ethのlastTokenTimeを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
-  - timeCursorを引数で与えられたstartTime\_の週始めのタイムスタンプに設定する
-  - tokensにethアドレス（0x0）を追加する
-  - tokenFlagsのethアドレス（0x0）をtrueに設定する
-  - votingEscrowを設定する
-  - factoryを設定する
-  - adminをmsg.senderに設定する
-- 引数
-  - votingEscrow\_,
-    - VotingEscrowのアドレス
-  - factory\_,
-    - Factoryのアドレス
-  - startTime\_,
-    - 報酬の分配を開始するタイムスタンプ
+```solidity
+initialize(
+    address votingEscrow_,
+    address factory_,
+    uint256 startTime_
+) public initializer
+```
 
-#### \_checkpointToken(address address\_)
+startTimeを引数で与えられた `startTime_` の週始めのタイムスタンプに設定し、以下の初期設定を行う。
 
-実行された時点の指定トークン残高と前回チェックポイント時の残高の差額を前回チェックポイントからの経過時間で割り、各週ごとに分配する。
-前回チェックポイントから週を跨ぐ場合は前回チェックポイントの翌週分から分配を開始する。
-前回チェックポイントから20週間以上が経過している場合は、今回チェックポイント週を含め過去20週間に対して分配する。
+- UUPSBaseの初期化
+- ReentrancyGuardの初期化
+- eth の `lastTokenTime` を `startTime_` の週始めのタイムスタンプに設定
+- `timeCursor` を `startTime_` の週始めのタイムスタンプに設定
+- `tokens` に eth アドレス（`0x0`）を追加
+- `tokenFlags` の eth アドレス（`0x0`）を `true` に設定
+- `votingEscrow` を設定
+- `factory` を設定
+- `admin` を `msg.sender` に設定
 
-- internal
-- 引数
-  - address\_
-    - 報酬トークンのアドレス
+**引数**
 
-#### checkpointToken(address address\_)
+| 引数名          | 型        | 概要                               | 制約 |
+| --------------- | --------- | ---------------------------------- | ---- |
+| `votingEscrow_` | `address` | VotingEscrowのアドレス             | -    |
+| `factory_`      | `address` | Factoryのアドレス                  | -    |
+| `startTime_`    | `uint256` | 報酬の分配を開始するタイムスタンプ | -    |
 
-\_checkpointTokenを実行する
+---
 
-- external
-- 引数
-  - address\_
-    - 報酬トークンのアドレス
-- 条件
-  - address\_がFeeDistributorに登録されていること
-  - 管理者またはオークション
+#### \_checkpointToken
 
-#### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
+```solidity
+function _checkpointToken(
+    address address_
+) internal
+```
 
-タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いエポック数を返却する
+実行された時点の指定トークン残高と前回チェックポイント時の残高の差額を、前回チェックポイントからの経過時間で割り、各週ごとに分配する。前回チェックポイントから週を跨ぐ場合は、前回チェックポイントの翌週分から分配を開始する。前回チェックポイントから20週間以上が経過している場合は、今回チェックポイント週を含め過去20週間に対して分配する。
 
-- internal
-- 引数
-  - ve\_
-    - VotingEsctowのアドレス
-  - timestamp\_
-    - 検索対象のタイムスタンプ
-- 戻り値
+**引数**
+
+| 引数名     | 型        | 概要                   | 制約 |
+| ---------- | --------- | ---------------------- | ---- |
+| `address_` | `address` | 報酬トークンのアドレス | -    |
+
+---
+
+#### checkpointToken
+
+```solidity
+function checkpointToken(
+    address address_
+) external onlyAdminOrAuction
+```
+
+`_checkpointToken` を実行する。
+
+**条件**
+
+- `address_` が tokenFlags に登録されていること
+- 管理者またはオークションのみ実行可能
+
+**引数**
+
+| 引数名     | 型        | 概要                   | 制約 |
+| ---------- | --------- | ---------------------- | ---- |
+| `address_` | `address` | 報酬トークンのアドレス | -    |
+
+---
+
+#### \_findTimestampEpoch
+
+```solidity
+function _findTimestampEpoch(
+    address ve_,
+    uint256 timestamp_
+) internal view returns (uint256)
+```
+
+タイムスタンプから VotingEscrow の `pointHistory` を検索し、タイムスタンプより過去に作成された一番近いエポック数を返却する。
+
+**引数**
+
+| 引数名       | 型        | 概要                     | 制約 |
+| ------------ | --------- | ------------------------ | ---- |
+| `ve_`        | `address` | VotingEscrow のアドレス  | -    |
+| `timestamp_` | `uint256` | 検索対象のタイムスタンプ | -    |
+
+**戻り値**
+
+- `uint256`
   - 指定タイムスタンプ直前のエポック数
 
-#### \_findTimestampUserEpoch(address ve\_, address user\_, uint256 timestamp\_, uint256 maxUserEpoch\_) returns uint256
+---
 
-タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いユーザエポック数を返却する
+#### \_findTimestampUserEpoch
 
-- internal
-- 引数
-  - ve\_
-    - VotingEsctowのアドレス
-  - user\_
-    - 検索対象のユーザ
-  - timestamp\_
-    - 検索対象のタイムスタンプ
-- 戻り値
+```solidity
+function _findTimestampUserEpoch(
+    address ve_,
+    address user_,
+    uint256 timestamp_,
+    uint256 maxUserEpoch_
+) internal view returns (uint256)
+```
+
+タイムスタンプから VotingEscrow のユーザ `pointHistory` を検索し、タイムスタンプより過去に作成された一番近いユーザエポック数を返却する。
+
+**引数**
+
+| 引数名          | 型        | 概要                     | 制約 |
+| --------------- | --------- | ------------------------ | ---- |
+| `ve_`           | `address` | VotingEscrow のアドレス  | -    |
+| `user_`         | `address` | 検索対象のユーザ         | -    |
+| `timestamp_`    | `uint256` | 検索対象のタイムスタンプ | -    |
+| `maxUserEpoch_` | `uint256` | 最大ユーザエポック数     | -    |
+
+**戻り値**
+
+- `uint256`
   - 指定タイムスタンプ直前のユーザエポック数
 
-#### veForAt(address user\_ , uint256 timestamp\_) returns uint256
+---
 
-指定のタイムスタンプ時点でのユーザのve残高を返す
+#### veForAt
 
-- external
-- 引数
-  - user\_
-    - 検索対象のユーザ
-  - timestamp\_
-    - 検索対象のタイムスタンプ
-- 戻り値
-  - 指定タイムスタンプ時点でのユーザveYMWK残高
+```solidity
+function veForAt(
+    address user_,
+    uint256 timestamp_
+) external view returns (uint256)
+```
 
-#### \_checkpointTotalSupply()
+指定のタイムスタンプ時点でのユーザの ve 残高を返す。
 
-VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週初め時点でのveYMWK残高履歴を記録する
+**引数**
 
-- internal
+| 引数名       | 型        | 概要                     | 制約 |
+| ------------ | --------- | ------------------------ | ---- |
+| `user_`      | `address` | 検索対象のユーザ         | -    |
+| `timestamp_` | `uint256` | 検索対象のタイムスタンプ | -    |
 
-#### checkpointTotalSupply()
+**戻り値**
 
-\_checkpointTotalSupplyを実行する
+- `uint256`
+  - 指定タイムスタンプ時点でのユーザ veYMWK 残高
 
-- external
+---
 
-#### \_claim(address addr\_, address token\_, address ve\_, uint256 last_token_time\_) returns uint256
+#### \_checkpointTotalSupply
+
+```solidity
+function _checkpointTotalSupply() internal
+```
+
+VotingEscrow の `checkpoint` を実行した上で、過去最大20週間分の各週始め時点での veYMWK 残高履歴を記録する。
+
+---
+
+#### checkpointTotalSupply
+
+```solidity
+function checkpointTotalSupply() external
+```
+
+`_checkpointTotalSupply` を実行する。
+
+---
+
+#### \_claim
+
+```solidity
+function _claim(
+    address addr_,
+    address token_,
+    address ve_,
+    uint256 lastTokenTime_
+) internal returns (uint256)
+```
 
 指定ユーザの指定トークン報酬額を、実行時点の前週分まで計算する。以前の実行からのユーザエポック数 + 経過週が50以上の場合は前週分までの計算のために複数回の呼び出しが必要
 
-- internal
-- 引数
-  - addr\_
-    - 対象ユーザのアドレス
-  - token\_
-    - 報酬トークンのアドレス
-  - ve\_
-    - VotingEscrowのアドレス
-  - last_token_time\_
-    - トークンの最後のチェックポイントのタイムスタンプ
-- 戻り値
-  - \_amount
-    - 指定トークンの報酬額
+| 引数名            | 型      | 概要                                             | 制約                  |
+| ----------------- | ------- | ------------------------------------------------ | --------------------- |
+| addr\_            | address | 対象ユーザのアドレス                             | 0 アドレスでないこと  |
+| token\_           | address | 報酬トークンのアドレス                           | -                     |
+| ve\_              | address | VotingEscrowのアドレス                           | 0 アドレスでないこと- |
+| last_token_time\_ | uint256 | トークンの最後のチェックポイントのタイムスタンプ | -                     |
 
-#### claim(address token\_) returns uint256
+#### 戻り値
 
-msg.senderに対して報酬をクレームする。View関数として実行することでクレーム可能は報酬額を取得する
+- `_amount`
+  - 指定トークンの報酬額
 
-- external
-- 引数
-  - token\_
-    - 報酬トークンのアドレス
-- 戻り値
+---
 
-  - \_amount
-    - 指定トークンの報酬額
+#### claim
 
-- 条件
-  - kill状態でない
-  - 対象トークンがtokensに登録済みであること
+```solidity
+function claim(
+    address token_
+) external nonReentrant returns (uint256)
+```
 
-#### claim(address addr\_, address token\_) returns uint256
+`msg.sender` に対して報酬をクレームする。`view` 関数として実行することでクレーム可能な報酬額を取得する。
 
-指定のアドレスの報酬をクレームする。View関数として実行することでクレーム可能は報酬額を取得する
+**条件**
 
-- external
-- 引数
-  - addr\_
-    - 対象ユーザのアドレス
-  - token\_
-    - 報酬トークンのアドレス
-- 戻り値
+- kill状態でない
+- 対象トークンが `tokens` に登録済みであること
 
-  - \_amount
-    - 指定トークンの報酬額
+##### 引数
 
-- 条件
-  - kill状態でない
-  - 対象トークンがtokensに登録済みであること
+| 引数名  | 型      | 概要                   | 制約 |
+| ------- | ------- | ---------------------- | ---- |
+| token\_ | address | 報酬トークンのアドレス | -    |
 
-#### claimMany(address[] receivers\_, address token\_)
+##### 戻り値
 
-複数のアドレスの報酬をまとめてクレームする
+- `_amount`
+  - 指定トークンの報酬額
 
-- external
-- 引数
-  - receivers\_
-    - 対象ユーザのアドレス配列
-  - token\_
-    - 報酬トークンのアドレス
-- 条件
-  - kill状態でない
-  - 対象トークンがtokensに登録済みであること
+---
 
-#### claimMultipleTokens(address addr\_, address[20] tokens\_)
+#### claim
 
-複数のトークン報酬をまとめてクレームする
+```solidity
+function claim(
+    address addr_,
+    address token_
+) external nonReentrant returns (uint256)
+```
 
-- external
-- 引数
-  - receivers\_
-    - 対象ユーザのアドレス
-  - tokens\_
-    - 報酬トークンのアドレス配列
-    - 最大20トークンまで（要検討）
-- 条件
-  - kill状態でない
-  - 対象トークンがtokensに登録済みであること
+指定のアドレスの報酬をクレームする。`view` 関数として実行することでクレーム可能な報酬額を取得する。
 
-#### commitAdmin(address addr\_)
+**条件**
 
-次期管理者を設定する
+- kill状態でない
+- 対象トークンが `tokens` に登録済みであること
 
-- external
+**引数**
 
-- 引数
-  - addr\_
-    - 次期管理者のアドレス
-- 条件
+| 引数名   | 型        | 概要                   | 制約 |
+| -------- | --------- | ---------------------- | ---- |
+| `addr_`  | `address` | 対象ユーザのアドレス   | -    |
+| `token_` | `address` | 報酬トークンのアドレス | -    |
 
-  - adminのみ
+**戻り値**
 
-#### applyAdmin()
+- `_amount`
+  - 指定トークンの報酬額
 
-次期管理者を管理者に設定する
+---
 
-- external
-- 条件
+#### claimMany
 
-  - adminのみ
+```solidity
+function claimMany(
+    address[] receivers_,
+    address token_
+) external nonReentrant returns (bool)
+```
 
-#### killMe()
+複数のアドレスの報酬をまとめてクレームする。
 
-kill状態をTrueに変更し、Ether残高をAdminに送金する
+**条件**
 
-- 条件
+- kill状態でない
+- 対象トークンが `tokens` に登録済みであること
 
-  - adminのみ
+**引数**
 
-#### recoverBalance(address coin\_) returns bool
+| 引数名       | 型          | 概要                     | 制約 |
+| ------------ | ----------- | ------------------------ | ---- |
+| `receivers_` | `address[]` | 対象ユーザのアドレス配列 | -    |
+| `token_`     | `address`   | 報酬トークンのアドレス   | -    |
 
-指定トークンを全額Adminに送金する
+---
 
-- 条件
+#### claimMultipleTokens
 
-  - adminのみ
-  - 対象トークンがtokensに登録済みであること
+```solidity
+function claimMultipleTokens(
+    address addr_,
+    address[20] tokens_
+) external nonReentrant returns (bool)
+```
 
-#### addRewardToken(address coin\_) returns bool
+複数のトークン報酬をまとめてクレームする。
 
-- Auction、Adminのみ
-- external
-- 引数
-  - address\_
-    - address
-    - トークンのアドレス
+**条件**
 
-#### getTokens() returns address[]
+- kill状態でない
+- 対象トークンが `tokens` に登録済みであること
 
-- external
-- 戻り値
-  - address[]
+**引数**
+
+| 引数名    | 型            | 概要                       | 制約                         |
+| --------- | ------------- | -------------------------- | ---------------------------- |
+| `addr_`   | `address`     | 対象ユーザのアドレス       | -                            |
+| `tokens_` | `address[20]` | 報酬トークンのアドレス配列 | 最大20トークンまで（要検討） |
+
+---
+
+#### killMe
+
+```solidity
+function killMe() external onlyAdmin
+```
+
+kill状態を `True` に変更し、Ether残高をAdminに送金する。
+
+**条件**
+
+- adminのみ
+
+---
+
+#### recoverBalance
+
+```solidity
+function recoverBalance(
+    address coin_
+) external onlyAdmin returns (bool)
+```
+
+指定トークンを全額Adminに送金する。
+
+**条件**
+
+- adminのみ
+- 対象トークンが `tokens` に登録済みであること
+
+**引数**
+
+| 引数名  | 型        | 概要               | 制約 |
+| ------- | --------- | ------------------ | ---- |
+| `coin_` | `address` | トークンのアドレス | -    |
+
+**戻り値**
+
+- `bool`
+  - 処理の成否を示す
+
+---
+
+#### addRewardToken
+
+```solidity
+function addRewardToken(
+    address coin_
+) external onlyAdminOrAuction returns (bool)
+```
+
+指定したトークンを報酬トークンとして追加する。
+
+**条件**
+
+- Auction、adminのみ
+
+**引数**
+
+| 引数名  | 型        | 概要               | 制約 |
+| ------- | --------- | ------------------ | ---- |
+| `coin_` | `address` | トークンのアドレス | -    |
+
+**戻り値**
+
+- `bool`
+  - 処理の成否を示す
+
+---
+
+#### getTokens
+
+```solidity
+function getTokens() external view returns (address[])
+```
+
+登録されているトークンのアドレス配列を取得する。
+
+**戻り値**
+
+- `address[]`
   - トークンのアドレス配列
+
+---
 
 ## 参考
 
