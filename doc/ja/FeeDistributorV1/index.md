@@ -2,7 +2,7 @@
 
 ## 概要
 
-オークションの手数料をveYMWKホルダーに報酬として分配する。UUPSでアップグレーダブル
+オークションの手数料をveYMWKホルダーに報酬として分配する。openzeppelinのUUPSUpgradeableを継承する
 
 ## 機能
 

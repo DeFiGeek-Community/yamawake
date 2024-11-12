@@ -8,124 +8,169 @@ openzeppelinのUUPSUpgradeableを継承する
 
 ## 機能
 
-## 定数
+### 定数
 
-- MULTIPLIER: constant(uint256) = 10 \*\* 18
-  - 丸め誤差回避用の定数
+`MULTIPLIER: uint256 constant`
 
-## プロパティ
+丸め誤差回避用の定数（10 \*\* 18）
 
-- address public admin
-  - 管理者のアドレスを保持する
-- address public futureAdmin
+### プロパティ
 
-  - 次期管理者のアドレスを保持する
+#### `token: address public`
 
-- address public token
-  - 排出を制御する対象のトークンアドレスを保持する
-- address public votingEscrow
-  - VotingEscrowコントラクトのアドレスを保持する
+- 排出を制御する対象のトークンアドレスを保持する
 
-### Gauge parameters
+#### `votingEscrow: address public`
 
-- int128 public nGaugeTypes
-  - Gauge Typeの数を保持する。V1.5では1つのみ
-- int128 public nGauges
-  - Gaugeの数を保持する。V1.5では1つのみ
-- mapping(int128 => string) public gaugeTypeNames
+- VotingEscrowコントラクトのアドレスを保持する
 
-  - Gauge Typeの名称を保持する。V1.5ではveYMWKのみ
+#### Gauge parameters
 
-- address[1000000000] public gauges
+#### `nGaugeTypes: int128 public`
 
-  - Gaugeのアドレスを保持する。V1.5では1つのみ
+- Gauge Typeの数を保持する。V1.5では1つのみ
 
-- mapping(address => int128) public gaugeTypes\_
+#### `nGauges: int128 public`
 
-  - GaugeのTypeを保持する
+- Gaugeの数を保持する。V1.5では1つのみ
 
-## 関数
+#### `gaugeTypeNames: mapping(int128 => string) public`
 
-### initialize(address token\_, address votingEscrow\_) public initializer
+- Gauge Typeの名称を保持する。V1.5ではveYMWKのみ
 
-UUPSUpgradeableのイニシャライザ
+#### `gauges: address[1000000000] public`
 
+- Gaugeのアドレスを保持する。V1.5では1つのみ
+
+#### `gaugeTypes_: mapping(address => int128) public`
+
+- GaugeのTypeを保持する
+
+### 関数
+
+#### initialize
+
+```solidity
+function initialize(
+    address token_,
+    address votingEscrow_
+) public initializer
+```
+
+UUPSUpgradeableのイニシャライザ。
+
+- UUPSBaseの初期化
 - adminを設定する
 - tokenを設定する
 - votingEscrowを設定する
-- veYMWK gaugeTypeを設定する
+- veYMWKのgaugeTypeを設定する
 
-### function \_authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin
+**引数**
 
-UUPSUpgradeableから継承。アップグレードの実行可能ユーザをadminに制限する
+| 引数名          | 型        | 概要                   | 制約            |
+| --------------- | --------- | ---------------------- | --------------- |
+| `token_`        | `address` | トークンのアドレス     | 0アドレスでない |
+| `votingEscrow_` | `address` | VotingEscrowのアドレス | 0アドレスでない |
 
-### commitTransferOwnership(addr address)
+---
 
-次期管理者アドレスを設定
+#### gaugeTypes
 
-- external
-- 条件
-  - 管理者のみ
+```solidity
+function gaugeTypes(
+    address addr_
+) external view　returns (int128)
+```
 
-### applyTransferOwnership()
+GaugeのTypeを取得する。
 
-管理者アドレスに次期管理者アドレスを設定
+**引数**
 
-- external
-- 条件
-  - 管理者のみ
+| 引数名  | 型        | 概要                | 制約 |
+| ------- | --------- | ------------------- | ---- |
+| `addr_` | `address` | 対象のGaugeアドレス | -    |
 
-### gaugeTypes(address: addr\_) returns int128
+**戻り値**
 
-GaugeのTypeを取得する
-
-- external
-- 引数
-  - addr\_
-    - 対象のGaugeアドレス
-- 戻り値
+- `int128`
   - GaugeのType
 
-### addGauge(address addr\_, int128, uint256)
+---
 
-Gaugeを追加する。V1.5では1つのみ追加可能
+#### addGauge
 
-- external
-- 引数
-  - addr\_
-    - 対象のGaugeアドレス
-  - gaugeType\_
-    - V1.5では使用しない
-  - weight\_
-    - V1.5では使用しない
-- 条件
-  - 管理者のみ
-  - 1つのみ
+```solidity
+function addGauge(
+    address addr_,
+    int128 gaugeType_,
+    uint256 weight_
+) external onlyAdmin
+```
 
-### checkpoint()
+Gaugeを追加する。V1.5では1つのみ追加可能。
 
-V1.5では何もしない
+**条件**
 
-- external
+- 管理者のみ
+- 1つのみ
 
-### checkpointGauge(address addr\_)
+**引数**
 
-V1.5では何もしない
+| 引数名       | 型        | 概要                | 制約 |
+| ------------ | --------- | ------------------- | ---- |
+| `addr_`      | `address` | 対象のGaugeアドレス | -    |
+| `gaugeType_` | `int128`  | V1.5では使用しない  | -    |
+| `weight_`    | `uint256` | V1.5では使用しない  | -    |
 
-- external
-- 引数
-  - addr\_
-    - V1.5では使用しない
+---
 
-### gaugeRelativeWeight(address addr\_, uint256 time\_) returns uint256
+#### checkpoint
 
-V1.5では固定値の1e18を返却する
+```solidity
+function checkpoint() external
+```
 
-- external
-- 引数
-  - addr\_
-    - V1.5では使用しない
-  - time\_
-    - V1.5では使用しない
-- 戻り値
-  - 固定値 1e18
+V1.5では何もしない。
+
+---
+
+#### checkpointGauge
+
+```solidity
+function checkpointGauge(
+    address addr_
+) external
+```
+
+V1.5では何もしない。
+
+**引数**
+
+| 引数名  | 型        | 概要               | 制約 |
+| ------- | --------- | ------------------ | ---- |
+| `addr_` | `address` | V1.5では使用しない | -    |
+
+---
+
+#### gaugeRelativeWeight
+
+```solidity
+function gaugeRelativeWeight(
+    address addr_,
+    uint256 time_
+) external pure returns (uint256)
+```
+
+V1.5では固定値の `1e18` を返却する。
+
+**引数**
+
+| 引数名  | 型        | 概要               | 制約 |
+| ------- | --------- | ------------------ | ---- |
+| `addr_` | `address` | V1.5では使用しない | -    |
+| `time_` | `uint256` | V1.5では使用しない | -    |
+
+**戻り値**
+
+- `uint256`
+  - 固定値 `1e18`
