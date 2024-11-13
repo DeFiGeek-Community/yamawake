@@ -80,9 +80,9 @@ describe("GaugeV1", function () {
 
   describe("Gauge resilience following a period of low activity", function () {
     /*
-    250週放置されても複数回checkpointを実行すれば同期完了できることを確認
+    250週放置されても複数回checkpointを実行することで同期を進められることを確認
     */
-    it("should recover from passing more than 250 weeks where no one was active", async function () {
+    it("should proceed syncing after more than 250 weeks have passed and no one has been active", async function () {
       // Gaugeの追加
       await gaugeController.addGauge(gauge.target, 1, BigInt(1e18));
 
@@ -97,7 +97,6 @@ describe("GaugeV1", function () {
 
       await time.increaseTo(tokenInflationStarts);
       await token.updateMiningParameters();
-      const initialRate = await token.rate();
 
       // Aliceのロック
       let amountAlice = BigInt(1e18) * 4n;
@@ -120,11 +119,10 @@ describe("GaugeV1", function () {
         .connect(accounts[2])
         .createLock(amountBob, lockedUntilBob);
 
+      const startTimeCursor = await gauge.timeCursor();
       const localSnapshot = await takeSnapshot();
       /*
-        1. 250週時間を進め、
-        Aliceがcheckpointを2回呼ぶとAliceの報酬が最新まで正しく計算されることを確認
-        その後checkpointTotalSupply,checkpointTokenを数回呼ぶと同期が完了することを確認
+        1. 250週時間を進め、その後Aliceがcheckpointを5回呼んだ場合
       */
       await time.increase(WEEK * 250n);
       for (let i = 0; i < 5; i++) {
@@ -138,6 +136,9 @@ describe("GaugeV1", function () {
 
       await localSnapshot.restore();
 
+      /*
+        2. 50週ずつ時間を進め、その都度Aliceがcheckpointを1回呼んだ場合
+      */
       for (let i = 0; i < 5; i++) {
         await time.increase(WEEK * 50n);
         await gauge.connect(accounts[1]).userCheckpoint(accounts[1].address);
@@ -148,13 +149,18 @@ describe("GaugeV1", function () {
       const timeCursor2 = await gauge.timeCursor();
       const tokenTimeCursor2 = await gauge.tokenTimeCursor();
 
-      // 各種ステータスが一致することを確認。
-      // rewardは複数のepochを跨ぐため、まとめて最新のrateにて計算されるreward2の方が少なくなる
       expect(reward1).to.be.above(0);
+      // rewardは複数のepochを跨ぐため、まとめて最新のrateにて計算されるreward2の方が少なくなる
       expect(reward2).to.be.above(reward1);
+
+      // 各種ステータスが一致することを確認
+      // checkpointTotalSupplyは一度に最大20週まで更新するため、20 * 5 = 100週目までの報酬が計算されることになる
       expect(timeCursorOf1).to.be.eq(timeCursorOf2);
+      expect(timeCursorOf1).to.be.eq(startTimeCursor + WEEK * 100n);
       expect(timeCursor1).to.be.eq(timeCursor2);
+      expect(timeCursor1).to.be.eq(startTimeCursor + WEEK * 100n);
       expect(tokenTimeCursor1).to.be.eq(tokenTimeCursor2);
+      expect(tokenTimeCursor1).to.be.eq(startTimeCursor + WEEK * 100n);
     });
 
     /*

@@ -139,9 +139,7 @@ contract GaugeV1 is UUPSBase {
     /***
      * @notice Update the token checkpoint
      * @dev Calculates the total number of tokens to be distributed in a given week.
-         During setup for the initial distribution this function is only callable
-         by the contract owner. Beyond initial distro, it can be enabled for anyone
-         to call.
+            This function is callable by anyone if the current week has advanced beyond tokenTimeCursor.
      */
     function checkpointToken() external {
         uint256 _thisWeek = (block.timestamp / WEEK) * WEEK;
