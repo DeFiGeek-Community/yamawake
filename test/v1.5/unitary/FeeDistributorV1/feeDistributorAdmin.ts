@@ -53,8 +53,7 @@ describe("FeeDistributorV1", () => {
     votingEscrow = await VotingEscrow.deploy(
       token.target,
       "Voting-escrowed token",
-      "vetoken",
-      "v1"
+      "vetoken"
     );
     await votingEscrow.waitForDeployment();
 

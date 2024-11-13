@@ -36,8 +36,7 @@ describe("GaugeControllerV1", function () {
     const votingEscrow = await VotingEscrow.deploy(
       token.target,
       "Voting-escrowed token",
-      "vetoken",
-      "v1"
+      "vetoken"
     );
     gaugeController = (await upgrades.deployProxy(GaugeController, [
       token.target,

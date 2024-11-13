@@ -52,8 +52,7 @@ describe("MinterV1", function () {
     votingEscrow = await VotingEscrow.deploy(
       token.target,
       "Voting-escrowed token",
-      "vetoken",
-      "v1"
+      "vetoken"
     );
     await votingEscrow.waitForDeployment();
 

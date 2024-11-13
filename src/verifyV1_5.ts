@@ -18,12 +18,7 @@ async function main() {
     console.log(`[INFO] Verifying VotingEscrow...`);
     await run(`verify:verify`, {
       address: votingEscrowAddress,
-      constructorArguments: [
-        ymwkAddress,
-        "Voting-escrowed Yamawake",
-        "veYMWK",
-        "v1",
-      ],
+      constructorArguments: [ymwkAddress, "Voting-escrowed Yamawake", "veYMWK"],
     });
   } catch (e) {
     console.log(`[ERROR] ${e}`);

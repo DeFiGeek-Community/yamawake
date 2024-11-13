@@ -67,7 +67,6 @@ contract VotingEscrow is ReentrancyGuard {
 
     string public name;
     string public symbol;
-    string public version;
     uint8 public decimals;
 
     /***
@@ -75,13 +74,11 @@ contract VotingEscrow is ReentrancyGuard {
      * @param tokenAddr_ `YMWK` token address
      * @param name_ Token name
      * @param symbol_ Token symbol
-     * @param version_ Contract version - required for Aragon compatibility
      */
     constructor(
         address tokenAddr_,
         string memory name_,
-        string memory symbol_,
-        string memory version_
+        string memory symbol_
     ) {
         token = tokenAddr_;
         pointHistory[0].blk = block.number;
@@ -91,7 +88,6 @@ contract VotingEscrow is ReentrancyGuard {
 
         name = name_;
         symbol = symbol_;
-        version = version_;
     }
 
     /***
