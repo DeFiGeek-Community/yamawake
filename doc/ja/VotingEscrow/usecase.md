@@ -10,9 +10,9 @@
 - [VotingEscrow](./index.md)
   - YMWKトークンをロックすることで移転不可のveYMWKを発行する
   - veYMWKの残高を管理をする
-- [Gauge](../Gauge/index.md)
+- [Gauge](../GaugeV1/index.md)
   - veYMWKホルダーに対するYMWK報酬情報を計算・保持する
-- Minter
+- [Minter](../MinterV1/index.md)
   - YMWKトークンに設定されたMinter
   - YMWKのmint関数を呼びYMWKを指定数発行する
 - [YMWK](../YamawakeToken/index.md)
@@ -70,7 +70,6 @@ graph LR
     claim_ymwk["YMWK酬をクレーム"]
 
     deploy["VotingEscrowを立ち上げる"]
-    change_admin["管理者を変更する"]
 
 
     claimable_tokens["YMWK酬額取得\nintegrate_fraction"]
@@ -107,7 +106,6 @@ graph LR
     integral -.-|include| future_epoch_time_write
 
     owner --- deploy
-    owner --- change_admin
 
     subgraph Admin[ ]
       direction LR
@@ -132,7 +130,6 @@ graph LR
       withdraw
       uck
       ck
-      change_admin
     end
 
     subgraph YMWK

@@ -4,7 +4,7 @@
 
 Curveの[GaugeController](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy)のフォーク。GaugeごとのWeightの管理をする
 
-openzeppelinのUUPSUpgradeableを継承する
+親クラス: UUPSBase
 
 ## 機能
 

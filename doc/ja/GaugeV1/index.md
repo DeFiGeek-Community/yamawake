@@ -4,243 +4,359 @@
 
 [veYMWK](../VotingEscrow/index.md)ホルダーに対する[YMWKトークン](../YamawakeToken/index.md)報酬を計算・保持する。
 
+親クラス: UUPSBase
+
 ## 機能
 
 ### 定数
 
-- uint256 public constant WEEK = 604800
+`WEEK: uint256 public constant`
 
-  - 1週間の秒数
+一週間の秒数（7 \* 86400）
 
 ### プロパティ
 
-- uint256 public immutable startTime
+#### `startTime: int256 public`
 
-  - トークンの配布を開始する週頭のタイムスタンプ
+トークンの配布を開始する週頭のタイムスタンプ
 
-- address public immutable token
+#### `token: address public`
 
-  - YMWKトークンのアドレスを保持する
+YMWKトークンのアドレスを保持する
 
-- address public immutable votingEscrow
+#### `votingEscrow: address public`
 
-  - VotingEscrowのアドレスを保持する
+VotingEscrowのアドレスを保持する
 
-- address public immutable minter
+#### `minter: address public`
 
-  - ミンターのアドレスを保持する
+ミンターのアドレスを保持する
 
-- address public immutable gaugeController
+#### `gaugeController: address public`
 
-  - ゲージコントローラーのアドレスを保持する
+ゲージコントローラーのアドレスを保持する
 
-- address public admin
+#### `admin: address public`
 
-  - 管理者アドレスを保持する
+管理者アドレスを保持する
 
-- uint256 public futureEpochTime
+#### `futureEpochTime: uint256 public`
 
-  - 次回のインフレーションレート変更タイムスタンプを保持する
+次回のインフレーションレート変更タイムスタンプを保持する
 
-- uint256 public inflationRate
+#### `inflationRate: uint256 public`
 
-  - YMWKのインフレーションレートを保持する
+YMWKのインフレーションレートを保持する
 
-- uint256 public timeCursor
+#### `timeCursor: uint256 public`
 
-  - 次回checkpointTotalSupplyでve同期を開始する週頭のタイムスタンプを保持する
+次回checkpointTotalSupplyでve同期を開始する週頭のタイムスタンプを保持する
 
-- uint256 public tokenTimeCursor
+#### `tokenTimeCursor: uint256 public`
 
-  - 次回checkpointTokenで週ごとのトークン報酬の集計を開始する週頭のタイムスタンプを保持する
+次回checkpointTokenで週ごとのトークン報酬の集計を開始する週頭のタイムスタンプを保持する
 
-- uint256 public isKilled
+#### `isKilled: uint256 public`
 
-  - kill状態フラグ。 0 -> 通常状態, 1 -> kill状態
+kill状態フラグ。 0 -> 通常状態, 1 -> kill状態
 
-- mapping(address => uint256) public timeCursorOf
+#### `timeCursorOf: mapping(address => uint256) public`
 
-  - ユーザごとの、次回のuserCheckpoint時に報酬の計算を開始する週頭のタイムスタンプを保持する
+ユーザごとの、次回のuserCheckpoint時に報酬の計算を開始する週頭のタイムスタンプを保持する
 
-- mapping(address => uint256) public userEpochOf
+#### `userEpochOf: mapping(address => uint256) public`
 
-  - ユーザごとの、ve同期が完了している最新のエポック数を保持する
+ユーザごとの、ve同期が完了している最新のエポック数を保持する
 
-- mapping(uint256 => uint256) public tokensPerWeek
+#### `tokensPerWeek: mapping(uint256 => uint256) public`
 
-  - 報酬額（このGaugeに割当てられるYMWKのMint権利）を週ごとに保持する
+報酬額（このGaugeに割当てられるYMWKのMint権利）を週ごとに保持する
 
-- mapping(uint256 => uint256) public veSupply
+#### `veSupply: mapping(uint256 => uint256) public`
 
-  - veYMWK総残高を週ごとに保持する
+veYMWK総残高を週ごとに保持する
 
-- mapping(address => uint256) public integrateFraction
+#### `integrateFraction: mapping(address => uint256) public`
 
-  - ユーザごとに割当てられるYMWK報酬額の累計を保持する
+ユーザごとに割当てられるYMWK報酬額の累計を保持する
 
-    - Weight × 各週のYMWK新規発行量 × 各週頭時点でのユーザve残高 / 各週頭時点での累計ve残高
+- Weight × 各週のYMWK新規発行量 × 各週頭時点でのユーザve残高 / 各週頭時点での累計ve残高
 
-    N週目までのYMWK報酬額：
+N週目までのYMWK報酬額：
 
-    $$\sum_{n=0}^{N-1}\left(\int_{t_n}^{t_{n+1}}r\left(t\right)dt\cdot w\left(t_n\right) \cdot \frac{b_{u}\left(t_n\right)}{S\left(t_n\right)}\right)$$
+$$\sum_{n=0}^{N-1}\left(\int_{t_n}^{t_{n+1}}r\left(t\right)dt\cdot w\left(t_n\right) \cdot \frac{b_{u}\left(t_n\right)}{S\left(t_n\right)}\right)$$
 
-    $W: 604800（=60\cdot60\cdot24\cdot7）$
+$W: 604800（=60\cdot60\cdot24\cdot7）$
 
-    $r(t): \text{YMWKの単位時間あたりの新規発行量}$
+$r(t): \text{YMWKの単位時間あたりの新規発行量}$
 
-    $w(t): \text{t時点でのWeight}$
+$w(t): \text{t時点でのWeight}$
 
-    $S(t): \text{t時点でのve残高}$
+$S(t): \text{t時点でのve残高}$
 
-    $b_u(t): \text{t時点でのユーザve残高}$
+$b_u(t): \text{t時点でのユーザve残高}$
 
-    $t_0: \text{報酬分配を開始するタイムスタンプ}$
+$t_0: \text{報酬分配を開始するタイムスタンプ}$
 
-    $t_n: \text{n週目頭のタイムスタンプ}（t_0 + W \cdot n）$
+$t_n: \text{n週目頭のタイムスタンプ}（t_0 + W \cdot n）$
 
 ### 関数
 
-#### constructor(address minter\_, uint256 startTime\_)
+#### initializer
 
-- minterを設定する
-- tokenを設定する
-- gaugeControllerを設定する
-- votingEscrowを設定する
-- adminを設定する
-- inflationRateをtokenから取得し、設定する
-- futureEpochTimeをtokenから取得し、設定する
-- startTimeにstartTime\_で与えられたタイムスタンプの週の頭を計算し設定する
-- tokenTimeCursorにstartTime\_で与えられたタイムスタンプの週の頭を計算し設定する
-- timeCursorにstartTime\_で与えられたタイムスタンプの週の頭を計算し設定する
+```solidity
+function initialize(
+    address minter_,
+    uint256 startTime_
+) public initializer
+```
 
-#### \_checkpointToken()
+- UUPSBaseを初期化する
+- `minter` を設定する
+- `token` を設定する
+- `gaugeController` を設定する
+- `votingEscrow` を設定する
+- `inflationRate` を `token` から取得し、設定する
+- `futureEpochTime` を `token` から取得し、設定する
+- `startTime` に `startTime_` で与えられたタイムスタンプの週の頭を計算し設定する
+- `tokenTimeCursor` に `startTime_` で与えられたタイムスタンプの週の頭を計算し設定する
+- `timeCursor` に `startTime_` で与えられたタイムスタンプの週の頭を計算し設定する
 
-tokenTimeCursor時点から、実行された時点の前週分までの、このGaugeに割り振られるYMWK報酬額を、各週ごとに最大20週間分計算し、分配する。
+**引数**
 
-- internal
+| 引数名       | 型        | 概要                     | 制約 |
+| ------------ | --------- | ------------------------ | ---- |
+| `minter_`    | `address` | `minter` のアドレス      | -    |
+| `startTime_` | `uint256` | 初期化時のタイムスタンプ | -    |
 
-#### checkpointToken()
+---
 
-\_checkpointTokenを実行する
+#### \_checkpointToken
 
-- external
-- 条件
-  - 管理者、または実行時の週がtokenTimeCursorの週を過ぎていること
+```solidity
+function _checkpointToken() internal
+```
 
-#### \_findTimestampEpoch(address ve\_, uint256 timestamp\_) returns uint256
+`tokenTimeCursor` 時点から最大20週間分に渡り、この Gauge に割り振られる YMWK 報酬額を、各週ごとに計算し、`tokensPerWeek`に記録する。
+実行された時点の前週分までの計算が完了した場合は終了する。
 
-タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いエポック数を返却する
+---
 
-- internal
-- 引数
-  - ve\_
-    - VotingEsctowのアドレス
-  - timestamp\_
-    - 検索対象のタイムスタンプ
-- 戻り値
+#### checkpointToken
+
+```solidity
+function checkpointToken() external
+```
+
+`_checkpointToken` を実行する。
+
+**条件**
+
+- 管理者、または実行時の週が `tokenTimeCursor` の週を過ぎていること
+
+---
+
+#### \_findTimestampEpoch
+
+```solidity
+function _findTimestampEpoch(
+    address ve_,
+    uint256 timestamp_
+) internal view　returns (uint256)
+```
+
+タイムスタンプから VotingEscrow の `pointHistory` を検索し、タイムスタンプより過去に作成された一番近いエポック数を返却する。
+
+**引数**
+
+| 引数名       | 型        | 概要                     | 制約 |
+| ------------ | --------- | ------------------------ | ---- |
+| `ve_`        | `address` | VotingEscrow のアドレス  | -    |
+| `timestamp_` | `uint256` | 検索対象のタイムスタンプ | -    |
+
+**戻り値**
+
+- `uint256`
   - 指定タイムスタンプ直前のエポック数
 
-#### \_findTimestampUserEpoch(address ve\_, address user\_, uint256 timestamp\_, uint256 maxUserEpoch\_) returns uint256
+---
 
-タイムスタンプからVotingEscrowのpointHistoryを検索し、タイムスタンプより過去に作成された一番近いユーザエポック数を返却する
+#### \_findTimestampUserEpoch
 
-- internal
-- 引数
-  - ve\_
-    - VotingEsctowのアドレス
-  - user\_
-    - 検索対象のユーザ
-  - timestamp\_
-    - 検索対象のタイムスタンプ
-- 戻り値
+```solidity
+function _findTimestampUserEpoch(
+    address ve_,
+    address user_,
+    uint256 timestamp_,
+    uint256 maxUserEpoch_
+) internal view returns (uint256)
+```
+
+タイムスタンプから VotingEscrow の `pointHistory` を検索し、タイムスタンプより過去に作成された一番近いユーザエポック数を返却する。
+
+**引数**
+
+| 引数名          | 型        | 概要                     | 制約 |
+| --------------- | --------- | ------------------------ | ---- |
+| `ve_`           | `address` | VotingEscrow のアドレス  | -    |
+| `user_`         | `address` | 検索対象のユーザ         | -    |
+| `timestamp_`    | `uint256` | 検索対象のタイムスタンプ | -    |
+| `maxUserEpoch_` | `uint256` | ユーザの最大エポック数   | -    |
+
+**戻り値**
+
+- `uint256`
   - 指定タイムスタンプ直前のユーザエポック数
 
-#### veForAt(address user\_ , uint256 timestamp\_) returns uint256
+---
 
-指定のタイムスタンプ時点でのユーザのve残高を返す
+#### veForAt
 
-- external
-- 引数
-  - user\_
-    - 検索対象のユーザ
-  - timestamp\_
-    - 検索対象のタイムスタンプ
-- 戻り値
-  - 指定タイムスタンプ時点でのユーザveYMWK残高
+```solidity
+function veForAt(
+    address user_,
+    uint256 timestamp_
+) external view returns (uint256)
+```
 
-#### \_checkpointTotalSupply()
+指定のタイムスタンプ時点でのユーザの ve 残高を返す。
 
-VotingEscrowのchekpointを実行した上で、過去最大20週間分の各週初め時点でのveYMWK残高履歴を記録する
+**引数**
 
-- internal
+| 引数名       | 型        | 概要                     | 制約 |
+| ------------ | --------- | ------------------------ | ---- |
+| `user_`      | `address` | 検索対象のユーザ         | -    |
+| `timestamp_` | `uint256` | 検索対象のタイムスタンプ | -    |
 
-#### checkpointTotalSupply()
+**戻り値**
 
-\_checkpointTotalSupplyを実行する
+- `uint256`
+  - 指定タイムスタンプ時点でのユーザ veYMWK 残高
 
-- external
+---
 
-#### \_checkpoint(address addr\_)
+#### \_checkpointTotalSupply
 
-指定ユーザの報酬額を計算する
+```solidity
+function _checkpointTotalSupply() internal
+```
 
-- 実行時点が、前回のveYMWK総残高更新から週を跨いでいる場合
+VotingEscrow の `checkpoint` を実行した上で、過去最大20週間分の各週初め時点での veYMWK 残高履歴を記録する。
 
-  - \_checkpointTotalSupplyを呼んでveYMWK総残高の履歴を更新
+---
 
+#### checkpointTotalSupply
+
+```solidity
+function checkpointTotalSupply() external
+```
+
+`_checkpointTotalSupply` を実行する。
+
+---
+
+#### \_checkpoint
+
+```solidity
+function _checkpoint(
+    address addr_
+) internal
+```
+
+指定ユーザの報酬額を計算する。
+
+- 実行時点が、前回の veYMWK 総残高更新から週を跨いでいる場合
+  - `_checkpointTotalSupply` を呼んで veYMWK 総残高の履歴を更新
 - 実行時点が、報酬の計算が完了している最後の週から週を跨いでいる場合
-
-  - \_checkpointTokenを呼んで、計算が完了していない週の報酬を計算
-
-- ユーザにveの履歴がない場合
-
+  - `_checkpointToken` を呼んで、計算が完了していない週の報酬を計算
+- ユーザに ve の履歴がない場合
   - 終了
-
-- timeCursorOfの週からveYMWK総残高の同期とYMWK報酬の計算が完了している週まで週ごとにユーザに割当てられる報酬額を計算する
+- `timeCursorOf` の週から veYMWK 総残高の同期と YMWK 報酬の計算が完了している週まで、週ごとにユーザに割り当てられる報酬額を計算する
 - ユーザエポックを記録する
 - 報酬額の累計を更新する
 
-- internal
-- 引数
-  - addr\_
-    - 対象ユーザのアドレス
+**条件**
+`block.timestamp`が`timeCursor`以上
 
-#### userCheckpoint(address addr\_) returns (bool)
+**引数**
 
-\_checkpointを実行する
+| 引数名  | 型        | 概要                 | 制約 |
+| ------- | --------- | -------------------- | ---- |
+| `addr_` | `address` | 対象ユーザのアドレス | -    |
 
-- external
-- 引数
-  - addr\_
-    - 対象ユーザのアドレス
-- 戻り値
+---
 
-  - true
+#### userCheckpoint
 
-- 条件
-  - addr\_本人またはminter
+```solidity
+function userCheckpoint(
+    address addr_
+) external returns (bool)
+```
 
-#### setKilled(bool isKilled\_)
+`_checkpoint` を実行する。
 
-このGaugeをkillする。kill状態ではYMWKインフレーションが0として扱われ、これ以上報酬が蓄積されない
+**条件**
 
-- external
-- 引数
-  - isKilled\_
-    - kill状態のon / off
-- 条件
-  - 管理者のみ
+- `addr_` 本人または `minter`
 
-#### claimableTokens(address addr\_) returns (uint256)
+**引数**
 
-指定ユーザが現在クレーム可能なYMWK報酬額を返す
+| 引数名  | 型        | 概要                 | 制約 |
+| ------- | --------- | -------------------- | ---- |
+| `addr_` | `address` | 対象ユーザのアドレス | -    |
 
-- external view
-- 引数
-  - addr\_
-    - 対象ユーザのアドレス
-- 戻り値
+**戻り値**
+
+- `bool`
+  - `true`
+
+---
+
+#### setKilled
+
+```solidity
+function setKilled(
+    bool isKilled_
+) external onlyAdmin
+```
+
+この Gauge を kill する。kill 状態では YMWK インフレーションが 0 として扱われ、これ以上報酬が蓄積されない。
+
+**条件**
+
+- 管理者のみ
+
+**引数**
+
+| 引数名      | 型     | 概要               | 制約 |
+| ----------- | ------ | ------------------ | ---- |
+| `isKilled_` | `bool` | kill 状態の on/off | -    |
+
+---
+
+#### claimableTokens
+
+```solidity
+function claimableTokens(
+    address addr_
+) external returns (uint256)
+```
+
+指定ユーザが現在クレーム可能な YMWK 報酬額を返す。
+
+**引数**
+
+| 引数名  | 型        | 概要                 | 制約 |
+| ------- | --------- | -------------------- | ---- |
+| `addr_` | `address` | 対象ユーザのアドレス | -    |
+
+**戻り値**
+
+- `uint256`
   - クレーム可能な報酬額
+
+---
 
 ## 参考
 

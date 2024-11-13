@@ -2,7 +2,9 @@
 
 ## 概要
 
-オークションの手数料をveYMWKホルダーに報酬として分配する。openzeppelinのUUPSUpgradeableを継承する
+オークションの手数料をveYMWKホルダーに報酬として分配する。
+
+親クラス: UUPSBase, ReentrancyGuardUpgradeable
 
 ## 機能
 
@@ -78,7 +80,7 @@
 #### initializer
 
 ```solidity
-initialize(
+function initialize(
     address votingEscrow_,
     address factory_,
     uint256 startTime_
