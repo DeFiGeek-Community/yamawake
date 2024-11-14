@@ -74,6 +74,8 @@ graph LR
 
     claimable_tokens["YMWK酬額取得\nintegrate_fraction"]
 
+    gauge_relative_weight["GaugeのWeightを取得する"]
+
     create_lock -.->|include| uck
     increase_amount -.->|include| uck
     increase_unlock_time -.->|include| uck
@@ -105,6 +107,10 @@ graph LR
     integral -.-|include| rate
     integral -.-|include| future_epoch_time_write
 
+    integral -.-|include| gauge_relative_weight
+
+
+
     owner --- deploy
 
     subgraph Admin[ ]
@@ -118,6 +124,10 @@ graph LR
       claimable_tokens
       integral_of
       integral
+    end
+
+    subgraph GaugeController
+      gauge_relative_weight
     end
 
     subgraph VotingEscrow

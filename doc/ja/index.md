@@ -18,24 +18,40 @@
 
 #### [FeePool](./FeePool/index.md)
 
+#### [Yamawake DAO Token](./YamawakeToken/index.md)
+
 ### V1.5
+
+#### [VotingEscrow](./VotingEscrow/index.md)
+
+YMWK トークンをロックし、移転不可のveYMWK トークンを発行する。 CurveのVotingEscrowからフォーク。
 
 #### [FeeDistributorV1](./FeeDistributorV1/index.md)
 
-オークションの手数料をveYMWKホルダーに報酬として分配する
+オークションの手数料をveYMWKホルダーに報酬として分配する。CurveのFeeDistributorからフォーク。
 
 #### [GaugeControllerV1](./GaugeControllerV1/index.md)
 
-CurveのGaugeControllerのフォーク。GaugeごとのWeightの管理をする
+GaugeごとのWeightの管理をする。CurveのGaugeControllerからフォーク。
 
 #### [GaugeV1](./GaugeV1/index.md)
 
-veYMWKホルダーに対するYMWKトークン報酬を計算・保持する。
+veYMWKホルダーに対するYMWKトークン報酬を計算・保持する。CurveのLiquidityGaugeからフォーク。
 
 #### [MinterV1](./MinterV1/index.md)
 
-ユーザからミントのリクエストを受け、ミント可能額をGaugeから取得し、YMWKトークンをミントする
+ユーザからミントのリクエストを受け、ミント可能額をGaugeから取得し、YMWKトークンをミントする。CurveのTokenMinterからフォーク。
 
 #### [TemplateV1.5](./Template/V1.5/index.md)
 
 IBAO(Initial Bulk Auction Offering)テンプレート
+
+## ユースケース
+
+### Voting Escrow
+
+[VotingEscrow ユースケース図](./VotingEscrow/usecase.md)
+
+### Fee Distribution
+
+[FeeDistributor ユースケース図](./FeeDistributorV1/usecase.md)
