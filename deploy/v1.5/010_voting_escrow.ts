@@ -32,7 +32,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy(codename, {
     from: foundation,
-    args: [ymwkAddress, "Voting-escrowed Yamawake", "veYMWK", "v1"],
+    args: [ymwkAddress, "Voting-escrowed Yamawake", "veYMWK"],
     log: true,
     getContractFactory,
   });
