@@ -73,7 +73,7 @@ contract GaugeV1 is UUPSBase {
 
         uint256 _t = tokenTimeCursor; // timestamp for the start of the week when the calculation of tokensPerWeek starts this time
         uint256 _thisWeek = (_t / WEEK) * WEEK; // (=tokenTimeCursor)
-        uint256 _nextWeek = 0;
+        uint256 _nextWeek;
         uint256 _roundedTimestamp = (block.timestamp / WEEK) * WEEK; // timestamp for the start of the current week.
 
         // If the next YMWK inflation rate update time set in the current Gauge is
@@ -155,11 +155,11 @@ contract GaugeV1 is UUPSBase {
         address ve_,
         uint256 timestamp_
     ) internal view returns (uint256) {
-        uint256 _min = 0;
+        uint256 _min;
         uint256 _max = IVotingEscrow(ve_).epoch();
 
         unchecked {
-            for (uint256 i; i < 128; i++) {
+            for (uint256 i; i < 128; ++i) {
                 if (_min >= _max) {
                     break;
                 }
@@ -182,11 +182,11 @@ contract GaugeV1 is UUPSBase {
         uint256 timestamp_,
         uint256 maxUserEpoch_
     ) internal view returns (uint256) {
-        uint256 _min = 0;
+        uint256 _min;
         uint256 _max = maxUserEpoch_;
 
         unchecked {
-            for (uint256 i; i < 128; i++) {
+            for (uint256 i; i < 128; ++i) {
                 if (_min >= _max) {
                     break;
                 }
@@ -248,7 +248,7 @@ contract GaugeV1 is UUPSBase {
                 uint256 _epoch = _findTimestampEpoch(_ve, _t);
                 IVotingEscrow.Point memory _pt = IVotingEscrow(_ve)
                     .pointHistory(_epoch);
-                int128 _dt = 0;
+                int128 _dt;
                 if (_t > _pt.ts) {
                     _dt = int128(int256(_t) - int256(_pt.ts));
                 }
@@ -288,8 +288,8 @@ contract GaugeV1 is UUPSBase {
 
         address ve = votingEscrow;
         // Minimal user_epoch is 0 (if user had no point)
-        uint256 _userEpoch = 0;
-        uint256 _toDistribute = 0;
+        uint256 _userEpoch;
+        uint256 _toDistribute;
 
         uint256 _maxUserEpoch = IVotingEscrow(ve).userPointEpoch(addr_);
         uint256 _startTime = startTime;
@@ -349,7 +349,7 @@ contract GaugeV1 is UUPSBase {
             } else if (
                 _weekCursor >= _userPoint.ts && _userEpoch <= _maxUserEpoch
             ) {
-                _userEpoch += 1;
+                ++_userEpoch;
                 _oldUserPoint = IVotingEscrow.Point({
                     bias: _userPoint.bias,
                     slope: _userPoint.slope,

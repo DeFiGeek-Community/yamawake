@@ -135,7 +135,7 @@ contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
 
         lastTokenTime[token_] = block.timestamp;
         uint256 _thisWeek = (_t / WEEK) * WEEK;
-        uint256 _nextWeek = 0;
+        uint256 _nextWeek;
 
         for (uint256 i; i < 20; ) {
             _nextWeek = _thisWeek + WEEK;
@@ -186,11 +186,11 @@ contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
         address ve_,
         uint256 timestamp_
     ) internal view returns (uint256) {
-        uint256 _min = 0;
+        uint256 _min;
         uint256 _max = IVotingEscrow(ve_).epoch();
 
         unchecked {
-            for (uint256 i; i < 128; i++) {
+            for (uint256 i; i < 128; ++i) {
                 if (_min >= _max) {
                     break;
                 }
@@ -213,11 +213,11 @@ contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
         uint256 timestamp_,
         uint256 maxUserEpoch_
     ) internal view returns (uint256) {
-        uint256 _min = 0;
+        uint256 _min;
         uint256 _max = maxUserEpoch_;
 
         unchecked {
-            for (uint256 i; i < 128; i++) {
+            for (uint256 i; i < 128; ++i) {
                 if (_min >= _max) {
                     break;
                 }
@@ -324,7 +324,7 @@ contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
         IVotingEscrow.Point memory _pt = IVotingEscrow(_ve).pointHistory(
             _epoch
         );
-        int128 _dt = 0;
+        int128 _dt;
         if (_t > _pt.ts) {
             _dt = int128(int256(_t) - int256(_pt.ts));
         }
@@ -412,7 +412,7 @@ contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
                 _weekCursor >= _userPoint.ts &&
                 _cp.userEpoch <= _cp.maxUserEpoch
             ) {
-                _cp.userEpoch += 1;
+                ++_cp.userEpoch;
                 _oldUserPoint = IVotingEscrow.Point({
                     bias: _userPoint.bias,
                     slope: _userPoint.slope,
