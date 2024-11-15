@@ -4,7 +4,7 @@
 
 IBAO (Initial Bulk Auction Offering) Template.
 
-#### Differences from V1
+#### Differences from [V1](../V1/index.md)
 
 - The fee recipient upon revenue collection is the FeeDistributor.
 - Creates a token checkpoint for the FeeDistributor when collecting revenue.

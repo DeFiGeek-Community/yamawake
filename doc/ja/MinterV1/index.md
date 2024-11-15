@@ -6,7 +6,13 @@ Curveの[TokenMinter](https://github.com/curvefi/curve-dao-contracts/blob/master
 
 ユーザからミントのリクエストを受け、ミント可能額をGaugeから取得し、YMWKトークンをミントする
 
-親クラス: UUPSBase, ReentrancyGuardUpgradeable
+### Curve版からの主な変更点
+
+- UUPSUpgradableを継承しアップグレーダブルに変更
+
+## 親クラス
+
+UUPSBase, ReentrancyGuardUpgradeable
 
 ## 機能
 

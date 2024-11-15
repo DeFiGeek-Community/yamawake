@@ -4,7 +4,7 @@
 
 IBAO(Initial Bulk Auction Offering)テンプレート。
 
-#### V1との相違点
+#### [V1](../V1/index.md)との相違点
 
 - 売上回収時のFee送金先がFeeDistributor
 - 売上回収時にFeeDistributorに対してトークンチェックポイントを作成する

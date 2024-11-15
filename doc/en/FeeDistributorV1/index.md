@@ -4,7 +4,27 @@
 
 Distributes auction fees as rewards to veYMWK holders.
 
-Parent classes: UUPSBase, ReentrancyGuardUpgradeable
+Forked from [Curve Fee Distributor](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy).
+
+### Main changes from the Curve version
+
+- **Modified it to be upgradable using UUPSUpgradeable**
+- **Support for multiple tokens**
+  - Manage `timeCursorOf`, `userEpochOf`, `lastTokenTime`, `startTime`, `tokensPerWeek`, and `tokenLastBalance` for each token
+  - Added `claimMultipleTokens()`
+  - Added `addRewardToken()`
+  - Modified `recoverBalance()`
+- **Changed the timing of checkpoint creation**
+  - `tokenCheckpoint` is not called during `claim`
+- **Changed behavior during checkpoints**
+  - If a week has passed since the last checkpoint, fee distribution starts from the week after the last checkpoint
+  - If more than 20 weeks have passed since the last checkpoint, fees are distributed equally over the past 20 weeks
+- **Changed behavior during claims**
+  - If a week has passed since the last checkpoint, rewards up to the previous week can be claimed without needing a checkpoint
+
+## Parent classes
+
+UUPSBase, ReentrancyGuardUpgradeable
 
 ## Features
 

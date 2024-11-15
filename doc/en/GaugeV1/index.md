@@ -4,7 +4,15 @@
 
 Calculates and maintains [YMWK Token](../YamawakeToken/index.md) rewards for [veYMWK](../VotingEscrow/index.md) holders.
 
-Parent class: UUPSBase
+### Main Changes from the Curve Version
+
+- Changed to be upgradable by inheriting `UUPSUpgradeable`
+- Modified the reward calculation method to use ve balances at the beginning of each week, similar to the `FeeDistributor`
+- Removed other unnecessary functionalities
+
+## Parent class
+
+UUPSBase
 
 ## Features
 

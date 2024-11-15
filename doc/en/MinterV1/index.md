@@ -6,7 +6,13 @@ A fork of Curve's [TokenMinter](https://github.com/curvefi/curve-dao-contracts/b
 
 Receives mint requests from users, retrieves the amount that can be minted from the Gauge, and mints YMWK tokens.
 
-Parent classes: UUPSBase, ReentrancyGuardUpgradeable
+### Main Changes from the Curve Version
+
+- Changed to be upgradable by inheriting `UUPSUpgradeable`
+
+## Parent classes
+
+UUPSBase, ReentrancyGuardUpgradeable
 
 ## Features
 

@@ -2,8 +2,18 @@
 
 ## 概要
 
-CurveのVotingEscrowフォークコントラクト。YMWK トークンをロックし、移転不可のveYMWK トークンを発行する。
+Curveの[VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy)からのフォークコントラクト。
+
+YMWK トークンをロックし、移転不可のveYMWK トークンを発行する。
 ロック期間は最大4年間、最小単位は1週間で、veYMWKはロック後の時間経過により線形に減衰する。1YMWKを4年間ロックすると1veYMWKが発行される。
+
+### Curve版からの主な変更点
+
+- コントラクトからの操作を許可
+  - smart_wallet_checker, future_smart_wallet_checker, assert_not_contract(), apply_smart_wallet_checker(), commit_smart_wallet_checker() の削除
+- Admin, Controller関連機能を削除
+  - admin, future_admin, apply_transfer_ownership(), commit_transfer_ownership() の削除
+  - controller, transfersEnabled, changeController() の削除
 
 #### 参考
 
@@ -12,6 +22,8 @@ CurveのVotingEscrowフォークコントラクト。YMWK トークンをロッ�
 - [Curve VotingEscrow Contract](https://curve.readthedocs.io/dao-vecrv.html)
 - [The Curve DAO: Liquidity Gauges and Minting CRV](https://curve.readthedocs.io/dao-gauges.html)
 - [LiquidityGaugeV6 Contract](https://github.com/curvefi/tricrypto-ng/blob/main/contracts/main/LiquidityGauge.vy)
+
+## 機能
 
 ### Struct
 
