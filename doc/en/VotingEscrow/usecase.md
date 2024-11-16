@@ -65,8 +65,8 @@ graph LR
     minted["Retrieve User's Minted YMWK Token Amount"]
     claim_ymwk["Claim YMWK Rewards"]
 
-    integrate_fraction["Retrieve Current YMWK Reward Amount `integrateFraction`"]
-    claimable_tokens["Retrieve YMWK Reward Amount After Updating States `claimableTokens`"]
+    integrate_fraction["Retrieve Current YMWK Reward Amount integrateFraction"]
+    claimable_tokens["Retrieve YMWK Reward Amount After Updating States claimableTokens"]
 
     gauge_relative_weight["Retrieve Gauge Weight"]
 
