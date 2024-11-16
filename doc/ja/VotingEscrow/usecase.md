@@ -17,8 +17,6 @@
   - YMWKのmint関数を呼びYMWKを指定数発行する
 - [YMWK](../YamawakeToken/index.md)
   - YMWKトークン
-- VotingEscrowオーナー
-  - VotingEscrowコントラクトのオーナー
 
 ## ユースケース
 
@@ -37,16 +35,14 @@
 - Gauge
   - ユーザのポイント履歴を取得する
   - 全体のポイント履歴を取得する
-- VotingEscrowオーナー
-  - VotingEscrowを立ち上げる
-  - 管理者を変更する
+- GaugeController
+  - GaugeのWeightを取得する
 
 ## ユースケース図
 
 ```mermaid
 graph LR
     classDef transparent fill:none,stroke:none;
-    owner{{"VotingEscrowオーナー"}}
     holder{{"YMWKホルダー"}}
     user{{"ユーザ"}}
 
@@ -56,8 +52,8 @@ graph LR
     withdraw["YMWKを引き出す"]
     uck["ユーザのポイント履歴を更新"]
     ck["全体のポイント履歴を更新"]
-    integral["最大20週分の全体ve履歴を取得・保存\nintegrate_inv_supply"]
-    integral_of["最大50ユーザエポック分のve履歴を取得・保存\nintegrate_inv_supply_of\nintegrate_checkpoint_of\nintegrate_fraction"]
+    integral["最大20週間分のveYMWK総残高を取得・保存"]
+    integral_of["最大50エポック分のユーザve履歴を取得し、エポック数を保持"]
     ve_total_supply["全体のポイント履歴を取得"]
     ve_user_balance["ユーザのポイント履歴を取得"]
 
@@ -67,12 +63,10 @@ graph LR
     update_rate["インフレーションレート更新"]
     update_minted["ユーザのミント済みYMWKトークン額を更新"]
     minted["ユーザのミント済みYMWKトークン額を取得"]
-    claim_ymwk["YMWK酬をクレーム"]
+    claim_ymwk["YMWK報酬をクレーム"]
 
-    deploy["VotingEscrowを立ち上げる"]
-
-
-    claimable_tokens["YMWK酬額取得\nintegrate_fraction"]
+    integrate_fraction["現状態でのYMWK酬額額の取得 integrateFraction"]
+    claimable_tokens["各種状態を最新に更新した上でYMWK酬額額の取得 claimableTokens"]
 
     gauge_relative_weight["GaugeのWeightを取得する"]
 
@@ -89,13 +83,15 @@ graph LR
     holder --- withdraw
 
     integral_of -.->|include| integral
+    claimable_tokens -.->|include| integrate_fraction
     claimable_tokens -.->|include| integral_of
 
     user ---> holder
     user --- claim_ymwk
     user ---|View関数として実行| claimable_tokens
 
-    claim_ymwk -.->|include| claimable_tokens
+    claim_ymwk -.->|include| integrate_fraction
+    claim_ymwk -.->|include| integral_of
     claim_ymwk -.->|include| mint
     claim_ymwk -.->|include| minted
     claim_ymwk -.->|include| update_minted
@@ -110,17 +106,8 @@ graph LR
     integral -.-|include| gauge_relative_weight
 
 
-
-    owner --- deploy
-
-    subgraph Admin[ ]
-      direction LR
-      deploy
-    end
-
-    class Admin transparent
-
     subgraph Gauge
+      integrate_fraction
       claimable_tokens
       integral_of
       integral

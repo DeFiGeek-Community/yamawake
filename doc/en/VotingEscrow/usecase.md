@@ -4,8 +4,8 @@
   - Any user or contract
 - **YMWK Holder**
   - Holder of YMWK tokens
-  - Expected to be an EOA (Externally Owned Account) or a contract
-    - Reference
+  - Assumed to be an EOA (Externally Owned Account) or contract
+    - Reference:
       - [VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy#L109)
 - **[VotingEscrow](./index.md)**
   - Issues non-transferable veYMWK by locking YMWK tokens
@@ -17,8 +17,6 @@
   - Calls the mint function of YMWK to mint a specified amount of YMWK
 - **[YMWK](../YamawakeToken/index.md)**
   - YMWK Token
-- **VotingEscrow Owner**
-  - Owner of the VotingEscrow contract
 
 ## Use Cases
 
@@ -37,16 +35,14 @@
 - **Gauge**
   - Retrieve the user's point history
   - Retrieve the global point history
-- **VotingEscrow Owner**
-  - Deploy the VotingEscrow
-  - Change the administrator
+- **GaugeController**
+  - Retrieve the weight of the Gauge
 
 ## Use Case Diagram
 
 ```mermaid
 graph LR
     classDef transparent fill:none,stroke:none;
-    owner{{"VotingEscrow Owner"}}
     holder{{"YMWK Holder"}}
     user{{"User"}}
 
@@ -56,23 +52,21 @@ graph LR
     withdraw["Withdraw YMWK"]
     uck["Update User's Point History"]
     ck["Update Global Point History"]
-    integral["Retrieve and Store up to 20 Weeks of Global ve History\nintegrate_inv_supply"]
-    integral_of["Retrieve and Store up to 50 User Epochs of ve History\nintegrate_inv_supply_of\nintegrate_checkpoint_of\nintegrate_fraction"]
+    integral["Retrieve and Store Total veYMWK Balance for up to 20 Weeks"]
+    integral_of["Retrieve User ve History for up to 50 Epochs and Store Epoch Count"]
     ve_total_supply["Retrieve Global Point History"]
     ve_user_balance["Retrieve User's Point History"]
 
     mint["Mint"]
     rate["Retrieve Inflation Rate"]
-    future_epoch_time_write["Retrieve Next Inflation Rate Change Timestamp"]
+    future_epoch_time_write["Retrieve Timestamp of Next Inflation Rate Change"]
     update_rate["Update Inflation Rate"]
-    update_minted["Update User's Minted YMWK Amount"]
-    minted["Retrieve User's Minted YMWK Amount"]
+    update_minted["Update User's Minted YMWK Token Amount"]
+    minted["Retrieve User's Minted YMWK Token Amount"]
     claim_ymwk["Claim YMWK Rewards"]
 
-    deploy["Deploy VotingEscrow"]
-
-
-    claimable_tokens["Retrieve YMWK Reward Amount\nintegrate_fraction"]
+    integrate_fraction["Retrieve Current YMWK Reward Amount `integrateFraction`"]
+    claimable_tokens["Retrieve YMWK Reward Amount After Updating States `claimableTokens`"]
 
     gauge_relative_weight["Retrieve Gauge Weight"]
 
@@ -89,13 +83,15 @@ graph LR
     holder --- withdraw
 
     integral_of -.->|include| integral
+    claimable_tokens -.->|include| integrate_fraction
     claimable_tokens -.->|include| integral_of
 
     user ---> holder
     user --- claim_ymwk
     user ---|Execute as View Function| claimable_tokens
 
-    claim_ymwk -.->|include| claimable_tokens
+    claim_ymwk -.->|include| integrate_fraction
+    claim_ymwk -.->|include| integral_of
     claim_ymwk -.->|include| mint
     claim_ymwk -.->|include| minted
     claim_ymwk -.->|include| update_minted
@@ -110,17 +106,8 @@ graph LR
     integral -.-|include| gauge_relative_weight
 
 
-
-    owner --- deploy
-
-    subgraph Admin[ ]
-      direction LR
-      deploy
-    end
-
-    class Admin transparent
-
     subgraph Gauge
+      integrate_fraction
       claimable_tokens
       integral_of
       integral
