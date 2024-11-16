@@ -8,7 +8,7 @@ import {
 import Constants from "../../../lib/Constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  GaugeV1,
+  RewardGaugeV1,
   GaugeControllerV1,
   MinterV1,
   VotingEscrow,
@@ -18,12 +18,12 @@ import {
 /*
   長期間アクティビティがない状態からのリカバリーをテスト
 */
-describe("GaugeV1", function () {
+describe("RewardGaugeV1", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
   let votingEscrow: VotingEscrow;
-  let gauge: GaugeV1;
+  let gauge: RewardGaugeV1;
   let minter: MinterV1;
 
   let snapshot: SnapshotRestorer;
@@ -41,7 +41,7 @@ describe("GaugeV1", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("MinterV1");
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
 
     token = await YMWK.deploy();
     await token.waitForDeployment();
@@ -70,7 +70,7 @@ describe("GaugeV1", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
     await gauge.waitForDeployment();
   });
 

@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  GaugeV1,
+  RewardGaugeV1,
   GaugeControllerV1,
   MinterV1,
   VotingEscrow,
@@ -20,7 +20,7 @@ Gauge, Minter, VotingEscrowのインテグレーションテスト
 - ランダムな額をlock, extendLock, increaseAmount、withdraw
 - ランダムなタイミングでMinterで報酬をclaim
 */
-describe("GaugeV1", function () {
+describe("RewardGaugeV1", function () {
   const ACCOUNT_NUM = 5;
   const MAX_EXAMPLES = 50;
   const STATEFUL_STEP_COUNT = 30;
@@ -56,7 +56,7 @@ describe("GaugeV1", function () {
   let votingEscrow: VotingEscrow;
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
-  let gauge: GaugeV1;
+  let gauge: RewardGaugeV1;
   let minter: MinterV1;
 
   let lockedUntil: { [key: string]: number } = {};
@@ -84,7 +84,7 @@ describe("GaugeV1", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("MinterV1");
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
 
     token = await YMWK.deploy();
     await token.waitForDeployment();
@@ -116,7 +116,7 @@ describe("GaugeV1", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
     await gauge.waitForDeployment();
 
     for (let i = 0; i < ACCOUNT_NUM; i++) {

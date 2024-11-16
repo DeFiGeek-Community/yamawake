@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  GaugeV1,
+  RewardGaugeV1,
   MinterV1,
   VotingEscrow,
   YMWK,
@@ -15,7 +15,7 @@ import {
 } from "../../../../typechain-types";
 
 type GaugeInfo = {
-  contract: GaugeV1;
+  contract: RewardGaugeV1;
   type: number;
   weight: bigint;
 };
@@ -146,11 +146,11 @@ describe("GaugeControllerV1", function () {
     );
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
     const gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
     await gauge.waitForDeployment();
 
     await gaugeController
@@ -249,7 +249,7 @@ describe("GaugeControllerV1", function () {
       // Gaugeの追加
       const tokenInflationStarts =
         (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-      const Gauge = await ethers.getContractFactory("GaugeV1");
+      const Gauge = await ethers.getContractFactory("RewardGaugeV1");
       const gauge = await upgrades.deployProxy(Gauge, [
         minter.target,
         tokenInflationStarts,

@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./interfaces/IYMWK.sol";
-import "./interfaces/ILiquidityGauge.sol";
+import "./interfaces/IRewardGauge.sol";
 import "./interfaces/IGaugeController.sol";
 import "./UUPSBase.sol";
 
@@ -38,8 +38,8 @@ contract MinterV1 is UUPSBase, ReentrancyGuardUpgradeable {
             "dev: gauge is not added"
         );
 
-        ILiquidityGauge(gaugeAddr_).userCheckpoint(for_);
-        uint256 totalMint = ILiquidityGauge(gaugeAddr_).integrateFraction(for_);
+        IRewardGauge(gaugeAddr_).userCheckpoint(for_);
+        uint256 totalMint = IRewardGauge(gaugeAddr_).integrateFraction(for_);
         uint256 _toMint = totalMint - minted[for_][gaugeAddr_];
 
         if (_toMint != 0) {

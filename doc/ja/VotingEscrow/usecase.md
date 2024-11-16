@@ -10,7 +10,7 @@
 - [VotingEscrow](./index.md)
   - YMWKトークンをロックすることで移転不可のveYMWKを発行する
   - veYMWKの残高を管理をする
-- [Gauge](../GaugeV1/index.md)
+- [RewardGauge](../RewardGaugeV1/index.md)
   - veYMWKホルダーに対するYMWK報酬情報を計算・保持する
 - [Minter](../MinterV1/index.md)
   - YMWKトークンに設定されたMinter

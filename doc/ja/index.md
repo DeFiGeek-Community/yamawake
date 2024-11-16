@@ -34,7 +34,7 @@ YMWK トークンをロックし、移転不可のveYMWK トークンを発行�
 
 GaugeごとのWeightの管理をする。CurveのGaugeControllerからフォーク。
 
-#### [GaugeV1](./GaugeV1/index.md)
+#### [RewardGaugeV1](./RewardGaugeV1/index.md)
 
 veYMWKホルダーに対するYMWKトークン報酬を計算・保持する。CurveのLiquidityGaugeからフォーク。
 

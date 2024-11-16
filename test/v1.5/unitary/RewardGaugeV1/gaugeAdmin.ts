@@ -6,11 +6,11 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import Constants from "../../../lib/Constants";
-import { GaugeV1, VotingEscrow, YMWK } from "../../../../typechain-types";
+import { RewardGaugeV1, VotingEscrow, YMWK } from "../../../../typechain-types";
 
-describe("GaugeV1 Admin", function () {
+describe("RewardGaugeV1 Admin", function () {
   let accounts: SignerWithAddress[];
-  let gauge: GaugeV1;
+  let gauge: RewardGaugeV1;
   let token: YMWK;
   let votingEscrow: VotingEscrow;
   let snapshot: SnapshotRestorer;
@@ -25,7 +25,7 @@ describe("GaugeV1 Admin", function () {
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
     const Minter = await ethers.getContractFactory("MinterV1");
 
     // Contract deployments
@@ -50,7 +50,7 @@ describe("GaugeV1 Admin", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
   });
   afterEach(async () => {
     await snapshot.restore();

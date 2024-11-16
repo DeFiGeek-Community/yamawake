@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.19;
 
-interface ILiquidityGauge {
+interface IRewardGauge {
     function userCheckpoint(address addr_) external returns (bool);
 
     function integrateFraction(address addr_) external view returns (uint256);

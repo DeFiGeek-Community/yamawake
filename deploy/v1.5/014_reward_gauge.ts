@@ -8,7 +8,7 @@ import {
 } from "../../src/deployUtil";
 import { GaugeControllerV1, YMWK } from "../../typechain-types";
 
-const codename = "Gauge";
+const codename = "RewardGauge";
 const version = "V1";
 const INFLATION_DELAY = 86400 * 365;
 
@@ -61,7 +61,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   ).attach(controllerAddress) as GaugeControllerV1;
 
   console.log(
-    `Adding Gauge (${gauge.target}) to GaugeController (${gaugeController.target}) ...`
+    `Adding RewardGauge (${gauge.target}) to GaugeController (${gaugeController.target}) ...`
   );
   try {
     await gaugeController.addGauge(gauge.target, 0, 1);

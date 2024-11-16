@@ -8,7 +8,7 @@ import {
 import Constants from "../../../lib/Constants";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  GaugeV1,
+  RewardGaugeV1,
   GaugeControllerV1,
   MinterV1,
   VotingEscrow,
@@ -20,12 +20,12 @@ import {
   checkpointTotalSupply, checkpointToken, userCheckpointの
   順序、頻度によって整合性が崩れないことを確認
 */
-describe("GaugeV1", function () {
+describe("RewardGaugeV1", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
   let votingEscrow: VotingEscrow;
-  let gauge: GaugeV1 | UpgradableGaugeTest;
+  let gauge: RewardGaugeV1 | UpgradableGaugeTest;
   let minter: MinterV1;
 
   let snapshot: SnapshotRestorer;
@@ -43,7 +43,7 @@ describe("GaugeV1", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("MinterV1");
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
 
     token = await YMWK.deploy();
     await token.waitForDeployment();
@@ -72,7 +72,7 @@ describe("GaugeV1", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
     await gauge.waitForDeployment();
   });
 
@@ -80,7 +80,7 @@ describe("GaugeV1", function () {
     await snapshot.restore();
   });
 
-  describe("GaugeV1 Upgrade", function () {
+  describe("RewardGaugeV1 Upgrade", function () {
     /*
     報酬額がV2に保持されることを確認
     */
@@ -150,7 +150,7 @@ describe("GaugeV1", function () {
       })) as unknown as UpgradableGaugeTest;
       await gauge.waitForDeployment();
 
-      // 2) GaugeV1のデータを保持していることを確認
+      // 2) RewardGaugeV1のデータを保持していることを確認
       const rewardAlice1After = await gauge.integrateFraction(
         accounts[1].address
       );
@@ -160,10 +160,10 @@ describe("GaugeV1", function () {
       expect(rewardAlice1).to.be.eq(rewardAlice1After);
       expect(rewardBob1).to.be.eq(rewardBob1After);
 
-      // 3) GaugeV1の新しいパラメータを保持していることを確認
+      // 3) RewardGaugeV1の新しいパラメータを保持していることを確認
       expect(await gauge.newParam()).to.be.eq(123);
 
-      // 4) GaugeV1の新しい関数を実行できることを確認
+      // 4) RewardGaugeV1の新しい関数を実行できることを確認
       await gauge.newMethod();
       expect(await gauge.newParam()).to.be.eq(124);
     });

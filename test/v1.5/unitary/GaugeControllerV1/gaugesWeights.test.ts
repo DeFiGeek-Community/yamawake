@@ -50,7 +50,7 @@ describe("GaugeControllerV1", function () {
 
     const tokenInflationStarts =
       (await token.startEpochTime()) + BigInt(INFLATION_DELAY);
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
     const lg1 = await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,

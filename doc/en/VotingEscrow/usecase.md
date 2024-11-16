@@ -10,7 +10,7 @@
 - **[VotingEscrow](./index.md)**
   - Issues non-transferable veYMWK by locking YMWK tokens
   - Manages veYMWK balances
-- **[Gauge](../GaugeV1/index.md)**
+- **[RewardGauge](../RewardGaugeV1/index.md)**
   - Calculates and maintains YMWK reward information for veYMWK holders
 - **[Minter](../MinterV1/index.md)**
   - The Minter set for the YMWK token

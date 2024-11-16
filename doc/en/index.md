@@ -34,7 +34,7 @@ Distributes auction fees as rewards to veYMWK holders. Forked from Curve's FeeDi
 
 Manages the weights for each Gauge. Forked from Curve's GaugeController.
 
-#### [GaugeV1](./GaugeV1/index.md)
+#### [RewardGaugeV1](./RewardGaugeV1/index.md)
 
 Calculates and maintains YMWK token rewards for veYMWK holders. Forked from Curve's LiquidityGauge.
 

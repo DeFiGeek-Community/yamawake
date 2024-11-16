@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  GaugeV1,
+  RewardGaugeV1,
   MinterV1,
   VotingEscrow,
   YMWK,
@@ -30,7 +30,7 @@ const INFLATION_DELAY = YEAR;
 describe("Minter components", function () {
   let accounts: SignerWithAddress[];
   let gaugeController: GaugeControllerV1;
-  let gauge: GaugeV1;
+  let gauge: RewardGaugeV1;
   let minter: MinterV1;
   let token: YMWK;
   let votingEscrow: VotingEscrow;
@@ -41,7 +41,7 @@ describe("Minter components", function () {
     accounts = await ethers.getSigners();
     const Token = await ethers.getContractFactory("YMWK");
     const Minter = await ethers.getContractFactory("MinterV1");
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const VotingEscrow = await ethers.getContractFactory("VotingEscrow");
@@ -73,7 +73,7 @@ describe("Minter components", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
     await gauge.waitForDeployment();
 
     await token.setMinter(minter.target);

@@ -7,7 +7,7 @@ import {
 } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  GaugeV1,
+  RewardGaugeV1,
   GaugeControllerV1,
   MinterV1,
   UpgradableMinterTest,
@@ -21,7 +21,7 @@ describe("MinterV1", function () {
   let votingEscrow: VotingEscrow;
   let gaugeController: GaugeControllerV1;
   let token: YMWK;
-  let gauge: GaugeV1;
+  let gauge: RewardGaugeV1;
 
   let snapshot: SnapshotRestorer;
   let snapshotBeforeInflation: SnapshotRestorer;
@@ -44,7 +44,7 @@ describe("MinterV1", function () {
     const GaugeController =
       await ethers.getContractFactory("GaugeControllerV1");
     const Minter = await ethers.getContractFactory("MinterV1");
-    const Gauge = await ethers.getContractFactory("GaugeV1");
+    const Gauge = await ethers.getContractFactory("RewardGaugeV1");
 
     token = await YMWK.deploy();
     await token.waitForDeployment();
@@ -73,7 +73,7 @@ describe("MinterV1", function () {
     gauge = (await upgrades.deployProxy(Gauge, [
       minter.target,
       tokenInflationStarts,
-    ])) as unknown as GaugeV1;
+    ])) as unknown as RewardGaugeV1;
     await gauge.waitForDeployment();
 
     // Set minter for the token
@@ -133,17 +133,17 @@ describe("MinterV1", function () {
       })) as unknown as UpgradableMinterTest;
       await gauge.waitForDeployment();
 
-      // 2) GaugeV1のデータを保持していることを確認
+      // 2) RewardGaugeV1のデータを保持していることを確認
       const mintedAliceAfter = await minter.minted(
         accounts[1].address,
         gauge.target
       );
       expect(mintedAliceBefore).to.be.eq(mintedAliceAfter);
 
-      // 3) GaugeV1の新しいパラメータを保持していることを確認
+      // 3) RewardGaugeV1の新しいパラメータを保持していることを確認
       expect(await minter.newParam()).to.be.eq(123);
 
-      // 4) GaugeV1の新しい関数を実行できることを確認
+      // 4) RewardGaugeV1の新しい関数を実行できることを確認
       await minter.newMethod();
       expect(await minter.newParam()).to.be.eq(124);
     });

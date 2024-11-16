@@ -8,10 +8,10 @@ import "./interfaces/IMinter.sol";
 import "./interfaces/IVotingEscrow.sol";
 import "./UUPSBase.sol";
 
-/// @title GaugeV1
+/// @title RewardGaugeV1
 /// @author DeFiGeek Community Japan
 /// @notice Calculate YMWK token rewards for veYMWK holders
-contract GaugeV1 is UUPSBase {
+contract RewardGaugeV1 is UUPSBase {
     event CheckpointToken(uint256 time, uint256 tokens);
 
     uint256 public constant WEEK = 604800;

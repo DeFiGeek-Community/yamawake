@@ -64,9 +64,9 @@ async function main() {
   }
 
   // Gauge
-  const gaugeAddress = readFileSync(basePath + "GaugeProxy").toString();
+  const gaugeAddress = readFileSync(basePath + "RewardGaugeProxy").toString();
   try {
-    console.log(`[INFO] Verifying Gauge...`);
+    console.log(`[INFO] Verifying RewardGauge...`);
     await run(`verify:verify`, {
       address: gaugeAddress,
     });
