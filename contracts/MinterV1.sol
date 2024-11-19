@@ -43,8 +43,8 @@ contract MinterV1 is UUPSBase, ReentrancyGuardUpgradeable {
         uint256 _toMint = totalMint - minted[for_][gaugeAddr_];
 
         if (_toMint != 0) {
-            IYMWK(token).mint(for_, _toMint);
             minted[for_][gaugeAddr_] = totalMint;
+            IYMWK(token).mint(for_, _toMint);
 
             emit Minted(for_, gaugeAddr_, totalMint);
         }
