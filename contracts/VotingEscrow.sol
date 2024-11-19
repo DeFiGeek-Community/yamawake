@@ -16,8 +16,12 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 contract VotingEscrow is ReentrancyGuard {
+    using SafeCast for uint256;
+    using SafeCast for int256;
+
     struct Point {
         int128 bias;
         int128 slope; // - dweight / dt
@@ -351,7 +355,7 @@ contract VotingEscrow is ReentrancyGuard {
         supply = _supplyBefore + value_;
 
         // Adding to existing lock, or if a lock is expired - creating a new one
-        _locked.amount += int128(uint128(value_));
+        _locked.amount += value_.toInt256().toInt128();
         if (unlockTime_ != 0) {
             _locked.end = unlockTime_;
         }
