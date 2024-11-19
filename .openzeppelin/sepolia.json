@@ -245,6 +245,26 @@
       "address": "0x47349075540c0EB83D5A7b2855DFf972a05d913a",
       "txHash": "0x3c8fe120b9545df2523a2c0388fdabf57d3262f200f6464599ed382c87032aba",
       "kind": "uups"
+    },
+    {
+      "address": "0x5988304F89619E3AEe101152B3B5eEA9EF99c1F2",
+      "txHash": "0xb85535e87ff6fd822281baa74acd854f15a3ee292d78f0d9857fdc2250508ffb",
+      "kind": "uups"
+    },
+    {
+      "address": "0x411d630D5a79430BC4f522c3e6924F841611a292",
+      "txHash": "0xa6c589140a9225499dece3cdf47126ee09c48968cc2399f607215d1647f8808d",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8c660a5A8221A8fFbbD35124cfF2046Bd5df252e",
+      "txHash": "0x4085eff57b6687b6a8bb81249a84af50467fa381e5d4e068dedc6eee8479faca",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3102D0134A6e21027c714D45030E0C5933a8Fb90",
+      "txHash": "0x0b37cf353da17884d72bd388e2d43cc04662861c3c63b1d818f714a88524cb91",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -2015,6 +2035,155 @@
           },
           "t_mapping(t_uint256,t_uint256)": {
             "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    },
+    "bd83b895c12fa3379e5da18295661eccbaa73725164fe68af697ed49f7325bf5": {
+      "address": "0xDb7484A0a7A87a0c1A55cBC2b234783AdD9cd120",
+      "txHash": "0x6e60061822adb051997ff7d0a79db1faa1fa814d81b00f986c417f547f33d574",
+      "layout": {
+        "solcVersion": "0.8.19",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "admin",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "UUPSBase",
+            "src": "contracts/UUPSBase.sol:12"
+          },
+          {
+            "label": "futureAdmin",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "UUPSBase",
+            "src": "contracts/UUPSBase.sol:13"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "token",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_address",
+            "contract": "MinterV1",
+            "src": "contracts/MinterV1.sol:16"
+          },
+          {
+            "label": "controller",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_address",
+            "contract": "MinterV1",
+            "src": "contracts/MinterV1.sol:17"
+          },
+          {
+            "label": "minted",
+            "offset": 0,
+            "slot": "155",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "contract": "MinterV1",
+            "src": "contracts/MinterV1.sol:20"
+          },
+          {
+            "label": "allowedToMintFor",
+            "offset": 0,
+            "slot": "156",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+            "contract": "MinterV1",
+            "src": "contracts/MinterV1.sol:23"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_bool))": {
+            "label": "mapping(address => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
             "numberOfBytes": "32"
           },
           "t_uint256": {
