@@ -113,6 +113,14 @@ veYMWKのユーザごとの状態を user epoch ごとに記録する配列
 
 ある時点で予定されている slope の変化を記録する。ユーザのデポジットやロック期間変更時に更新される。週単位のタイムスタンプ（WEEK の倍数）がキーになり、ユーザのアクション時に該当する slope の変化がある場合は Point の slope にこの変化を適用する。
 
+#### `depositForAllowed: mapping(address => mapping(address => bool)) public`
+
+代理デポジットを許可するアドレスを保持する。depositor -> user -> allowed
+
+#### `depositForAllAllowed: mapping(address => bool) public`
+
+代理デポジットを全アドレスから許可するフラグを保持する。 user -> all allowed
+
 #### `name: string public`
 
 ve トークン名
@@ -297,12 +305,43 @@ function depositFor(address addr_, uint256 value_) external nonReentrant
 - \_deposit_for を呼び、任意の addr に代わって YMWK を任意の量ロックする
 - 既存のロックがない場合はリバート
 
+**条件**
+対象のアドレスが代理デポジットを許可していること
+
 **引数**
 
 | 引数名   | 型        | 概要               | 制約 |
 | -------- | --------- | ------------------ | ---- |
 | `addr_`  | `address` | 対象ユーザアドレス | -    |
 | `value_` | `uint256` | ロックする額       | -    |
+
+---
+
+#### `toggleDepositForApproval`
+
+```solidity
+function toggleDepositForApproval(address depositor_) external
+```
+
+- 指定したアドレスからの代理デポジットの許可と取り消しを実行する
+
+**引数**
+
+| 引数名  | 型           | 概要                                       | 制約 |
+| ------- | ------------ | ------------------------------------------ | ---- |
+| `addr_` | `depositor_` | デポジットを許可または取り消しするアドレス | -    |
+
+---
+
+#### `toggleDepositForAllApproval`
+
+```solidity
+function toggleDepositForAllApproval() external
+```
+
+- 第三者によるデポジットの許可と取り消しを実行する
+
+---
 
 #### `createLock`
 

@@ -112,6 +112,14 @@ A local index incremented with each action of a user.
 
 Records the scheduled changes in slope at specific times. Updated when a user deposits or changes their lock period. The key is a timestamp aligned to weeks (multiple of `WEEK`). If there is a slope change scheduled at the time of a user's action, this change is applied to the slope of the `Point`.
 
+#### `depositForAllowed: mapping(address => mapping(address => bool)) public`
+
+Maintains addresses that are allowed to deposit on behalf of others. depositor -> user -> allowed
+
+#### `depositForAllAllowed: mapping(address => bool) public`
+
+Stores a flag indicating whether a user allows deposits from all addresses. user -> all allowed
+
 #### `name: string public`
 
 Name of the veYMWK token.
@@ -298,12 +306,41 @@ function depositFor(address addr_, uint256 value_) external nonReentrant
 - Calls `_depositFor` to lock an arbitrary amount of YMWK on behalf of any `addr`.
 - Reverts if there is no existing lock.
 
+**Conditions**
+`msg.sender` is allowed to deposit on behalf of `addr_`
+
 **Parameters**
 
 | Name     | Type      | Description         | Constraints |
 | -------- | --------- | ------------------- | ----------- |
 | `addr_`  | `address` | Address of the user | -           |
 | `value_` | `uint256` | Amount to lock      | -           |
+
+---
+
+#### `toggleDepositForApproval`
+
+```solidity
+function toggleDepositForApproval(address depositor_) external
+```
+
+- Toggles the permission for a specific depositor to call depositFor on behalf of the message sender
+
+**引数**
+
+| 引数名  | 型           | 概要                                                           | 制約 |
+| ------- | ------------ | -------------------------------------------------------------- | ---- |
+| `addr_` | `depositor_` | The address of the depositor whose permission is being toggled | -    |
+
+---
+
+#### `toggleDepositForAllApproval`
+
+```solidity
+function toggleDepositForAllApproval() external
+```
+
+- Toggles the permission for all addresses to call depositFor on behalf of the message sender
 
 ---
 
