@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const factoryAddress = getContractAddress(hre.network.name, "Factory");
   const feeDistributorAddress = getContractAddress(
     hre.network.name,
-    "FeeDistributorV1"
+    "FeeDistributorProxy"
   );
   const distributorAddress = getContractAddress(
     hre.network.name,
