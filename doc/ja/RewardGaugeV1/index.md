@@ -24,7 +24,7 @@ UUPSBase
 
 ### プロパティ
 
-#### `startTime: int256 public`
+#### `startTime: uint256 public`
 
 トークンの配布を開始する週頭のタイムスタンプ
 

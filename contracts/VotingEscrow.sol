@@ -645,7 +645,7 @@ contract VotingEscrow is ReentrancyGuard {
         uint256 max_ = userPointEpoch[addr_];
 
         unchecked {
-            for (uint i = 0; i < 128; ++i) {
+            for (uint i; i < 128; ++i) {
                 // Will be always enough for 128-bit numbers
                 if (min_ >= max_) {
                     break;

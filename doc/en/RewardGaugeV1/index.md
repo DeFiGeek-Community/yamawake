@@ -24,7 +24,7 @@ UUPSBase
 
 ### Properties
 
-#### `startTime: int256 public`
+#### `startTime: uint256 public`
 
 - Timestamp at the beginning of the week when token distribution starts
 
