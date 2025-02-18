@@ -1,11 +1,22 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+  SnapshotRestorer,
+  takeSnapshot,
+  time,
+} from "@nomicfoundation/hardhat-network-helpers";
 
 describe("Yamawake Dapp", function () {
+  let snapshot: SnapshotRestorer;
+  before(async () => {
+    snapshot = await takeSnapshot();
+  });
+  after(async () => {
+    await snapshot.restore();
+  });
   const templateName = ethers.encodeBytes32String("TemplateV1");
   const initialSupply = ethers.parseEther("1000");
-
   const DAY = 24 * 60 * 60;
 
   async function deployFactoryAndFeePoolFixture() {

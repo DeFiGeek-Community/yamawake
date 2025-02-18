@@ -1,15 +1,23 @@
 import { ethers } from "hardhat";
 import type { TransactionReceipt } from "ethers";
 import { TemplateV1 } from "../typechain-types/contracts/TemplateV1";
-import { SampleToken } from "../typechain-types";
-
-const saleTemplateName = ethers.encodeBytes32String("sale");
+import {
+  DistributorReceiver,
+  Factory,
+  FeeDistributorV1,
+  MockToken,
+  SampleTemplate,
+  SampleToken,
+  TemplateV1_5,
+  YMWK,
+} from "../typechain-types";
+import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 export async function sendERC20(
   erc20contract: any,
   to: any,
   amountStr: string,
-  signer: any,
+  signer: any
 ) {
   let sendResult = await (
     await signer.sendTransaction({
@@ -27,7 +35,6 @@ export async function sendEther(to: any, amountStr: string, signer: any) {
   ).wait();
 }
 
-const templateName = ethers.encodeBytes32String("TemplateV1");
 export async function deploySaleTemplate(
   factory: any,
   tokenAddr: string,
@@ -37,8 +44,9 @@ export async function deploySaleTemplate(
   eventDuration: number,
   minRaisedAmount: any,
   creationFee?: bigint,
-  templateName_?: string,
+  templateName_?: string
 ): Promise<TemplateV1> {
+  const templateName = ethers.encodeBytes32String("TemplateV1");
   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
   const args = abiCoder.encode(
     ["address", "uint256", "uint256", "address", "uint256", "uint256"],
@@ -49,7 +57,7 @@ export async function deploySaleTemplate(
       tokenAddr,
       allocatedAmount,
       minRaisedAmount,
-    ],
+    ]
   );
   const tx = creationFee
     ? await factory.deployAuction(templateName_ ?? templateName, args, {
@@ -89,11 +97,11 @@ export async function deployCCIPRouter(linkReceiver: string): Promise<{
 
   const linkToken = await ethers.getContractAt(
     "SampleToken",
-    config.linkToken_,
+    config.linkToken_
   );
   const wrappedNative = await ethers.getContractAt(
     "SampleToken",
-    config.wrappedNative_,
+    config.wrappedNative_
   );
 
   return {
@@ -135,4 +143,125 @@ export async function getTemplateAddr(receipt: TransactionReceipt | null) {
   }
 
   return "";
+}
+export async function timeTravelTo(timestamp: number) {
+  await ethers.provider.send("evm_setNextBlockTimestamp", [timestamp]);
+  await ethers.provider.send("evm_mine", []);
+}
+
+export async function snapshot() {
+  return ethers.provider.send("evm_snapshot", []);
+}
+
+export async function deploySampleSaleTemplate(
+  factory: Factory,
+  feeDistributor: FeeDistributorV1,
+  token: MockToken | YMWK,
+  auctionToken: MockToken,
+  templateName: string,
+  deployer: SignerWithAddress
+): Promise<SampleTemplate> {
+  const Distributor = await ethers.getContractFactory("Distributor");
+  const Template = await ethers.getContractFactory("SampleTemplate");
+  const FeePool = await ethers.getContractFactory("FeePool");
+
+  const feePool = await FeePool.deploy();
+  await feePool.waitForDeployment();
+
+  const distributor = await Distributor.deploy(factory.target, token.target);
+  await distributor.waitForDeployment();
+
+  const template = await Template.deploy(
+    factory.target,
+    feePool.target,
+    distributor.target,
+    feeDistributor.target
+  );
+  await template.waitForDeployment();
+
+  await factory.addTemplate(
+    templateName,
+    template.target,
+    Template.interface.getFunction("initialize")!.selector,
+    Template.interface.getFunction("initializeTransfer")!.selector
+  );
+
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const args = abiCoder.encode(
+    ["address", "uint256"],
+    [auctionToken.target, 0]
+  );
+  const tx = await factory.connect(deployer).deployAuction(templateName, args);
+  const receipt = await tx.wait();
+  const templateAddr = await getTemplateAddr(receipt);
+  return Template.attach(templateAddr) as SampleTemplate;
+}
+
+export async function deploySaleTemplateV1_5(
+  factory: Factory,
+  feeDistributor: FeeDistributorV1,
+  ymwk: YMWK,
+  auctionTokenAddr: string,
+  allocatedAmount: any,
+  startingAt: number,
+  eventDuration: number,
+  minRaisedAmount: any,
+  deployer: SignerWithAddress
+): Promise<{
+  auction: TemplateV1_5;
+  templateName: string;
+  feeDistributor: FeeDistributorV1;
+  distributor: DistributorReceiver;
+}> {
+  const templateName = ethers.encodeBytes32String("TemplateV1_5");
+  const { destinationRouter } = await deployCCIPRouter(deployer.address);
+  const Distributor = await ethers.getContractFactory("DistributorReceiver");
+  const Template = await ethers.getContractFactory("TemplateV1_5");
+
+  const distributor = await Distributor.deploy(
+    factory.target,
+    ymwk.target,
+    destinationRouter
+  );
+  await distributor.waitForDeployment();
+
+  const template = await Template.deploy(
+    factory.target,
+    feeDistributor.target,
+    distributor.target
+  );
+  await template.waitForDeployment();
+
+  await factory.addTemplate(
+    templateName,
+    template.target,
+    Template.interface.getFunction("initialize")!.selector,
+    Template.interface.getFunction("initializeTransfer")!.selector
+  );
+
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+  const args = abiCoder.encode(
+    ["address", "uint256", "uint256", "address", "uint256", "uint256"],
+    [
+      deployer.address,
+      startingAt,
+      eventDuration,
+      auctionTokenAddr,
+      allocatedAmount,
+      minRaisedAmount,
+    ]
+  );
+  const tx = await factory.connect(deployer).deployAuction(templateName, args);
+  const receipt = await tx.wait();
+  const templateAddr = await getTemplateAddr(receipt);
+  return {
+    auction: Template.attach(templateAddr) as TemplateV1_5,
+    templateName,
+    feeDistributor,
+    distributor,
+  };
+}
+
+export async function restore(snapshotId: string): Promise<void> {
+  return ethers.provider.send("evm_revert", [snapshotId]);
 }

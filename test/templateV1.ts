@@ -1,12 +1,23 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+  SnapshotRestorer,
+  takeSnapshot,
+  time,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { sendEther, timeTravel, deploySaleTemplate } from "./scenarioHelper";
 
 describe("TemplateV1", function () {
+  let snapshot: SnapshotRestorer;
+  before(async () => {
+    snapshot = await takeSnapshot();
+  });
+  after(async () => {
+    await snapshot.restore();
+  });
   const templateName = ethers.encodeBytes32String("TemplateV1");
   const initialSupply = ethers.parseEther("1000");
-
   const DAY = 24 * 60 * 60;
 
   async function deployFactoryAndFeePoolFixture() {
