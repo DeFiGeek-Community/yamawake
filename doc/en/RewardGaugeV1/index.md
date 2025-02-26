@@ -4,12 +4,6 @@
 
 Calculates and maintains [YMWK Token](../YamawakeToken/index.md) rewards for [veYMWK](../VotingEscrow/index.md) holders.
 
-### Main Changes from the Curve Version
-
-- Changed to be upgradable by inheriting `UUPSUpgradeable`
-- Modified the reward calculation method to use ve balances at the beginning of each week, similar to the `FeeDistributor`
-- Removed other unnecessary functionalities
-
 ## Parent class
 
 UUPSBase
@@ -369,8 +363,3 @@ Returns the amount of YMWK rewards that the specified user can currently claim.
 ### YMWK Reward Simple Simulation
 
 https://www.desmos.com/calculator/9qm15hlyjq
-
-### Curve Contracts
-
-- [Curve Liquidity Gauge](https://github.com/curvefi/tricrypto-ng/blob/main/contracts/main/LiquidityGauge.vy)
-- [Curve Fee Distributor](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy)

@@ -24,23 +24,23 @@
 
 #### [VotingEscrow](./VotingEscrow/index.md)
 
-YMWK トークンをロックし、移転不可のveYMWK トークンを発行する。 CurveのVotingEscrowからフォーク。
+YMWK トークンをロックし、移転不可のveYMWK トークンを発行する。
 
 #### [FeeDistributorV1](./FeeDistributorV1/index.md)
 
-オークションの手数料をveYMWKホルダーに報酬として分配する。CurveのFeeDistributorからフォーク。
+オークションの手数料をveYMWKホルダーに報酬として分配する。
 
 #### [GaugeControllerV1](./GaugeControllerV1/index.md)
 
-GaugeごとのWeightの管理をする。CurveのGaugeControllerからフォーク。
+GaugeごとのWeightの管理をする。
 
 #### [RewardGaugeV1](./RewardGaugeV1/index.md)
 
-veYMWKホルダーに対するYMWKトークン報酬を計算・保持する。CurveのLiquidityGaugeからフォーク。
+veYMWKホルダーに対するYMWKトークン報酬を計算・保持する。
 
 #### [MinterV1](./MinterV1/index.md)
 
-ユーザからミントのリクエストを受け、ミント可能額をGaugeから取得し、YMWKトークンをミントする。CurveのTokenMinterからフォーク。
+ユーザからミントのリクエストを受け、ミント可能額をGaugeから取得し、YMWKトークンをミントする。
 
 #### [TemplateV1.5](./Template/V1.5/index.md)
 

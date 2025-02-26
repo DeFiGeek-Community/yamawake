@@ -4,24 +4,6 @@
 
 オークションの手数料をveYMWKホルダーに報酬として分配する。
 
-[Curve Fee Distributor](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy) のフォーク。
-
-### Curve版からの主な変更点
-
-- UUPSUpgradableを継承しアップグレーダブルに変更
-- 複数トークンに対応
-  - timeCursorOf, userEpochOf, lastTokenTime, startTime, tokensPerWeek, tokenLastBalance をトークンごとに管理
-  - claimMultipleTokens() の追加
-  - addRewardToken() の追加
-  - recoverBalance() の変更
-- チェックポイント作成のタイミング変更
-  - claim時にtokenCheckpointが呼ばれない
-- チェックポイント時の挙動の変更
-  - 前回チェックポイントから週を跨いだ場合は前回チェックポイントの翌週からFeeの分配を開始
-  - 前回チェックポイントから20週間以上経過している場合は過去20週間へ均等にFeeを分配する
-- クレーム時の挙動変更
-  - 前回チェックポイントから週を跨いでいる場合はチェックポイント不要で前週分までの報酬のクレームが可能
-
 ## 親クラス
 
 UUPSBase, ReentrancyGuardUpgradeable
@@ -487,11 +469,3 @@ function getTokens() external view returns (address[])
   - トークンのアドレス配列
 
 ---
-
-## 参考
-
-### Curve Contracts
-
-[Curve Liquidity Gauge](https://github.com/curvefi/tricrypto-ng/blob/main/contracts/main/LiquidityGauge.vy)
-
-[Curve Fee Distributor](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy)

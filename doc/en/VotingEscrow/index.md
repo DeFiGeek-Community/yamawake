@@ -2,25 +2,13 @@
 
 ## Overview
 
-A fork of Curve's [VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy) contract. Locks YMWK tokens and issues non-transferable veYMWK tokens.
+Locks YMWK tokens and issues non-transferable veYMWK tokens.
 
 The lock period is up to 4 years, with a minimum unit of 1 week. veYMWK decays linearly over time after locking. Locking 1 YMWK for 4 years issues 1 veYMWK.
-
-### Main Changes from the Curve Version
-
-- **Allowed operations from contracts**
-  - Removed `smart_wallet_checker`, `future_smart_wallet_checker`, `assert_not_contract()`, `apply_smart_wallet_checker()`, `commit_smart_wallet_checker()`
-- **Removed Admin and Controller related functionalities**
-  - Removed `admin`, `future_admin`, `apply_transfer_ownership()`, `commit_transfer_ownership()`
-  - Removed `controller`, `transfersEnabled`, `changeController()`
 
 #### References
 
 - [Simulation of YMWK Reward Allocation Amount for veYMWK Holders](https://www.desmos.com/calculator/uslkumq90d?lang=ja)
-- [Curve DAO: Vote-Escrowed CRV](https://etherscan.io/address/0x5f3b5dfeb7b28cdbd7faba78963ee202a494e2a2#readContract)
-- [Curve VotingEscrow Contract](https://curve.readthedocs.io/dao-vecrv.html)
-- [The Curve DAO: Liquidity Gauges and Minting CRV](https://curve.readthedocs.io/dao-gauges.html)
-- [LiquidityGaugeV6 Contract](https://github.com/curvefi/tricrypto-ng/blob/main/contracts/main/LiquidityGauge.vy)
 
 ## Features
 

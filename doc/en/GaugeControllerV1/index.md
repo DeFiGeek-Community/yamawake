@@ -2,11 +2,7 @@
 
 ## Overview
 
-A fork of Curve's [GaugeController](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy). Manages the weights for each Gauge.
-
-### Main Changes from the Curve Version
-
-- Retained only the minimal necessary functionalities and modified it to be upgradable using UUPSUpgradeable
+Manages the weights for each Gauge.
 
 ## Parent class
 

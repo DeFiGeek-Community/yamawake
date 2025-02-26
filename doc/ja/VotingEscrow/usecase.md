@@ -5,8 +5,6 @@
 - YMWKホルダー
   - YMWKトークンのホルダー
   - EOA、コントラクトを想定
-    - 参考
-      - [VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy#L109)
 - [VotingEscrow](./index.md)
   - YMWKトークンをロックすることで移転不可のveYMWKを発行する
   - veYMWKの残高を管理をする

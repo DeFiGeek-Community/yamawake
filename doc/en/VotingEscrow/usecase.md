@@ -5,8 +5,6 @@
 - **YMWK Holder**
   - Holder of YMWK tokens
   - Assumed to be an EOA (Externally Owned Account) or contract
-    - Reference:
-      - [VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy#L109)
 - **[VotingEscrow](./index.md)**
   - Issues non-transferable veYMWK by locking YMWK tokens
   - Manages veYMWK balances

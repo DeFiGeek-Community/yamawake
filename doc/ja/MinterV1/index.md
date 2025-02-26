@@ -2,13 +2,7 @@
 
 ## 概要
 
-Curveの[TokenMinter](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/Minter.vy)のフォーク。
-
 ユーザからミントのリクエストを受け、ミント可能額をGaugeから取得し、YMWKトークンをミントする
-
-### Curve版からの主な変更点
-
-- UUPSUpgradableを継承しアップグレーダブルに変更
 
 ## 親クラス
 

@@ -24,23 +24,23 @@ Users can sell any token in auction formats specified by the provided templates.
 
 #### [VotingEscrow](./VotingEscrow/index.md)
 
-Lock YMWK tokens to issue non-transferable veYMWK tokens. Forked from Curve's VotingEscrow.
+Lock YMWK tokens to issue non-transferable veYMWK tokens.
 
 #### [FeeDistributorV1](./FeeDistributorV1/index.md)
 
-Distributes auction fees as rewards to veYMWK holders. Forked from Curve's FeeDistributor.
+Distributes auction fees as rewards to veYMWK holders.
 
 #### [GaugeControllerV1](./GaugeControllerV1/index.md)
 
-Manages the weights for each Gauge. Forked from Curve's GaugeController.
+Manages the weights for each Gauge.
 
 #### [RewardGaugeV1](./RewardGaugeV1/index.md)
 
-Calculates and maintains YMWK token rewards for veYMWK holders. Forked from Curve's LiquidityGauge.
+Calculates and maintains YMWK token rewards for veYMWK holders.
 
 #### [MinterV1](./MinterV1/index.md)
 
-Receives mint requests from users, retrieves the mintable amount from the Gauge, and mints YMWK tokens. Forked from Curve's TokenMinter.
+Receives mint requests from users, retrieves the mintable amount from the Gauge, and mints YMWK tokens.
 
 #### [TemplateV1.5](./Template/V1.5/index.md)
 

@@ -10,7 +10,7 @@ import "../interfaces/IYMWK.sol";
 import "../interfaces/IVotingEscrow.sol";
 import "../UUPSBase.sol";
 
-// Upgradable ver of Curve GaugeController
+// GaugeController for upgrade testing
 contract UpgradableGaugeControllerOriginal is UUPSBase {
     struct Point {
         uint256 bias;

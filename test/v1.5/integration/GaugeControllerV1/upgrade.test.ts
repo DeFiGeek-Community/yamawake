@@ -42,9 +42,9 @@ function getRandomWeight(): bigint {
 // ------------------------------------------------
 /* 
 FeeDistributorV1のアップグレードテスト
-Curveのフォーク版GaugeControllerを仮想のGaugeControllerV2としてアップグレードし、
+アップグレードテスト用GaugeControllerを仮想のGaugeControllerV2としてアップグレードし、
 アップグレードされたGaugeControllerがV1のデータを保持していることを確認。
-Curve版のIntegration testを実行しアップグレードされたGaugeControllerがV1のデータを保持しつつテストをパスすることを確認する
+対応するIntegration testを実行しアップグレードされたGaugeControllerがV1のデータを保持しつつテストをパスすることを確認する
 */
 describe("GaugeControllerV1", function () {
   let accounts: SignerWithAddress[];
@@ -287,7 +287,7 @@ describe("GaugeControllerV1", function () {
     });
 
     /* 
-    GaugeControllerV2に対し、Curve版のIntegration testを実行
+    GaugeControllerV2に対し、V2用のIntegration testを実行
     */
     for (let i = 0; i < MAX_EXAMPLES; i++) {
       it(`should upgrade successfully and pass tests for V2 ${i}`, async () => {
@@ -301,11 +301,11 @@ describe("GaugeControllerV1", function () {
         )) as unknown as UpgradableGaugeControllerOriginal;
         await gaugeController.waitForDeployment();
 
-        // 2) Curve版の機能を使ってTypeWeightを調整
+        // 2) V2の機能を使ってTypeWeightを調整
         await gaugeController.changeTypeWeight(0, BigInt(1e18));
         typeWeights.push(BigInt(1e18));
 
-        // 3) Curve版のテストを実行する
+        // 3) V2のテストを実行する
         const steps = randomValue(1, STATEFUL_STEP_COUNT);
         for (let x = 0; x < steps; x++) {
           let n = randomValue(0, func.length);

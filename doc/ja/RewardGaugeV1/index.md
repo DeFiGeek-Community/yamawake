@@ -4,12 +4,6 @@
 
 [veYMWK](../VotingEscrow/index.md)ホルダーに対する[YMWKトークン](../YamawakeToken/index.md)報酬を計算・保持する。
 
-### Curve版からの主な変更点
-
-- UUPSUpgradableを継承しアップグレーダブルに変更
-- 報酬計算をFeeDistributorと同様に各週始め時点のve残高による方式に変更
-- その他不要な機能を削除
-
 ## 親クラス
 
 UUPSBase
@@ -371,9 +365,3 @@ function claimableTokens(
 ### YMWK報酬簡易シミュレーション
 
 https://www.desmos.com/calculator/9qm15hlyjq
-
-### Curve Contracts
-
-[Curve Liquidity Gauge](https://github.com/curvefi/tricrypto-ng/blob/main/contracts/main/LiquidityGauge.vy)
-
-[Curve Fee Distributor](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy)

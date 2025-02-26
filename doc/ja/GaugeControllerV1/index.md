@@ -2,11 +2,7 @@
 
 ## 概要
 
-Curveの[GaugeController](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/GaugeController.vy)のフォーク。GaugeごとのWeightの管理をする
-
-### Curve版からの主な変更点
-
-- 必要最低限の機能だけ残し、UUPSUpgradableを継承しアップグレーダブルに変更
+GaugeごとのWeightの管理をする
 
 ## 親クラス
 
