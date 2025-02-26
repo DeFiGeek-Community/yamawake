@@ -328,7 +328,13 @@ contract FeeDistributorV1 is UUPSBase, ReentrancyGuardUpgradeable {
         if (_t > _pt.ts) {
             _dt = int128(int256(_t) - int256(_pt.ts));
         }
-        veSupply[_t] = uint256(int256(_pt.bias - _pt.slope * _dt));
+
+        int128 _balance = _pt.bias - _pt.slope * _dt;
+        if (_balance < 0) {
+            veSupply[_t] = 0;
+        } else {
+            veSupply[_t] = uint256(uint128(_balance));
+        }
     }
 
     /***
