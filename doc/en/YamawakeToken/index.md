@@ -2,7 +2,7 @@
 
 ## Overview
 
-An ERC20 token based on the Curve Dao Token. It has an initial issuance of 450,000,000, with 55,000,000 released in the first year, and a 10% decrease annually over 235 years. The total issuance will eventually converge to 1,000,000,000.
+An ERC20 token. It has an initial issuance of 450,000,000, with 55,000,000 released in the first year, and a 10% decrease annually over 235 years. The total issuance will eventually converge to 1,000,000,000.
 
 ## Actor
 

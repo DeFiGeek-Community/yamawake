@@ -1,0 +1,189 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x864aa4378223755D013577D2b6fA692326f74E1E",
+      "txHash": "0xae956b23840a2c7c7236b8255fb911c97055dcbbc7211807f916fe37bda1c877",
+      "kind": "uups"
+    },
+    {
+      "address": "0x5cEd47B093C61416Ff1FBFB8Dd72Defb38154884",
+      "txHash": "0x2a5964d287845e65f155426ba02225260bb626f0e425f9f51601283097e3ba82",
+      "kind": "uups"
+    },
+    {
+      "address": "0x200F02A3d7353220C44a1339b45D1576488e3f1B",
+      "txHash": "0x8444cac9c8ba879683914cbf55aa90464c793d2145e2bf7942935d5fee018190",
+      "kind": "uups"
+    },
+    {
+      "address": "0x12f8A6Bd85C752d03847790a2E59eB76274f0dd0",
+      "txHash": "0xe1c58f8f98b672383386f7f9964527e959c6055d43b668c22cf9eb235077a453",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8399871f21EB710Dafb2f724409a8aD24CF46E68",
+      "txHash": "0x584d546bdef442c849286cb1fd6bfc64c96dd6d1b76891d089edae6c56bb4fe5",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "4beeab8161c64beb71e3cbe865a6fa835f820c885a5e3a4cc983e2da938e82df": {
+      "address": "0x793838Ea45fa064FF096bC17E5D2Bd1055B7B927",
+      "txHash": "0xb8d8eea0da206efaea62a3807dbc71721fdb819316aae7f388b9831a58b92dd2",
+      "layout": {
+        "solcVersion": "0.8.18",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "admin",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:18"
+          },
+          {
+            "label": "futureAdmin",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:20"
+          },
+          {
+            "label": "token",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:22"
+          },
+          {
+            "label": "votingEscrow",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_address",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:24"
+          },
+          {
+            "label": "nGaugeTypes",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_int128",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:26"
+          },
+          {
+            "label": "nGauges",
+            "offset": 16,
+            "slot": "105",
+            "type": "t_int128",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:27"
+          },
+          {
+            "label": "gaugeTypeNames",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_int128,t_string_storage)",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:28"
+          },
+          {
+            "label": "gauges",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_array(t_address)1000000000_storage",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:31"
+          },
+          {
+            "label": "gaugeTypes_",
+            "offset": 0,
+            "slot": "1000000107",
+            "type": "t_mapping(t_address,t_int128)",
+            "contract": "GaugeControllerV1",
+            "src": "contracts/GaugeControllerV1.sol:35"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_address)1000000000_storage": {
+            "label": "address[1000000000]",
+            "numberOfBytes": "32000000000"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_int128": {
+            "label": "int128",
+            "numberOfBytes": "16"
+          },
+          "t_mapping(t_address,t_int128)": {
+            "label": "mapping(address => int128)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_int128,t_string_storage)": {
+            "label": "mapping(int128 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    }
+  }
+}

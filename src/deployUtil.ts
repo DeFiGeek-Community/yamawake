@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { Contract } from "ethers";
 import { genABI } from "./genABI";
-import { ethers, network } from "hardhat";
+import { ethers, network, upgrades } from "hardhat";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 type Options = {
@@ -62,6 +62,46 @@ export async function deploy(contractName: string, opts: Options) {
   writeFileSync(
     `deployments/${network.name}/${contractName}`,
     _Contract.target.toString()
+  );
+  return _Contract;
+}
+
+export async function deployProxy(
+  contractName: string,
+  version: "V1", // should be added in the future
+  opts: Options
+) {
+  const foundation: SignerWithAddress = await getFoundation();
+
+  if (!opts.from) opts.from = foundation;
+  if (!opts.signer) opts.signer = opts.from;
+  if (!opts.ABI) opts.ABI = genABI(contractName + version);
+  if (!opts.args) opts.args = [];
+  if (!opts.linkings) opts.linkings = [];
+  if (!opts.log) opts.log = false;
+
+  const _Factory = await opts.getContractFactory(contractName + version, {
+    signer: opts.signer,
+  });
+
+  const _Contract: Contract = await upgrades.deployProxy(_Factory, opts.args);
+  await _Contract.waitForDeployment();
+  const implAddress = await upgrades.erc1967.getImplementationAddress(
+    String(_Contract.target)
+  );
+  if (opts.log)
+    console.log(
+      `${contractName}${version} is deployed as ${
+        _Contract.target
+      } by ${await opts.signer.getAddress()}`
+    );
+  writeFileSync(
+    `deployments/${network.name}/${contractName}Proxy`,
+    String(_Contract.target)
+  );
+  writeFileSync(
+    `deployments/${network.name}/${contractName}${version}`,
+    implAddress
   );
   return _Contract;
 }
